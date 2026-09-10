@@ -15,6 +15,7 @@
 <p class="enlaces-secundarios">
   <a href="{% url 'movimientos:novedades' %}">Novedades</a>
   <a href="{% url 'ropa:validacion' %}">Validar entrega a lavandería</a>
+  {% if user.es_administradora %}<a href="{% url 'reportes:consolidados' %}">Consolidados</a>{% endif %}
 </p>
 
 <section class="seccion">

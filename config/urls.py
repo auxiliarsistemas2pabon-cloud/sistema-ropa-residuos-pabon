@@ -9,5 +9,6 @@ urlpatterns = [
     path("", include("ropa.urls")),
     path("", include("residuos.urls")),
     path("", include("movimientos.urls")),
+    path("", include("reportes.urls")),
     path("", include("core.urls")),
 ]

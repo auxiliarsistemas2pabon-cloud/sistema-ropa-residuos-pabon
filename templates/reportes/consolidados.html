@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block titulo %}Consolidados · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Consolidados</h1>
+<p class="tinta-suave">
+  Todo se calcula sobre los movimientos registrados. Sin filtros de fecha se
+  toma el histórico completo; usa «Mes» para el consolidado mensual.
+</p>
+
+<form method="get" class="fila-filtro">
+  {% for campo in filtro %}
+    {% include "componentes/_campo.html" with campo=campo %}
+  {% endfor %}
+  <button type="submit" class="boton">Aplicar</button>
+</form>
+
+{% for r in reportes %}
+  <section class="seccion">
+    <div class="titulo-reporte">
+      <h2>{{ r.titulo }}</h2>
+      <a class="boton boton--texto" href="{% url 'reportes:exportar' r.clave %}?{{ request.GET.urlencode }}">Exportar a Excel</a>
+    </div>
+    {% if r.filas %}
+      <div class="tabla-envoltura">
+        <table class="tabla tabla-kg">
+          <thead>
+            <tr>{% for c in r.columnas %}<th>{{ c }}</th>{% endfor %}</tr>
+          </thead>
+          <tbody>
+            {% for fila in r.filas %}
+              <tr>
+                {% for valor, num in fila %}
+                  <td{% if num %} class="num cifra-kg"{% endif %}>{{ valor }}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="vacio">Sin datos para este filtro.</p>
+    {% endif %}
+  </section>
+{% endfor %}
+{% endblock %}

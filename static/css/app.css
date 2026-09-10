@@ -231,3 +231,7 @@ a:focus-visible {
 
 .lista-novedades { margin: 0; padding-left: var(--espacio-4); }
 .lista-novedades li { margin-bottom: var(--espacio-2); }
+
+.titulo-reporte { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espacio-4); }
+.titulo-reporte .boton--texto { margin: 0; }
+.tabla tfoot th, .tabla tfoot td { font-weight: var(--peso-semibold); border-top: 2px solid var(--linea); }
