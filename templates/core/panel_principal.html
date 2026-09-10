@@ -4,16 +4,6 @@
 
 {% block contenido %}
 
-{% if perms.movimientos.add_movimiento %}
-  <h1>¿Qué vas a registrar?</h1>
-  <div class="accesos">
-    <a class="acceso" href="{% url 'ropa:entrega_sucia' %}">Entregar ropa sucia</a>
-    <a class="acceso" href="{% url 'ropa:recepcion_limpia' %}">Recibir ropa limpia</a>
-    <a class="acceso" href="{% url 'residuos:menu' %}">Registrar residuos</a>
-    <a class="acceso" href="{% url 'movimientos:revision_dia_anterior' %}">Ver día anterior</a>
-  </div>
-{% endif %}
-
 {% if user.es_administradora or user.is_superuser %}
   <h1>Administración y reportes</h1>
   <div class="accesos">
@@ -22,17 +12,23 @@
     <a class="acceso" href="{% url 'movimientos:novedades' %}">Novedades</a>
     <a class="acceso" href="{% url 'admin:index' %}">Catálogos y parámetros</a>
   </div>
-{% endif %}
-
-<p class="enlaces-secundarios">
-  {% if not user.es_administradora and not user.is_superuser %}
-    <a href="{% url 'movimientos:novedades' %}">Novedades</a>
-  {% endif %}
-  <a href="{% url 'ropa:validacion' %}">Validar entrega a lavandería</a>
-  {% if user.es_administradora or user.is_superuser %}
+  <p class="enlaces-secundarios">
     <a href="{% url 'movimientos:revision_dia_anterior' %}">Ver día anterior</a>
-  {% endif %}
-</p>
+    <a href="{% url 'ropa:validacion' %}">Validar entrega a lavandería</a>
+  </p>
+{% else %}
+  <h1>¿Qué vas a registrar?</h1>
+  <div class="accesos">
+    <a class="acceso" href="{% url 'ropa:entrega_sucia' %}">Entregar ropa sucia</a>
+    <a class="acceso" href="{% url 'ropa:recepcion_limpia' %}">Recibir ropa limpia</a>
+    <a class="acceso" href="{% url 'residuos:menu' %}">Registrar residuos</a>
+    <a class="acceso" href="{% url 'movimientos:revision_dia_anterior' %}">Ver día anterior</a>
+  </div>
+  <p class="enlaces-secundarios">
+    <a href="{% url 'movimientos:novedades' %}">Novedades</a>
+    <a href="{% url 'ropa:validacion' %}">Validar entrega a lavandería</a>
+  </p>
+{% endif %}
 
 <section class="seccion">
   <h2>Movimientos de hoy</h2>
