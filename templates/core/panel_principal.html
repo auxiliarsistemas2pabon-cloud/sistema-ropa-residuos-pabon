@@ -3,21 +3,34 @@
 {% block titulo %}Inicio · Clínica Pabón{% endblock %}
 
 {% block contenido %}
-<h1>¿Qué vas a registrar?</h1>
 
-<div class="accesos">
-  <a class="acceso" href="{% url 'ropa:entrega_sucia' %}">Entregar ropa sucia</a>
-  <a class="acceso" href="{% url 'ropa:recepcion_limpia' %}">Recibir ropa limpia</a>
-  <a class="acceso" href="{% url 'residuos:menu' %}">Registrar residuos</a>
-  <a class="acceso" href="{% url 'movimientos:revision_dia_anterior' %}">Ver día anterior</a>
-</div>
+{% if perms.movimientos.add_movimiento %}
+  <h1>¿Qué vas a registrar?</h1>
+  <div class="accesos">
+    <a class="acceso" href="{% url 'ropa:entrega_sucia' %}">Entregar ropa sucia</a>
+    <a class="acceso" href="{% url 'ropa:recepcion_limpia' %}">Recibir ropa limpia</a>
+    <a class="acceso" href="{% url 'residuos:menu' %}">Registrar residuos</a>
+    <a class="acceso" href="{% url 'movimientos:revision_dia_anterior' %}">Ver día anterior</a>
+  </div>
+{% endif %}
+
+{% if user.es_administradora or user.is_superuser %}
+  <h1>Administración y reportes</h1>
+  <div class="accesos">
+    <a class="acceso" href="{% url 'reportes:consolidados' %}">Consolidados</a>
+    <a class="acceso" href="{% url 'reportes:ambiental_facturacion' %}">RH1 y facturación</a>
+    <a class="acceso" href="{% url 'movimientos:novedades' %}">Novedades</a>
+    <a class="acceso" href="{% url 'admin:index' %}">Catálogos y parámetros</a>
+  </div>
+{% endif %}
 
 <p class="enlaces-secundarios">
-  <a href="{% url 'movimientos:novedades' %}">Novedades</a>
+  {% if not user.es_administradora and not user.is_superuser %}
+    <a href="{% url 'movimientos:novedades' %}">Novedades</a>
+  {% endif %}
   <a href="{% url 'ropa:validacion' %}">Validar entrega a lavandería</a>
   {% if user.es_administradora or user.is_superuser %}
-    <a href="{% url 'reportes:consolidados' %}">Consolidados</a>
-    <a href="{% url 'reportes:ambiental_facturacion' %}">RH1 y facturación</a>
+    <a href="{% url 'movimientos:revision_dia_anterior' %}">Ver día anterior</a>
   {% endif %}
 </p>
 
@@ -43,7 +56,7 @@
       </tbody>
     </table>
   {% else %}
-    <p class="vacio">Todavía no hay movimientos hoy. Registra el primero.</p>
+    <p class="vacio">Todavía no hay movimientos hoy.</p>
   {% endif %}
 </section>
 {% endblock %}

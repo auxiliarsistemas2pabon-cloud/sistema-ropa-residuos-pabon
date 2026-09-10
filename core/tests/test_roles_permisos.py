@@ -47,10 +47,19 @@ def test_grupo_administradora_gestiona_catalogos_y_parametros():
     assert {"change_columnarh1", "change_validacionentrega"} <= perms
 
 
+def test_administradora_no_registra_capturas_pero_si_corrige_y_factura():
+    perms = set(Group.objects.get(name="Administradora").permissions.values_list("codename", flat=True))
+    assert "add_movimiento" not in perms       # no hace la captura diaria
+    assert "add_pesaje" not in perms
+    assert {"change_movimiento", "view_movimiento"} <= perms  # sí corrige y consulta
+    assert {"add_entregagestor", "change_entregagestor"} <= perms  # sí registra facturas
+
+
 def test_grupo_usuario_no_toca_catalogos_ni_parametros():
     perms = set(Group.objects.get(name="Usuario").permissions.values_list("codename", flat=True))
     assert "change_sede" not in perms
     assert "change_config" not in perms
+    assert "add_entregagestor" not in perms  # las facturas del gestor son de la Administradora
     assert {"add_movimiento", "change_movimiento", "view_movimiento"} <= perms
     assert {"add_detalleresiduo", "add_rotulo"} <= perms
 
