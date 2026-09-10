@@ -1,0 +1,68 @@
+# Despliegue de producción: Caddy (HTTPS automático) -> gunicorn -> PostgreSQL.
+# Uso:  docker compose -f docker-compose.prod.yml up -d --build
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clinica_pabon}
+      POSTGRES_USER: ${POSTGRES_USER:-clinica_pabon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clinica_pabon}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      POSTGRES_HOST: db
+    volumes:
+      - static_data:/app/staticfiles
+      - backups_data:/app/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - static_data:/srv/static:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+  respaldo:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      POSTGRES_HOST: db
+    volumes:
+      - backups_data:/app/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    # Respaldo al arrancar y luego cada 24 horas (RNF-15). Para atarlo a una
+    # hora fija, ver la alternativa con cron en DESPLIEGUE.md.
+    entrypoint: ["sh", "-c", "while true; do python manage.py respaldo_diario || true; sleep 86400; done"]
+
+volumes:
+  postgres_data:
+  static_data:
+  backups_data:
+  caddy_data:
+  caddy_config:

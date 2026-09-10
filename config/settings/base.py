@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "django_tables2",
     "crispy_forms",
     "crispy_bootstrap5",
+    "dbbackup",
     # propias
     "core",
     "movimientos",
@@ -98,6 +99,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "dbbackup": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": str(BASE_DIR / "backups")},
+    },
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -113,6 +118,13 @@ LOGOUT_REDIRECT_URL = "login"
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# Respaldos (RNF-15: diario, retención mínima de 30 días).
+# El destino se configura en STORAGES["dbbackup"] (arriba).
+DBBACKUP_CLEANUP_KEEP = 35
+DBBACKUP_CLEANUP_KEEP_MEDIA = 35
+DBBACKUP_FILENAME_TEMPLATE = "{datetime}-{databasename}.{extension}"
+DBBACKUP_DATE_FORMAT = "%Y%m%d-%H%M%S"
 
 # Parámetros editables desde el admin sin desarrollo (capítulo 13 del prompt de desarrollo).
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"

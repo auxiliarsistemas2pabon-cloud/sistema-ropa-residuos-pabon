@@ -1,0 +1,18 @@
+# Reemplaza clinica-pabon.example.com por el dominio real. Caddy obtiene y
+# renueva el certificado TLS automáticamente (RNF-11).
+clinica-pabon.example.com {
+	encode gzip
+
+	handle_path /static/* {
+		root * /srv/static
+		file_server
+	}
+
+	reverse_proxy web:8000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+}
