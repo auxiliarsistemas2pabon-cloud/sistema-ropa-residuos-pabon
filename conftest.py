@@ -15,12 +15,15 @@ def usuario(db):
 
 @pytest.fixture
 def sede(db):
-    return Sede.objects.create(nombre="Clínica")
+    # "Clínica" ya viene sembrada por la data migration del catálogo.
+    obj, _ = Sede.objects.get_or_create(nombre="Clínica")
+    return obj
 
 
 @pytest.fixture
 def area(db, sede):
-    return AreaServicio.objects.create(sede=sede, nombre="Hemodinamia")
+    obj, _ = AreaServicio.objects.get_or_create(sede=sede, nombre="Hemodinamia")
+    return obj
 
 
 @pytest.fixture

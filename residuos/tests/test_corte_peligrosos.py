@@ -61,8 +61,8 @@ def test_corte_no_modifica_ni_duplica_registros(crear_movimiento, cat_peligrosa)
 
 
 def test_corte_filtra_por_sede(crear_movimiento, cat_peligrosa, sede):
-    otra = Sede.objects.create(nombre="Especialidades")
-    otra_area = AreaServicio.objects.create(sede=otra, nombre="Laboratorio")
+    otra, _ = Sede.objects.get_or_create(nombre="Especialidades")
+    otra_area, _ = AreaServicio.objects.get_or_create(sede=otra, nombre="Laboratorio")
     _detalle(
         crear_movimiento, cat_peligrosa, DIA, time(9, 0), "50.00",
         sede=otra, area_origen=otra_area,

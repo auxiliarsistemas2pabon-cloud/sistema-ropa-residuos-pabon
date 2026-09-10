@@ -50,8 +50,8 @@ def test_sin_entrega_que_calce_no_enlaza(crear_movimiento):
 
 
 def test_no_enlaza_entrega_de_otra_sede(crear_movimiento):
-    otra_sede = Sede.objects.create(nombre="Especialidades")
-    otra_area = AreaServicio.objects.create(sede=otra_sede, nombre="Consulta externa")
+    otra_sede, _ = Sede.objects.get_or_create(nombre="Especialidades")
+    otra_area, _ = AreaServicio.objects.get_or_create(sede=otra_sede, nombre="Consulta externa")
     crear_movimiento(
         tipo=TipoMovimiento.ROPA_SUCIA_ENTREGA, fecha=date(2026, 3, 10), hora=time(10, 0),
         sede=otra_sede, area_origen=otra_area,
