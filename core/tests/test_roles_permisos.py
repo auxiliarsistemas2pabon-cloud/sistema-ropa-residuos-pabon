@@ -43,6 +43,8 @@ def test_grupo_administradora_gestiona_catalogos_y_parametros():
     assert {"add_sede", "change_sede", "view_sede"} <= perms
     assert "change_config" in perms
     assert {"change_prenda", "change_categoriaresiduo", "change_configuracionjornada"} <= perms
+    # modelos agregados en etapas posteriores (migración core 0004)
+    assert {"change_columnarh1", "change_validacionentrega"} <= perms
 
 
 def test_grupo_usuario_no_toca_catalogos_ni_parametros():
