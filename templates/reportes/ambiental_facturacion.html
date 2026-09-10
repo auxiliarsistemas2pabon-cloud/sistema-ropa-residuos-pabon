@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block titulo %}RH1 y facturación · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>RH1 y facturación</h1>
+
+<form method="get" class="fila-filtro">
+  <div class="campo">
+    <label for="mes">Mes</label>
+    <input type="month" id="mes" name="mes" value="{{ mes_valor }}">
+  </div>
+  <button type="submit" class="boton">Ver</button>
+</form>
+
+<section class="seccion">
+  <div class="titulo-reporte">
+    <h2>Formato RH1</h2>
+    <a class="boton boton--texto" href="{% url 'reportes:exportar_rh1' %}?mes={{ mes_valor }}">Exportar RH1</a>
+  </div>
+  <p class="tinta-suave">
+    Generación por día calendario. La estructura de columnas es configurable
+    desde el admin (Columnas del RH1) — falta el formato oficial de la
+    autoridad ambiental para dejarlo definitivo.
+  </p>
+  {% if rh1.columnas %}
+    <div class="tabla-envoltura">
+      <table class="tabla tabla-kg">
+        <thead>
+          <tr><th>Fecha</th>{% for c in rh1.columnas %}<th class="num">{{ c.nombre }}</th>{% endfor %}<th class="num">Total día</th></tr>
+        </thead>
+        <tbody>
+          {% for f in rh1.filas %}{% if f.total %}
+            <tr>
+              <td>{{ f.fecha|date:"d M" }}</td>
+              {% for celda in f.celdas %}<td class="num cifra-kg">{{ celda }}</td>{% endfor %}
+              <td class="num cifra-kg">{{ f.total }}</td>
+            </tr>
+          {% endif %}{% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><th>Total mes</th>{% for t in rh1.totales_columna %}<td class="num cifra-kg">{{ t }}</td>{% endfor %}<td class="num cifra-kg">{{ rh1.total_mes }}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="tinta-suave">Se muestran solo los días con generación; el Excel trae el mes completo.</p>
+  {% else %}
+    <p class="vacio">No hay columnas del RH1 configuradas.</p>
+  {% endif %}
+</section>
+
+<section class="seccion">
+  <div class="titulo-reporte">
+    <h2>Resumen de facturación</h2>
+    <a class="boton boton--texto" href="{% url 'reportes:exportar_facturacion' %}?mes={{ mes_valor }}">Exportar</a>
+  </div>
+
+  <h3 class="sub">Del periodo</h3>
+  {% if facturacion.actual %}
+    <table class="tabla tabla-kg">
+      <thead><tr><th>Gestor</th><th class="num">kg</th><th class="num">Valor</th><th class="num">Facturas</th></tr></thead>
+      <tbody>
+        {% for x in facturacion.actual %}
+          <tr><td>{{ x.gestor_externo__nombre }}</td><td class="num cifra-kg">{{ x.kg|default:0 }}</td><td class="num cifra-kg">{{ x.valor|default:0 }}</td><td class="num">{{ x.facturas }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vacio">Sin entregas facturadas en este periodo.</p>
+  {% endif %}
+
+  <h3 class="sub">Pendientes del mes anterior</h3>
+  {% if facturacion.pendientes_anteriores %}
+    <table class="tabla tabla-kg">
+      <thead><tr><th>Gestor</th><th class="num">kg</th><th class="num">Valor</th><th class="num">Facturas</th></tr></thead>
+      <tbody>
+        {% for x in facturacion.pendientes_anteriores %}
+          <tr><td>{{ x.gestor_externo__nombre }}</td><td class="num cifra-kg">{{ x.kg|default:0 }}</td><td class="num cifra-kg">{{ x.valor|default:0 }}</td><td class="num">{{ x.facturas }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vacio">Nada pendiente del mes anterior.</p>
+  {% endif %}
+
+  <p><strong>Total general: {{ facturacion.total_general }}</strong></p>
+</section>
+
+<section class="seccion">
+  <h2>Conciliación con el gestor</h2>
+  {% if conciliacion %}
+    <table class="tabla tabla-kg">
+      <thead><tr><th>Gestor</th><th>Factura</th><th class="num">kg interno</th><th class="num">kg facturado</th><th class="num">Diferencia</th></tr></thead>
+      <tbody>
+        {% for x in conciliacion %}
+          <tr>
+            <td>{{ x.gestor }}</td><td>{{ x.factura }}</td>
+            <td class="num cifra-kg">{{ x.kg_interno }}</td>
+            <td class="num cifra-kg">{{ x.kg_facturado }}</td>
+            <td class="num cifra-kg">{{ x.diferencia }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vacio">Sin entregas al gestor en este periodo.</p>
+  {% endif %}
+</section>
+{% endblock %}

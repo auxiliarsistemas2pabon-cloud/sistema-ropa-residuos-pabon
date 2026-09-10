@@ -3,7 +3,7 @@ from simple_history.admin import SimpleHistoryAdmin
 
 from core.admin import SinBorrado
 
-from .models import CategoriaResiduo, DetalleResiduo, EntregaGestor
+from .models import CategoriaResiduo, ColumnaRH1, DetalleResiduo, EntregaGestor
 
 
 @admin.register(CategoriaResiduo)
@@ -26,3 +26,10 @@ class EntregaGestorAdmin(SinBorrado, SimpleHistoryAdmin):
     list_display = ["gestor_externo", "numero_factura", "kg_facturados", "valor_facturado", "movimiento"]
     list_filter = ["gestor_externo"]
     search_fields = ["numero_factura"]
+
+
+@admin.register(ColumnaRH1)
+class ColumnaRH1Admin(SimpleHistoryAdmin):
+    list_display = ["nombre", "orden", "grupo", "activo"]
+    list_editable = ["orden", "activo"]
+    filter_horizontal = ["categorias"]

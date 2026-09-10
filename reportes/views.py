@@ -1,18 +1,35 @@
+from datetime import date
+
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 
 from core.decorators import solo_administradora
 
 from .exportadores import libro_de_tabla
 from .filters import FiltroConsolidado
 from .services import (
+    conciliacion_gestor,
     corte_peligrosos,
     por_jornada,
     residuos_por_categoria,
     residuos_por_servicio,
+    resumen_facturacion,
+    rh1_del_mes,
     ropa_por_sede,
     ropa_por_servicio,
 )
+
+
+def _mes_pedido(request):
+    crudo = request.GET.get("mes") or ""
+    try:
+        anio, mes = (int(x) for x in crudo.split("-"))
+        date(anio, mes, 1)
+        return anio, mes
+    except (ValueError, TypeError):
+        hoy = timezone.localdate()
+        return hoy.year, hoy.month
 
 
 def _texto(v):
@@ -107,10 +124,61 @@ def exportar(request, clave):
         raise Http404
     titulo, columnas, filas = constructor(FiltroConsolidado(request.GET or None).limpio())
     plano = [[celda[0] for celda in fila] for fila in filas]
-    wb = libro_de_tabla(titulo, columnas, plano)
+    return _respuesta_xlsx(libro_de_tabla(titulo, columnas, plano), clave)
+
+
+def _respuesta_xlsx(wb, nombre):
     resp = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    resp["Content-Disposition"] = f'attachment; filename="{clave}.xlsx"'
+    resp["Content-Disposition"] = f'attachment; filename="{nombre}.xlsx"'
     wb.save(resp)
     return resp
+
+
+@solo_administradora
+def ambiental_facturacion(request):
+    anio, mes = _mes_pedido(request)
+    return render(
+        request,
+        "reportes/ambiental_facturacion.html",
+        {
+            "mes_valor": f"{anio:04d}-{mes:02d}",
+            "rh1": rh1_del_mes(anio, mes),
+            "facturacion": resumen_facturacion(anio, mes),
+            "conciliacion": conciliacion_gestor(anio, mes),
+        },
+    )
+
+
+@solo_administradora
+def exportar_rh1(request):
+    anio, mes = _mes_pedido(request)
+    datos = rh1_del_mes(anio, mes)
+    columnas = ["Fecha"] + [c.nombre for c in datos["columnas"]] + ["Total día"]
+    filas = [
+        [f["fecha"].isoformat()] + [c for c in f["celdas"]] + [f["total"]]
+        for f in datos["filas"]
+    ]
+    filas.append(["Total mes"] + list(datos["totales_columna"]) + [datos["total_mes"]])
+    return _respuesta_xlsx(
+        libro_de_tabla(f"RH1 {anio}-{mes:02d}", columnas, filas, num_desde=1),
+        f"rh1_{anio}-{mes:02d}",
+    )
+
+
+@solo_administradora
+def exportar_facturacion(request):
+    anio, mes = _mes_pedido(request)
+    f = resumen_facturacion(anio, mes)
+    columnas = ["Concepto", "Gestor", "kg", "Valor", "Facturas"]
+    filas = []
+    for x in f["actual"]:
+        filas.append(["Periodo", x["gestor_externo__nombre"], x["kg"] or 0, x["valor"] or 0, x["facturas"]])
+    for x in f["pendientes_anteriores"]:
+        filas.append(["Pendiente mes anterior", x["gestor_externo__nombre"], x["kg"] or 0, x["valor"] or 0, x["facturas"]])
+    filas.append(["Total general", "", "", f["total_general"], ""])
+    return _respuesta_xlsx(
+        libro_de_tabla(f"Facturacion {anio}-{mes:02d}", columnas, filas, num_desde=2),
+        f"facturacion_{anio}-{mes:02d}",
+    )

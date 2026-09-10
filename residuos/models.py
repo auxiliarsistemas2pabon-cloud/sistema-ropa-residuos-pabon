@@ -80,3 +80,32 @@ class EntregaGestor(models.Model):
 
     def __str__(self):
         return f"{self.gestor_externo} · {self.numero_factura or 's/f'}"
+
+
+class ColumnaRH1(models.Model):
+    """Define una columna del formato RH1 para la autoridad ambiental. La
+    estructura exacta del RH1 está pendiente de confirmación (Anexo A, punto 4):
+    la Coordinadora del SIG ajusta desde el admin qué grupo o categorías
+    alimentan cada columna, sin tocar código (13.4)."""
+
+    orden = models.PositiveIntegerField(default=0)
+    nombre = models.CharField(max_length=150, help_text="Encabezado de la columna en el RH1.")
+    grupo = models.CharField(
+        max_length=20, choices=GrupoResiduo.choices, blank=True,
+        help_text="Suma todo un grupo. Dejar vacío si se listan categorías específicas.",
+    )
+    categorias = models.ManyToManyField(
+        CategoriaResiduo, blank=True, related_name="columnas_rh1",
+        help_text="Categorías específicas que suma esta columna.",
+    )
+    activo = models.BooleanField(default=True)
+
+    history = HistoricalRecords(m2m_fields=[categorias])
+
+    class Meta:
+        verbose_name = "columna del RH1"
+        verbose_name_plural = "columnas del RH1"
+        ordering = ["orden", "nombre"]
+
+    def __str__(self):
+        return self.nombre
