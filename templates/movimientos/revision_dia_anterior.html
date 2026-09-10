@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block titulo %}Día anterior · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Revisión del día anterior</h1>
+<p class="tinta-suave">
+  {{ ayer|date:"l d \d\e F" }}. Solo consulta — nada de esto se suma al día de hoy.
+</p>
+
+{% if pendientes %}
+  <p class="novedad">{{ pendientes|length }} movimiento{{ pendientes|length|pluralize }} pendiente{{ pendientes|length|pluralize }} de carga.</p>
+{% endif %}
+
+<h2>Movimientos</h2>
+{% if movimientos %}
+  <div class="tabla-envoltura">
+    <table class="tabla tabla-kg">
+      <thead>
+        <tr><th>Hora</th><th>Tipo</th><th>Servicio</th><th class="num">kg netos</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {% for m in movimientos %}
+          <tr>
+            <td>{{ m.hora|time:"H:i" }}</td>
+            <td>{{ m.get_tipo_movimiento_display }}</td>
+            <td>{{ m.area_origen.nombre|default:"—" }}</td>
+            <td class="num cifra-kg">{{ m.pesajes.all.0.peso_neto|default:"—" }}</td>
+            <td>{{ m.get_estado_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="vacio">No hubo movimientos el día anterior.</p>
+{% endif %}
+
+<h2>Novedades</h2>
+{% if novedades %}
+  <ul class="lista-novedades">
+    {% for n in novedades %}
+      <li>
+        <strong>{{ n.get_tipo_novedad_display }}</strong>
+        · {{ n.movimiento.area_origen.nombre|default:"—" }}
+        {% if n.observacion %} · {{ n.observacion }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="vacio">Sin novedades el día anterior.</p>
+{% endif %}
+{% endblock %}

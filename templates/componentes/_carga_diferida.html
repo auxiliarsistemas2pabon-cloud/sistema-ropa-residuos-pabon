@@ -1,0 +1,10 @@
+{# Carga diferida (6.9): solo si el pesaje se anotó en papel y se sube después. #}
+<details class="carga-diferida"{% if form.fecha.value or form.hora.value or form.fecha.errors or form.hora.errors %} open{% endif %}>
+  <summary>El registro es de una fecha anterior</summary>
+  <p class="campo__ayuda">
+    Úsalo solo si el pesaje se anotó en papel. El movimiento queda como
+    «pendiente de carga».
+  </p>
+  {% include "componentes/_campo.html" with campo=form.fecha %}
+  {% include "componentes/_campo.html" with campo=form.hora %}
+</details>

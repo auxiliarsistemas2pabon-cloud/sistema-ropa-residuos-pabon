@@ -42,6 +42,7 @@
     </dl>
     {% include "componentes/_campo.html" with campo=form.responsable %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}
+    {% include "componentes/_carga_diferida.html" %}
     <button type="submit" class="boton" data-requiere-peso-valido>Guardar generación</button>
     <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
   </section>

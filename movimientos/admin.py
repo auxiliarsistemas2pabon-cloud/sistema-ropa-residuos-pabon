@@ -3,7 +3,7 @@ from simple_history.admin import SimpleHistoryAdmin
 
 from core.admin import SinBorrado
 
-from .models import ConfiguracionJornada, Movimiento, Novedad, Pesaje
+from .models import ConfiguracionJornada, Movimiento, Novedad, Pesaje, ValidacionEntrega
 
 
 @admin.register(ConfiguracionJornada)
@@ -47,3 +47,11 @@ class NovedadAdmin(SinBorrado, SimpleHistoryAdmin):
     list_display = ["tipo_novedad", "movimiento", "cantidad_afectada", "registrado_por", "registrado_en"]
     list_filter = ["tipo_novedad"]
     date_hierarchy = "registrado_en"
+
+
+@admin.register(ValidacionEntrega)
+class ValidacionEntregaAdmin(SinBorrado, SimpleHistoryAdmin):
+    list_display = ["fecha", "sede", "jornada", "peso_declarado", "validado_por", "validado_en"]
+    list_filter = ["sede", "jornada"]
+    date_hierarchy = "fecha"
+    readonly_fields = ["validado_en"]

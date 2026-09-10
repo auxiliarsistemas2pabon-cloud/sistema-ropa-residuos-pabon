@@ -89,6 +89,48 @@ def enlazar_ciclo_ropa(recepcion, *, guardar=True):
     return entrega
 
 
+def suma_por_servicio(*, sede, fecha, jornada):
+    """Desglose por servicio de las entregas de ropa sucia de una jornada
+    (solo las que tienen servicio de origen) y su suma. Se recalcula siempre
+    desde los movimientos — no se guarda ningún total (sección 3)."""
+    entregas = (
+        Movimiento.objects.filter(
+            tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA,
+            sede=sede, fecha=fecha, jornada=jornada, area_origen__isnull=False,
+        )
+        .select_related("area_origen")
+        .prefetch_related("pesajes")
+        .order_by("area_origen__nombre", "hora")
+    )
+    filas = []
+    total = Decimal("0.00")
+    for e in entregas:
+        neto = sum((p.peso_neto for p in e.pesajes.all()), Decimal("0.00"))
+        filas.append({"movimiento": e, "servicio": e.area_origen, "kg": neto})
+        total += neto
+    return {"filas": filas, "total": total}
+
+
+def evaluar_conformidad(peso_declarado, peso_sistema):
+    """Compara el total declarado por el personal contra el que calcula el
+    sistema. Devuelve la diferencia, el porcentaje y si es conforme según los
+    umbrales de constance (desactivados por defecto — RF-025)."""
+    diferencia = Decimal(peso_declarado) - Decimal(peso_sistema)
+    base = Decimal(peso_sistema) or Decimal(peso_declarado) or Decimal("1")
+    porcentaje = (abs(diferencia) / base) * 100
+
+    umbral_kg = Decimal(config.UMBRAL_DIFERENCIA_KG or 0)
+    umbral_pct = Decimal(config.UMBRAL_DIFERENCIA_PORCENTAJE or 0)
+    excede = (umbral_kg and abs(diferencia) > umbral_kg) or (umbral_pct and porcentaje > umbral_pct)
+
+    return {
+        "diferencia": diferencia,
+        "porcentaje": porcentaje.quantize(Decimal("0.1")),
+        "conforme": not excede,
+        "bloquea": bool(config.BLOQUEO_DIFERENCIA_ACTIVO and excede),
+    }
+
+
 def puede_editar(usuario, movimiento):
     """RF-041: el rol Usuario solo edita sus propios movimientos y dentro de
     la ventana configurable (60 min por defecto); la Administradora edita sin

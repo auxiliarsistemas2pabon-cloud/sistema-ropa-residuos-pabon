@@ -211,3 +211,23 @@ a:focus-visible {
 .diferencia__saldo dt, .diferencia__saldo dd { font-weight: var(--peso-semibold); }
 .diferencia.is-alerta .diferencia__saldo dt,
 .diferencia.is-alerta .diferencia__saldo dd { color: var(--alerta); }
+
+/* --- Carga diferida (6.9) --- */
+.carga-diferida {
+  margin: var(--espacio-4) 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  border: var(--grosor-borde) solid var(--linea);
+  border-radius: var(--radio);
+}
+.carga-diferida summary { cursor: pointer; color: var(--tinta-suave); }
+.carga-diferida[open] summary { margin-bottom: var(--espacio-3); }
+
+/* --- Filtros y enlaces secundarios --- */
+.fila-filtro { display: flex; flex-wrap: wrap; gap: var(--espacio-3); align-items: flex-end; }
+.fila-filtro .campo { flex: 1 1 160px; margin-bottom: var(--espacio-3); }
+
+.enlaces-secundarios { display: flex; flex-wrap: wrap; gap: var(--espacio-4); margin-top: var(--espacio-4); }
+.enlaces-secundarios a { color: var(--acento); }
+
+.lista-novedades { margin: 0; padding-left: var(--espacio-4); }
+.lista-novedades li { margin-bottom: var(--espacio-2); }

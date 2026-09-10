@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block titulo %}Novedades · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Novedades</h1>
+
+<form method="get" class="fila-filtro">
+  {% for campo in filtro.form %}
+    {% include "componentes/_campo.html" with campo=campo %}
+  {% endfor %}
+  <button type="submit" class="boton">Filtrar</button>
+</form>
+
+{% if filtro.qs %}
+  <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead>
+        <tr><th>Fecha</th><th>Tipo</th><th>Sede</th><th>Servicio</th><th class="num">Cant.</th><th>Observación</th><th>Registró</th></tr>
+      </thead>
+      <tbody>
+        {% for n in filtro.qs %}
+          <tr>
+            <td>{{ n.registrado_en|date:"d M · H:i" }}</td>
+            <td>{{ n.get_tipo_novedad_display }}</td>
+            <td>{{ n.movimiento.sede.nombre }}</td>
+            <td>{{ n.movimiento.area_origen.nombre|default:"—" }}</td>
+            <td class="num cifra-kg">{{ n.cantidad_afectada|default:"—" }}</td>
+            <td>{{ n.observacion|default:"—" }}</td>
+            <td>{{ n.registrado_por.get_full_name|default:n.registrado_por.username }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="vacio">No hay novedades con esos filtros.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block titulo %}Validación de entrega · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Validación de entrega a lavandería</h1>
+<p class="tinta-suave">
+  Compara la suma que calcula el sistema con el total que contó el personal
+  a mano. La diferencia son errores de registro. No bloquea el cierre.
+</p>
+
+<form method="post" novalidate
+      {% if form.desglose %}data-peso-sistema="{{ form.desglose.total|stringformat:'.2f' }}"{% endif %}>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <div class="fila-filtro">
+    {% include "componentes/_campo.html" with campo=form.sede %}
+    {% include "componentes/_campo.html" with campo=form.fecha %}
+    {% include "componentes/_campo.html" with campo=form.jornada %}
+  </div>
+  <button type="submit" class="boton boton--texto" name="ver" value="1">Actualizar desglose</button>
+
+  {% if form.desglose %}
+    <h2>Suma por servicio</h2>
+    {% if form.desglose.filas %}
+      <table class="tabla tabla-kg">
+        <thead><tr><th>Hora</th><th>Servicio</th><th class="num">kg netos</th></tr></thead>
+        <tbody>
+          {% for f in form.desglose.filas %}
+            <tr>
+              <td>{{ f.movimiento.hora|time:"H:i" }}</td>
+              <td>{{ f.servicio.nombre }}</td>
+              <td class="num cifra-kg">{{ f.kg }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><th colspan="2">Suma del sistema</th><td class="num cifra-kg">{{ form.desglose.total }}</td></tr></tfoot>
+      </table>
+    {% else %}
+      <p class="vacio">No hay entregas de ropa sucia por servicio para esta jornada.</p>
+    {% endif %}
+
+    {% include "componentes/_campo.html" with campo=form.peso_declarado %}
+
+    <dl class="diferencia" data-diferencia hidden>
+      <div><dt>Sistema</dt><dd class="cifra-kg" data-dif-enviado>—</dd></div>
+      <div><dt>Contado a mano</dt><dd class="cifra-kg" data-dif-recibido>—</dd></div>
+      <div class="diferencia__saldo"><dt>Diferencia</dt><dd class="cifra-kg" data-dif-saldo>—</dd></div>
+    </dl>
+
+    <div class="campo" data-obs-diferencia hidden>
+      <label for="{{ form.observacion.id_for_label }}">{{ form.observacion.label }}</label>
+      {{ form.observacion }}
+      {% for e in form.observacion.errors %}<p class="campo__error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <button type="submit" class="boton">Guardar validación</button>
+  {% endif %}
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var form = document.querySelector("form[data-peso-sistema]");
+  if (!form) return;
+  var sistema = parseFloat(form.getAttribute("data-peso-sistema")) || 0;
+  var declarado = document.getElementById("id_peso_declarado");
+  var panel = form.querySelector("[data-diferencia]");
+  var obs = form.querySelector("[data-obs-diferencia]");
+  if (!declarado || !panel) return;
+
+  function recalcular() {
+    var d = parseFloat(String(declarado.value || "").replace(",", ".")) || 0;
+    if (d <= 0) { panel.hidden = true; if (obs) obs.hidden = true; return; }
+    var saldo = sistema - d;
+    var hay = Math.abs(saldo) >= 0.005;
+    panel.hidden = false;
+    panel.querySelector("[data-dif-enviado]").textContent = sistema.toFixed(2) + " kg";
+    panel.querySelector("[data-dif-recibido]").textContent = d.toFixed(2) + " kg";
+    panel.querySelector("[data-dif-saldo]").textContent = hay
+      ? Math.abs(saldo).toFixed(2) + " kg " + (saldo > 0 ? "menos contado" : "más contado")
+      : "sin diferencia";
+    panel.classList.toggle("is-alerta", hay);
+    if (obs) obs.hidden = !hay;
+  }
+  declarado.addEventListener("input", recalcular);
+  recalcular();
+})();
+</script>
+{% endblock %}

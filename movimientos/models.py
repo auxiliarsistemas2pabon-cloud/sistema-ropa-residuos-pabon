@@ -217,3 +217,39 @@ class Novedad(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_novedad_display()} · {self.movimiento}"
+
+
+class ValidacionEntrega(models.Model):
+    """Atestación del personal para una jornada de ropa sucia: 'conté X kg en
+    total' (la sumatoria manual del formato FR-SIG-132). El sistema calcula su
+    propia suma por servicio al mostrarla; la diferencia son errores de
+    registro (6.7, RF-023). No se guarda ningún total del sistema — se recalcula
+    siempre desde los movimientos (principio de la sección 3)."""
+
+    sede = models.ForeignKey("core.Sede", on_delete=models.PROTECT, related_name="validaciones")
+    fecha = models.DateField()
+    jornada = models.CharField(max_length=10, choices=Jornada.choices)
+    peso_declarado = models.DecimalField(
+        max_digits=9, decimal_places=2, validators=[MinValueValidator(0)],
+        help_text="Total en kg que el personal contó a mano para la jornada.",
+    )
+    observacion = models.TextField(blank=True)
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="validaciones",
+    )
+    validado_en = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "validación de entrega"
+        verbose_name_plural = "validaciones de entrega"
+        ordering = ["-fecha", "sede__nombre", "jornada"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sede", "fecha", "jornada"], name="unique_validacion_jornada",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Validación {self.sede} · {self.fecha} · {self.get_jornada_display()}"

@@ -1,8 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
-from .forms import EntregaRopaSuciaForm, RecepcionRopaLimpiaForm
+from movimientos.models import Proceso
+from movimientos.services import calcular_jornada
+
+from .forms import EntregaRopaSuciaForm, RecepcionRopaLimpiaForm, ValidacionEntregaForm
 
 
 @login_required
@@ -50,3 +54,32 @@ def recepcion_ropa_limpia(request):
         form = RecepcionRopaLimpiaForm(usuario=request.user)
 
     return render(request, "ropa/recepcion_limpia.html", {"form": form})
+
+
+@login_required
+@permission_required("movimientos.view_movimiento", raise_exception=True)
+def validacion_entrega(request):
+    if request.method == "POST":
+        form = ValidacionEntregaForm(request.POST, usuario=request.user)
+        if form.is_valid():
+            form.guardar(validado_por=request.user)
+            messages.success(request, "Validación guardada.")
+            return redirect(
+                f"{request.path}?sede={form.cleaned_data['sede'].pk}"
+                f"&fecha={form.cleaned_data['fecha']:%Y-%m-%d}"
+                f"&jornada={form.cleaned_data['jornada']}"
+            )
+    else:
+        ahora = timezone.localtime()
+        from core.models import Sede
+
+        sede = Sede.objects.filter(activo=True).order_by("nombre").first()
+        inicial = {
+            "sede": request.GET.get("sede") or (sede.pk if sede else None),
+            "fecha": request.GET.get("fecha") or ahora.date().isoformat(),
+            "jornada": request.GET.get("jornada")
+            or (calcular_jornada(sede=sede, proceso=Proceso.ROPA, hora=ahora.time()) if sede else None),
+        }
+        form = ValidacionEntregaForm(initial=inicial, usuario=request.user)
+
+    return render(request, "ropa/validacion.html", {"form": form})

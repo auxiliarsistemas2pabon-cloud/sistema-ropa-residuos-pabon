@@ -1,9 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 
 from core.models import AreaServicio, Sede
-from movimientos.models import EstadoMovimiento, Movimiento, Pesaje, TipoMovimiento
+from movimientos.forms import RegistroDiferidoMixin
+from movimientos.models import Movimiento, Pesaje, TipoMovimiento
 
 from .models import CategoriaResiduo, GrupoResiduo
 
@@ -18,7 +18,7 @@ def _usuarios_activos():
     return Usuario.objects.filter(activo=True).order_by("first_name", "username")
 
 
-class _ResiduoBaseForm(forms.Form):
+class _ResiduoBaseForm(RegistroDiferidoMixin):
     """Base de la generación y la recolección de residuos: sede, servicio,
     la cascada grupo → categoría → tipo específico (10.4), y el pesaje."""
 
@@ -118,15 +118,15 @@ class _ResiduoBaseForm(forms.Form):
     def guardar(self, *, creado_por):
         from .models import DetalleResiduo
 
-        ahora = timezone.localtime()
+        fecha, hora, estado = self.momento()
         movimiento = Movimiento.objects.create(
             tipo_movimiento=self.tipo_movimiento,
-            fecha=ahora.date(),
-            hora=ahora.time(),
+            fecha=fecha,
+            hora=hora,
             sede=self.cleaned_data["sede"],
             area_origen=self.cleaned_data["servicio"],
             observaciones=self.cleaned_data.get("observaciones", ""),
-            estado=EstadoMovimiento.CERRADO,
+            estado=estado,
             creado_por=creado_por,
             **self._responsables(),
         )

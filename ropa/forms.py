@@ -4,7 +4,6 @@ from django.utils import timezone
 
 from core.models import AreaServicio, Sede
 from movimientos.models import (
-    EstadoMovimiento,
     Movimiento,
     Novedad,
     Pesaje,
@@ -12,7 +11,15 @@ from movimientos.models import (
     TipoMovimiento,
     TipoNovedad,
 )
-from movimientos.services import calcular_jornada, enlazar_ciclo_ropa, resumen_ciclo
+from movimientos.forms import RegistroDiferidoMixin
+from movimientos.models import Jornada, ValidacionEntrega
+from movimientos.services import (
+    calcular_jornada,
+    enlazar_ciclo_ropa,
+    evaluar_conformidad,
+    resumen_ciclo,
+    suma_por_servicio,
+)
 
 Usuario = get_user_model()
 
@@ -21,10 +28,10 @@ def _usuarios_activos():
     return Usuario.objects.filter(activo=True).order_by("first_name", "username")
 
 
-class EntregaRopaSuciaForm(forms.Form):
+class EntregaRopaSuciaForm(RegistroDiferidoMixin):
     """Captura de una entrega de ropa sucia (pantalla 3). Un movimiento por
     servicio de origen, con un pesaje. Fecha, hora y jornada las pone el
-    sistema; aquí no se piden (10.5)."""
+    sistema; aquí no se piden salvo en carga diferida (10.5)."""
 
     sede = forms.ModelChoiceField(
         queryset=Sede.objects.filter(activo=True).order_by("nombre"),
@@ -90,17 +97,17 @@ class EntregaRopaSuciaForm(forms.Form):
         return cleaned
 
     def guardar(self, *, creado_por):
-        ahora = timezone.localtime()
+        fecha, hora, estado = self.momento()
         movimiento = Movimiento.objects.create(
             tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA,
-            fecha=ahora.date(),
-            hora=ahora.time(),
+            fecha=fecha,
+            hora=hora,
             sede=self.cleaned_data["sede"],
             area_origen=self.cleaned_data["area_origen"],
             entrega_por=self.cleaned_data["entrega_por"],
             recibe_por=self.cleaned_data["recibe_por"],
             observaciones=self.cleaned_data.get("observaciones", ""),
-            estado=EstadoMovimiento.CERRADO,
+            estado=estado,
             creado_por=creado_por,
         )
         Pesaje.objects.create(
@@ -112,7 +119,7 @@ class EntregaRopaSuciaForm(forms.Form):
         return movimiento
 
 
-class RecepcionRopaLimpiaForm(forms.Form):
+class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
     """Recepción de ropa limpia (pantalla 4). Se enlaza sola con la entrega de
     ropa sucia de origen (ciclo de retorno, 6.3) y compara los kg enviados
     contra los recibidos (RF-014). La diferencia no bloquea el cierre (RF-024)."""
@@ -178,17 +185,17 @@ class RecepcionRopaLimpiaForm(forms.Form):
         return cleaned
 
     def guardar(self, *, creado_por):
-        ahora = timezone.localtime()
+        fecha, hora, estado = self.momento()
         movimiento = Movimiento.objects.create(
             tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION,
-            fecha=ahora.date(),
-            hora=ahora.time(),
+            fecha=fecha,
+            hora=hora,
             sede=self.cleaned_data["sede"],
             area_origen=None,
             entrega_por=self.cleaned_data["entrega_por"],
             recibe_por=self.cleaned_data["recibe_por"],
             observaciones=self.cleaned_data.get("observaciones", ""),
-            estado=EstadoMovimiento.CERRADO,
+            estado=estado,
             creado_por=creado_por,
         )
         pesaje = Pesaje.objects.create(
@@ -212,3 +219,73 @@ class RecepcionRopaLimpiaForm(forms.Form):
                 registrado_por=creado_por,
             )
         return movimiento, resumen
+
+
+class ValidacionEntregaForm(forms.Form):
+    """Validación entre el peso por servicio y el total declarado por el
+    personal para una jornada (6.7, RF-023). Muestra ambos valores y la
+    diferencia; no bloquea salvo que la Administradora active el umbral."""
+
+    sede = forms.ModelChoiceField(
+        queryset=Sede.objects.filter(activo=True).order_by("nombre"), label="Sede",
+    )
+    fecha = forms.DateField(label="Fecha", widget=forms.DateInput(attrs={"type": "date"}))
+    jornada = forms.ChoiceField(choices=Jornada.choices, label="Jornada")
+    peso_declarado = forms.DecimalField(
+        label="Total contado a mano (kg)", max_digits=9, decimal_places=2, min_value=0,
+        localize=False,
+        widget=forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.01", "min": "0"}),
+    )
+    observacion = forms.CharField(
+        label="Observación de la diferencia", required=False,
+        widget=forms.Textarea(attrs={"rows": 2}),
+    )
+
+    def __init__(self, *args, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.usuario = usuario
+        self.desglose = None
+        self.evaluacion = None
+        sede, fecha, jornada = self._filtro()
+        if sede and fecha and jornada:
+            self.desglose = suma_por_servicio(sede=sede, fecha=fecha, jornada=jornada)
+
+    def _valor(self, campo):
+        if self.is_bound:
+            return self.data.get(campo)
+        return self.initial.get(campo)
+
+    def _filtro(self):
+        try:
+            sede = Sede.objects.get(pk=self._valor("sede"))
+        except (Sede.DoesNotExist, ValueError, TypeError):
+            sede = None
+        fecha = self.fields["fecha"].to_python(self._valor("fecha")) if self._valor("fecha") else None
+        jornada = self._valor("jornada") or None
+        return sede, fecha, jornada
+
+    def clean(self):
+        cleaned = super().clean()
+        declarado = cleaned.get("peso_declarado")
+        if declarado is not None and self.desglose is not None:
+            self.evaluacion = evaluar_conformidad(declarado, self.desglose["total"])
+            if self.evaluacion["bloquea"] and not (cleaned.get("observacion") or "").strip():
+                self.add_error(
+                    "observacion",
+                    "La diferencia supera el umbral configurado. Escribe una observación "
+                    "para poder guardar.",
+                )
+        return cleaned
+
+    def guardar(self, *, validado_por):
+        validacion, _ = ValidacionEntrega.objects.update_or_create(
+            sede=self.cleaned_data["sede"],
+            fecha=self.cleaned_data["fecha"],
+            jornada=self.cleaned_data["jornada"],
+            defaults={
+                "peso_declarado": self.cleaned_data["peso_declarado"],
+                "observacion": self.cleaned_data.get("observacion", "").strip(),
+                "validado_por": validado_por,
+            },
+        )
+        return validacion
