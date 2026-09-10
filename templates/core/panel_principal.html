@@ -3,15 +3,38 @@
 {% block titulo %}Inicio · Clínica Pabón{% endblock %}
 
 {% block contenido %}
-<h1>Hola, {{ user.get_full_name|default:user.username }}</h1>
+<h1>¿Qué vas a registrar?</h1>
 
-<p class="tinta-suave">
-  {% if user.es_administradora %}Perfil: Administradora{% else %}Perfil: Usuario{% endif %}
-</p>
+<div class="accesos">
+  <a class="acceso" href="{% url 'ropa:entrega_sucia' %}">Entregar ropa sucia</a>
+  <span class="acceso acceso--pendiente" aria-disabled="true">Recibir ropa limpia<small>etapa 6</small></span>
+  <span class="acceso acceso--pendiente" aria-disabled="true">Registrar residuos<small>etapa 7</small></span>
+  <span class="acceso acceso--pendiente" aria-disabled="true">Ver día anterior<small>etapa 8</small></span>
+</div>
 
-<p>Los accesos de registro (entregar ropa sucia, recibir ropa limpia, registrar residuos) y el listado de movimientos de hoy se construyen en la etapa 5.</p>
-
-{% if user.is_staff %}
-  <p><a href="{% url 'admin:index' %}">Ir a administración</a></p>
-{% endif %}
+<section class="seccion">
+  <h2>Movimientos de hoy</h2>
+  {% if movimientos_hoy %}
+    <table class="tabla tabla-kg">
+      <thead>
+        <tr><th>Hora</th><th>Tipo</th><th>Servicio</th><th class="num">kg netos</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {% for m in movimientos_hoy %}
+          <tr>
+            <td>{{ m.hora|time:"H:i" }}</td>
+            <td>{{ m.get_tipo_movimiento_display }}</td>
+            <td>{{ m.area_origen.nombre }}</td>
+            <td class="num cifra-kg">
+              {% with p=m.pesajes.all|first %}{{ p.peso_neto|default:"—" }}{% endwith %}
+            </td>
+            <td>{{ m.get_estado_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vacio">Todavía no hay movimientos hoy. Registra el primero.</p>
+  {% endif %}
+</section>
 {% endblock %}

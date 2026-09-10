@@ -1,0 +1,7 @@
+{% if messages %}
+  <ul class="avisos" data-avisos>
+    {% for m in messages %}
+      <li class="aviso aviso--{{ m.tags }}">{{ m }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}

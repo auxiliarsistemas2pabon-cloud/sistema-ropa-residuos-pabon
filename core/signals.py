@@ -11,7 +11,7 @@ GRUPO_POR_ROL = {
 
 
 @receiver(post_save, sender=Usuario)
-def sincronizar_usuario(sender, instance, **kwargs):
+def sincronizar_usuario(sender, instance, update_fields=None, **kwargs):
     """Deriva el estado de autenticación de Django desde los campos en
     español (7. del prompt):
 
@@ -22,6 +22,11 @@ def sincronizar_usuario(sender, instance, **kwargs):
     El rol y `activo` son la fuente de verdad; los grupos y las banderas
     `is_*` no se editan a mano.
     """
+    # Ignora los guardados que solo tocan last_login (inicio de sesión) u
+    # otros campos que no afectan al rol ni al estado.
+    if update_fields is not None and not ({"rol", "activo"} & set(update_fields)):
+        return
+
     if not instance.is_superuser:
         nombre = GRUPO_POR_ROL.get(instance.rol)
         if nombre:

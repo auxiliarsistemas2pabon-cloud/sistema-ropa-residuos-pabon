@@ -114,6 +114,7 @@ class Movimiento(models.Model):
     )
 
     estado = models.CharField(max_length=20, choices=EstadoMovimiento.choices, default=EstadoMovimiento.BORRADOR)
+    observaciones = models.TextField(blank=True)
     periodo_facturacion = models.DateField(
         help_text="Primer día del mes de facturación; puede diferir del mes de la fecha.",
     )

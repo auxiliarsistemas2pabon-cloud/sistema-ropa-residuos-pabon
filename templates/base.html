@@ -10,24 +10,26 @@
 </head>
 <body>
   <header class="barra-superior">
-    <span class="barra-superior__marca">Clínica Pabón</span>
     {% if user.is_authenticated %}
+      <a class="barra-superior__marca" href="{% url 'panel_principal' %}">Clínica Pabón</a>
       <span class="barra-superior__usuario">{{ user.get_full_name|default:user.username }}</span>
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
         <button type="submit" class="boton boton--texto">Cerrar sesión</button>
       </form>
+    {% else %}
+      <span class="barra-superior__marca">Clínica Pabón</span>
     {% endif %}
   </header>
 
-  {% if messages %}
-    <ul class="avisos">
-      {% for m in messages %}<li class="aviso aviso--{{ m.tags }}">{{ m }}</li>{% endfor %}
-    </ul>
-  {% endif %}
+  {% include "componentes/_avisos.html" %}
 
   <main class="contenido">
     {% block contenido %}{% endblock %}
   </main>
+
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+  <script src="{% static 'js/app.js' %}" defer></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

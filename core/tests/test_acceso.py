@@ -14,7 +14,9 @@ def test_panel_visible_con_sesion(client, usuario):
     client.force_login(usuario)
     resp = client.get(reverse("panel_principal"))
     assert resp.status_code == 200
-    assert "Perfil: Usuario" in resp.content.decode()
+    cuerpo = resp.content.decode()
+    assert "¿Qué vas a registrar?" in cuerpo
+    assert "Entregar ropa sucia" in cuerpo
 
 
 def test_login_correcto_redirige_al_panel(client, usuario):

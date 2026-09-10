@@ -6,5 +6,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("acceso/", auth_views.LoginView.as_view(), name="login"),
     path("salir/", auth_views.LogoutView.as_view(), name="logout"),
+    path("", include("ropa.urls")),
     path("", include("core.urls")),
 ]
