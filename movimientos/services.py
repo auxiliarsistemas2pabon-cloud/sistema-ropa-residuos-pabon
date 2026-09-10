@@ -4,6 +4,7 @@ ni duplica pesajes — solo leen y relacionan movimientos existentes."""
 from datetime import timedelta
 
 from constance import config
+from django.utils import timezone
 
 from .models import ConfiguracionJornada, Jornada, Movimiento, TipoMovimiento
 
@@ -60,3 +61,15 @@ def enlazar_ciclo_ropa(recepcion, *, guardar=True):
         if guardar:
             recepcion.save(update_fields=["mov_origen"])
     return entrega
+
+
+def puede_editar(usuario, movimiento):
+    """RF-041: el rol Usuario solo edita sus propios movimientos y dentro de
+    la ventana configurable (60 min por defecto); la Administradora edita sin
+    límite de ventana (7. del prompt)."""
+    if getattr(usuario, "es_administradora", False):
+        return True
+    if movimiento.creado_por_id != usuario.pk:
+        return False
+    limite = timedelta(minutes=config.VENTANA_EDICION_USUARIO_MINUTOS)
+    return timezone.now() - movimiento.creado_en <= limite

@@ -1,0 +1,86 @@
+/* tokens.css se enlaza antes que este archivo en base.html */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--fuente);
+  font-size: var(--texto-base);
+  color: var(--tinta);
+  background: var(--fondo);
+  line-height: 1.5;
+}
+
+.barra-superior {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+  min-height: 56px;
+  padding: var(--espacio-3) var(--espacio-4);
+  border-bottom: var(--grosor-borde) solid var(--linea);
+}
+.barra-superior__marca { font-weight: var(--peso-semibold); }
+.barra-superior__usuario { margin-left: auto; color: var(--tinta-suave); }
+
+.contenido {
+  max-width: var(--ancho-max-contenido);
+  margin: 0 auto;
+  padding: var(--espacio-5) var(--espacio-4);
+}
+
+h1 { font-size: var(--texto-xl); margin: 0 0 var(--espacio-5); }
+p { margin: 0 0 var(--espacio-3); }
+.tinta-suave { color: var(--tinta-suave); }
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alto-min-tactil);
+  padding: 0 var(--espacio-5);
+  font: inherit;
+  color: var(--blanco);
+  background: var(--acento);
+  border: var(--grosor-borde) solid var(--acento);
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+.boton--texto {
+  min-height: auto;
+  padding: 0;
+  color: var(--acento);
+  background: none;
+  border: none;
+}
+
+.boton:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: var(--grosor-foco) solid var(--acento);
+  outline-offset: 2px;
+}
+
+.campo { display: block; margin-bottom: var(--espacio-4); }
+.campo label { display: block; margin-bottom: var(--espacio-1); color: var(--tinta-suave); }
+.campo input {
+  width: 100%;
+  min-height: var(--alto-min-tactil);
+  padding: 0 var(--espacio-3);
+  font-size: var(--texto-md);
+  font-family: inherit;
+  border: var(--grosor-borde) solid var(--linea);
+  border-radius: var(--radio);
+}
+
+.avisos {
+  list-style: none;
+  max-width: var(--ancho-max-contenido);
+  margin: var(--espacio-3) auto 0;
+  padding: 0 var(--espacio-4);
+}
+.aviso {
+  padding: var(--espacio-3);
+  border-radius: var(--radio);
+  background: var(--acento-suave);
+}
+.aviso--error { color: var(--alerta); background: var(--alerta-suave); }

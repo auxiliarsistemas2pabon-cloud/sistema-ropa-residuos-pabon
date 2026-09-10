@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block titulo %}Iniciar sesión · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Iniciar sesión</h1>
+
+<form method="post">
+  {% csrf_token %}
+  {% if form.errors %}
+    <p class="aviso aviso--error">Usuario o contraseña incorrectos. Verifica los datos y vuelve a intentar.</p>
+  {% endif %}
+  <div class="campo">
+    <label for="{{ form.username.id_for_label }}">Usuario</label>
+    {{ form.username }}
+  </div>
+  <div class="campo">
+    <label for="{{ form.password.id_for_label }}">Contraseña</label>
+    {{ form.password }}
+  </div>
+  <button type="submit" class="boton">Entrar</button>
+</form>
+{% endblock %}

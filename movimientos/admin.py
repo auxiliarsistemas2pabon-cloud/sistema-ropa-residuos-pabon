@@ -1,6 +1,8 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
+from core.admin import SinBorrado
+
 from .models import ConfiguracionJornada, Movimiento, Novedad, Pesaje
 
 
@@ -13,17 +15,19 @@ class ConfiguracionJornadaAdmin(SimpleHistoryAdmin):
 class PesajeInline(admin.TabularInline):
     model = Pesaje
     extra = 0
+    can_delete = False
     readonly_fields = ["peso_neto"]
 
 
 class NovedadInline(admin.TabularInline):
     model = Novedad
     extra = 0
+    can_delete = False
     readonly_fields = ["registrado_en"]
 
 
 @admin.register(Movimiento)
-class MovimientoAdmin(SimpleHistoryAdmin):
+class MovimientoAdmin(SinBorrado, SimpleHistoryAdmin):
     list_display = [
         "tipo_movimiento", "fecha", "hora", "jornada", "sede", "area_origen", "estado", "periodo_facturacion",
     ]
@@ -39,7 +43,7 @@ class MovimientoAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(Novedad)
-class NovedadAdmin(SimpleHistoryAdmin):
+class NovedadAdmin(SinBorrado, SimpleHistoryAdmin):
     list_display = ["tipo_novedad", "movimiento", "cantidad_afectada", "registrado_por", "registrado_en"]
     list_filter = ["tipo_novedad"]
     date_hierarchy = "registrado_en"

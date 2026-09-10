@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Clínica Pabón{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="barra-superior">
+    <span class="barra-superior__marca">Clínica Pabón</span>
+    {% if user.is_authenticated %}
+      <span class="barra-superior__usuario">{{ user.get_full_name|default:user.username }}</span>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="boton boton--texto">Cerrar sesión</button>
+      </form>
+    {% endif %}
+  </header>
+
+  {% if messages %}
+    <ul class="avisos">
+      {% for m in messages %}<li class="aviso aviso--{{ m.tags }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <main class="contenido">
+    {% block contenido %}{% endblock %}
+  </main>
+</body>
+</html>

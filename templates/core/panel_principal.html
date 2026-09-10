@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block titulo %}Inicio · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Hola, {{ user.get_full_name|default:user.username }}</h1>
+
+<p class="tinta-suave">
+  {% if user.es_administradora %}Perfil: Administradora{% else %}Perfil: Usuario{% endif %}
+</p>
+
+<p>Los accesos de registro (entregar ropa sucia, recibir ropa limpia, registrar residuos) y el listado de movimientos de hoy se construyen en la etapa 5.</p>
+
+{% if user.is_staff %}
+  <p><a href="{% url 'admin:index' %}">Ir a administración</a></p>
+{% endif %}
+{% endblock %}
