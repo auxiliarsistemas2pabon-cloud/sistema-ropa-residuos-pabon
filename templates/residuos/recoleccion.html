@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block titulo %}Recolección de residuos · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Recolección de residuos</h1>
+
+{% include "componentes/_stepper.html" %}
+
+<form method="post" class="formulario-pasos" data-formulario-pasos novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <section class="paso" data-paso>
+    <p class="paso__titulo">Paso 1 de 3 · Origen y categoría</p>
+    {% include "componentes/_campo.html" with campo=form.sede %}
+    {% include "componentes/_campo.html" with campo=form.servicio %}
+    {% include "residuos/_cascada.html" %}
+    <button type="button" class="boton" data-siguiente>Continuar →</button>
+  </section>
+
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 2 de 3 · Pesaje</p>
+    {% include "componentes/_campo.html" with campo=form.peso_total %}
+    {% include "componentes/_campo.html" with campo=form.tara %}
+    <p class="error-tara" data-error-tara hidden>
+      La tara no puede ser mayor al peso total. Revisa el valor del recipiente.
+    </p>
+    <div class="campo">
+      <label>Peso neto</label>
+      <p class="peso-neto" data-peso-neto>—</p>
+    </div>
+    {% include "componentes/_campo.html" with campo=form.cantidad_bolsas %}
+    <button type="button" class="boton" data-siguiente data-requiere-peso-valido>Continuar →</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 3 de 3 · Cierre</p>
+    <dl class="calculado">
+      <div><dt>Fecha y hora</dt><dd>las pone el sistema al guardar</dd></div>
+      <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
+    </dl>
+    {% include "componentes/_campo.html" with campo=form.entrega_por %}
+    {% include "componentes/_campo.html" with campo=form.recibe_por %}
+    {% include "componentes/_campo.html" with campo=form.observaciones %}
+    <button type="submit" class="boton" data-requiere-peso-valido>Guardar recolección</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+</form>
+{% endblock %}

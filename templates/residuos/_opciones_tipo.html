@@ -1,0 +1,9 @@
+{% if tipos %}
+  <label for="id_tipo_especifico">Tipo específico</label>
+  <select name="tipo_especifico" id="id_tipo_especifico">
+    <option value="">Seleccionar tipo</option>
+    {% for t in tipos %}
+      <option value="{{ t.pk }}"{% if seleccionado|stringformat:'s' == t.pk|stringformat:'s' %} selected{% endif %}>{{ t.nombre }}</option>
+    {% endfor %}
+  </select>
+{% endif %}

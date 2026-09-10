@@ -4,6 +4,11 @@ from django.db import models
 
 
 class DetalleResiduoQuerySet(models.QuerySet):
+    def de_generacion(self):
+        from movimientos.models import TipoMovimiento
+
+        return self.filter(movimiento__tipo_movimiento=TipoMovimiento.RESIDUO_GENERACION)
+
     def peligrosos(self):
         from .models import PELIGROSOS
 
@@ -25,12 +30,14 @@ class DetalleResiduoQuerySet(models.QuerySet):
 
             jornada TARDE del día anterior + jornada MAÑANA del día vigente
 
-        Es solo una regla de consulta. No modifica, no mueve y no duplica
-        ningún pesaje: reagrupa los DetalleResiduo existentes."""
+        Cuenta solo la generación (no la recolección, que sería el mismo
+        residuo pesado otra vez). Es solo una regla de consulta: no modifica,
+        no mueve y no duplica ningún pesaje — reagrupa los DetalleResiduo
+        existentes."""
         from movimientos.models import Jornada
 
         dia_anterior = fecha - timedelta(days=1)
-        qs = self.peligrosos().filter(
+        qs = self.de_generacion().peligrosos().filter(
             models.Q(movimiento__fecha=dia_anterior, movimiento__jornada=Jornada.TARDE)
             | models.Q(movimiento__fecha=fecha, movimiento__jornada=Jornada.MANANA)
         )

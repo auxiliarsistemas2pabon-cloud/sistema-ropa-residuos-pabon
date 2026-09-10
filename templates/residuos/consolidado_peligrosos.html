@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block titulo %}Consolidado de peligrosos · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Consolidado de residuos peligrosos</h1>
+
+<p class="tinta-suave">
+  Corte del día {{ hoy|date:"d M Y" }}: jornada tarde del {{ ayer|date:"d M" }}
+  más jornada mañana de hoy. Solo generación. Es una vista de consulta — no
+  mueve ni duplica ningún pesaje.
+</p>
+
+{% if corte %}
+  <table class="tabla tabla-kg">
+    <thead>
+      <tr><th>Fecha</th><th>Jornada</th><th>Servicio</th><th>Categoría</th><th class="num">kg</th></tr>
+    </thead>
+    <tbody>
+      {% for d in corte %}
+        <tr>
+          <td>{{ d.movimiento.fecha|date:"d M" }}</td>
+          <td>{{ d.movimiento.get_jornada_display }}</td>
+          <td>{{ d.movimiento.area_origen.nombre|default:"—" }}</td>
+          <td>{{ d.categoria_residuo.nombre }}</td>
+          <td class="num cifra-kg">{{ d.peso_kg }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><th colspan="4">Total del corte</th><td class="num cifra-kg">{{ total }}</td></tr>
+    </tfoot>
+  </table>
+{% else %}
+  <p class="vacio">No hay generación de residuos peligrosos en este corte.</p>
+{% endif %}
+{% endblock %}

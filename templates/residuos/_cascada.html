@@ -1,0 +1,27 @@
+{# Cascada grupo → categoría → tipo específico (10.4). Cada nivel carga el
+   siguiente con HTMX, sin recargar. #}
+<div class="campo{% if form.grupo.errors %} campo--error{% endif %}">
+  <label for="id_grupo">Grupo</label>
+  <select name="grupo" id="id_grupo" required
+          hx-get="{% url 'residuos:opciones_categoria' %}"
+          hx-target="#campo-categoria" hx-swap="innerHTML" hx-trigger="change">
+    {% for value, etiqueta in form.grupo.field.choices %}
+      <option value="{{ value }}"{% if form.grupo.value|stringformat:'s' == value|stringformat:'s' %} selected{% endif %}>{{ etiqueta }}</option>
+    {% endfor %}
+  </select>
+  {% for e in form.grupo.errors %}<p class="campo__error">{{ e }}</p>{% endfor %}
+</div>
+
+<div class="campo{% if form.categoria.errors %} campo--error{% endif %}">
+  <div id="campo-categoria">
+    {% include "residuos/_opciones_categoria.html" with categorias=form.categorias_disponibles seleccionada=form.categoria.value %}
+  </div>
+  {% for e in form.categoria.errors %}<p class="campo__error">{{ e }}</p>{% endfor %}
+</div>
+
+<div class="campo{% if form.tipo_especifico.errors %} campo--error{% endif %}">
+  <div id="campo-tipo">
+    {% include "residuos/_opciones_tipo.html" with tipos=form.tipos_disponibles seleccionado=form.tipo_especifico.value %}
+  </div>
+  {% for e in form.tipo_especifico.errors %}<p class="campo__error">{{ e }}</p>{% endfor %}
+</div>

@@ -30,7 +30,7 @@ def cat_no_peligrosa(db):
 
 def _detalle(crear_movimiento, categoria, fecha, hora, kg, **kwargs):
     mov = crear_movimiento(
-        tipo=TipoMovimiento.RESIDUO_RECOLECCION, fecha=fecha, hora=hora, **kwargs,
+        tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=fecha, hora=hora, **kwargs,
     )
     return DetalleResiduo.objects.create(
         movimiento=mov, categoria_residuo=categoria, peso_kg=Decimal(kg),
@@ -58,6 +58,25 @@ def test_corte_no_modifica_ni_duplica_registros(crear_movimiento, cat_peligrosa)
     list(DetalleResiduo.objects.corte_peligrosos(DIA))
 
     assert DetalleResiduo.objects.count() == antes
+
+
+def test_corte_no_cuenta_la_recoleccion(crear_movimiento, cat_peligrosa):
+    generacion = crear_movimiento(
+        tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=DIA, hora=time(9, 0),
+    )
+    DetalleResiduo.objects.create(
+        movimiento=generacion, categoria_residuo=cat_peligrosa, peso_kg=Decimal("7.00"),
+    )
+    recoleccion = crear_movimiento(
+        tipo=TipoMovimiento.RESIDUO_RECOLECCION, fecha=DIA, hora=time(9, 30),
+    )
+    DetalleResiduo.objects.create(
+        movimiento=recoleccion, categoria_residuo=cat_peligrosa, peso_kg=Decimal("7.00"),
+    )
+
+    corte = DetalleResiduo.objects.corte_peligrosos(DIA)
+    assert corte.count() == 1
+    assert corte.aggregate(t=Sum("peso_kg"))["t"] == Decimal("7.00")
 
 
 def test_corte_filtra_por_sede(crear_movimiento, cat_peligrosa, sede):

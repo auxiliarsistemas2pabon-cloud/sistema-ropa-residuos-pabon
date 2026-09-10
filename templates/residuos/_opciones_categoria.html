@@ -1,0 +1,9 @@
+<label for="id_categoria">Categoría</label>
+<select name="categoria" id="id_categoria" required
+        hx-get="{% url 'residuos:opciones_tipo' %}"
+        hx-target="#campo-tipo" hx-swap="innerHTML" hx-trigger="change">
+  <option value="">Seleccionar categoría</option>
+  {% for c in categorias %}
+    <option value="{{ c.pk }}"{% if seleccionada|stringformat:'s' == c.pk|stringformat:'s' %} selected{% endif %}>{{ c.nombre }}</option>
+  {% endfor %}
+</select>

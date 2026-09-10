@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block titulo %}Residuos · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Residuos hospitalarios</h1>
+
+<div class="accesos">
+  <a class="acceso" href="{% url 'residuos:generacion' %}">Generación de residuos</a>
+  <a class="acceso" href="{% url 'residuos:recoleccion' %}">Recolección de residuos</a>
+  <a class="acceso acceso--pendiente" href="{% url 'residuos:consolidado_peligrosos' %}">Consolidado de peligrosos<small>corte del día</small></a>
+</div>
+{% endblock %}
