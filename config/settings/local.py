@@ -1,0 +1,13 @@
+import os
+
+from .base import *  # noqa: F401,F403
+
+DEBUG = True
+
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY", "django-insecure-dev-only-not-for-production-6f1e9c2a"
+)
+
+ALLOWED_HOSTS = ["*"]
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

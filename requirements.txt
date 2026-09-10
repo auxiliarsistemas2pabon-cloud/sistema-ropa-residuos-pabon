@@ -1,0 +1,27 @@
+asgiref==3.12.1
+crispy-bootstrap5==2026.3
+Django==5.1.15
+django-constance==4.3.5
+django-crispy-forms==2.5
+django-dbbackup==5.3.1
+django-filter==25.1
+django-simple-history==3.12.0
+django-tables2==3.0.1
+et_xmlfile==2.0.0
+gunicorn==26.2.0
+openpyxl==3.1.5
+packaging==26.3
+psycopg==3.2.13
+psycopg-binary==3.2.13
+sqlparse==0.6.0
+typing_extensions==4.16.0
+tzdata==2026.3
+whitenoise==6.12.0
+
+# pruebas
+pytest==9.1.1
+pytest-django==4.14.0
+iniconfig==2.3.0
+pluggy==1.6.0
+Pygments==2.21.0
+colorama==0.4.6
