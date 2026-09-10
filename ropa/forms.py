@@ -3,9 +3,22 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from core.models import AreaServicio, Sede
-from movimientos.models import EstadoMovimiento, Movimiento, Pesaje, TipoMovimiento
+from movimientos.models import (
+    EstadoMovimiento,
+    Movimiento,
+    Novedad,
+    Pesaje,
+    Proceso,
+    TipoMovimiento,
+    TipoNovedad,
+)
+from movimientos.services import calcular_jornada, enlazar_ciclo_ropa, resumen_ciclo
 
 Usuario = get_user_model()
+
+
+def _usuarios_activos():
+    return Usuario.objects.filter(activo=True).order_by("first_name", "username")
 
 
 class EntregaRopaSuciaForm(forms.Form):
@@ -97,3 +110,105 @@ class EntregaRopaSuciaForm(forms.Form):
             pesado_por=creado_por,
         )
         return movimiento
+
+
+class RecepcionRopaLimpiaForm(forms.Form):
+    """Recepción de ropa limpia (pantalla 4). Se enlaza sola con la entrega de
+    ropa sucia de origen (ciclo de retorno, 6.3) y compara los kg enviados
+    contra los recibidos (RF-014). La diferencia no bloquea el cierre (RF-024)."""
+
+    sede = forms.ModelChoiceField(
+        queryset=Sede.objects.filter(activo=True).order_by("nombre"), label="Sede",
+    )
+    peso_total = forms.DecimalField(
+        label="Peso de ropa limpia recibida (kg)", max_digits=8, decimal_places=2, min_value=0,
+        localize=False,
+        widget=forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.01", "min": "0"}),
+    )
+    tara = forms.DecimalField(
+        label="Tara (kg)", max_digits=8, decimal_places=2, min_value=0,
+        required=False, initial=0, localize=False,
+        widget=forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.01", "min": "0"}),
+    )
+    entrega_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Entrega")
+    recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe")
+    observaciones = forms.CharField(
+        label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
+    )
+    observacion_diferencia = forms.CharField(
+        label="Observación de la diferencia", required=False,
+        widget=forms.Textarea(attrs={"rows": 2}),
+    )
+
+    def __init__(self, *args, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        sede = self._sede_seleccionada()
+        ahora = timezone.localtime()
+        self.jornada_actual = (
+            calcular_jornada(sede=sede, proceso=Proceso.ROPA, hora=ahora.time()) if sede else None
+        )
+        self.resumen = (
+            resumen_ciclo(sede=sede, fecha=ahora.date(), jornada=self.jornada_actual)
+            if sede
+            else None
+        )
+        if not self.is_bound:
+            if sede:
+                self.fields["sede"].initial = sede
+            if usuario is not None:
+                self.fields["recibe_por"].initial = usuario
+
+    def _sede_seleccionada(self):
+        if self.is_bound:
+            try:
+                return Sede.objects.get(pk=self.data.get("sede"))
+            except (Sede.DoesNotExist, ValueError, TypeError):
+                return None
+        return Sede.objects.filter(activo=True).order_by("nombre").first()
+
+    def clean(self):
+        cleaned = super().clean()
+        total = cleaned.get("peso_total")
+        tara = cleaned.get("tara") or 0
+        if total is not None and tara > total:
+            self.add_error(
+                "tara",
+                "La tara no puede ser mayor al peso total. Revisa el valor del recipiente.",
+            )
+        return cleaned
+
+    def guardar(self, *, creado_por):
+        ahora = timezone.localtime()
+        movimiento = Movimiento.objects.create(
+            tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION,
+            fecha=ahora.date(),
+            hora=ahora.time(),
+            sede=self.cleaned_data["sede"],
+            area_origen=None,
+            entrega_por=self.cleaned_data["entrega_por"],
+            recibe_por=self.cleaned_data["recibe_por"],
+            observaciones=self.cleaned_data.get("observaciones", ""),
+            estado=EstadoMovimiento.CERRADO,
+            creado_por=creado_por,
+        )
+        pesaje = Pesaje.objects.create(
+            movimiento=movimiento,
+            peso_total=self.cleaned_data["peso_total"],
+            tara=self.cleaned_data.get("tara") or 0,
+            pesado_por=creado_por,
+        )
+        enlazar_ciclo_ropa(movimiento)
+
+        resumen = resumen_ciclo(
+            sede=movimiento.sede, fecha=movimiento.fecha, jornada=movimiento.jornada,
+            kg_recibidos=pesaje.peso_neto,
+        )
+        if resumen["diferencia"]:  # distinto de cero
+            Novedad.objects.create(
+                movimiento=movimiento,
+                tipo_novedad=TipoNovedad.DIFERENCIA_PESO,
+                cantidad_afectada=abs(resumen["diferencia"]),
+                observacion=self.cleaned_data.get("observacion_diferencia", "").strip(),
+                registrado_por=creado_por,
+            )
+        return movimiento, resumen

@@ -5,7 +5,7 @@
     return parseFloat(String(valor || "").replace(",", ".")) || 0;
   }
 
-  // --- Peso neto en vivo (10.4) ---
+  // --- Peso neto y diferencia del ciclo, en vivo (10.4) ---
   function iniciarPesoNeto() {
     var total = document.getElementById("id_peso_total");
     var tara = document.getElementById("id_tara");
@@ -15,17 +15,39 @@
     var errorTara = document.querySelector("[data-error-tara]");
     var botones = document.querySelectorAll("[data-requiere-peso-valido]");
 
+    var form = total.closest("[data-formulario-pasos]");
+    var tieneCiclo = form && form.hasAttribute("data-kg-enviados");
+    var kgEnviados = tieneCiclo ? parseKg(form.getAttribute("data-kg-enviados")) : 0;
+    var panelDif = document.querySelector("[data-diferencia]");
+    var obsDif = document.querySelector("[data-obs-diferencia]");
+
     function recalcular() {
       var t = parseKg(total.value);
       var r = parseKg(tara.value);
       var invalido = r > t;
       var sinPeso = t <= 0;
+      var netoKg = t - r;
 
-      neto.textContent = invalido || sinPeso ? "—" : (t - r).toFixed(2) + " kg";
+      neto.textContent = invalido || sinPeso ? "—" : netoKg.toFixed(2) + " kg";
       neto.classList.toggle("is-invalido", invalido);
       tara.classList.toggle("is-invalido", invalido);
       if (errorTara) errorTara.hidden = !invalido;
       botones.forEach(function (b) { b.disabled = invalido || sinPeso; });
+
+      if (!tieneCiclo || !panelDif) return;
+      if (invalido || sinPeso) { panelDif.hidden = true; if (obsDif) obsDif.hidden = true; return; }
+
+      var saldo = kgEnviados - netoKg;
+      panelDif.hidden = false;
+      panelDif.querySelector("[data-dif-enviado]").textContent = kgEnviados.toFixed(2) + " kg";
+      panelDif.querySelector("[data-dif-recibido]").textContent = netoKg.toFixed(2) + " kg";
+      var saldoEl = panelDif.querySelector("[data-dif-saldo]");
+      var hayDif = Math.abs(saldo) >= 0.005;
+      saldoEl.textContent = hayDif
+        ? Math.abs(saldo).toFixed(2) + " kg " + (saldo > 0 ? "de menos" : "de más")
+        : "sin diferencia";
+      panelDif.classList.toggle("is-alerta", hayDif);
+      if (obsDif) obsDif.hidden = !hayDif;
     }
 
     total.addEventListener("input", recalcular);

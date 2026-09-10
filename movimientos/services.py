@@ -2,6 +2,7 @@
 del ciclo de retorno de la ropa. Ninguna de estas funciones almacena totales
 ni duplica pesajes — solo leen y relacionan movimientos existentes."""
 from datetime import timedelta
+from decimal import Decimal
 
 from constance import config
 from django.utils import timezone
@@ -22,34 +23,59 @@ def calcular_jornada(*, sede, proceso, hora):
     return Jornada.TARDE
 
 
-def entrega_origen_de_recepcion(recepcion):
-    """Dada una recepción de ropa limpia, encuentra la entrega de ropa sucia
-    que le dio origen según el ciclo de retorno (6.3):
+def entregas_origen_de(*, sede, fecha, jornada):
+    """Entregas de ropa sucia que, por el ciclo de retorno (6.3), corresponden
+    a una recepción de ropa limpia hecha en (sede, fecha, jornada):
 
-        recepción en jornada TARDE   -> entrega de ese mismo día, jornada MAÑANA
-        recepción en jornada MAÑANA  -> entrega del día anterior, jornada TARDE
-
-    Devuelve el Movimiento de entrega, o None si no hay ninguno que calce.
-    Si hay varias entregas que calzan (una por servicio), devuelve la más
-    temprana."""
-    if recepcion.tipo_movimiento != TipoMovimiento.ROPA_LIMPIA_RECEPCION:
-        raise ValueError("Solo se enlaza el origen de una recepción de ropa limpia.")
-
-    if recepcion.jornada == Jornada.TARDE:
-        fecha_origen, jornada_origen = recepcion.fecha, Jornada.MANANA
+        recepción en jornada TARDE   -> entregas de ese mismo día, jornada MAÑANA
+        recepción en jornada MAÑANA  -> entregas del día anterior, jornada TARDE
+    """
+    if jornada == Jornada.TARDE:
+        fecha_origen, jornada_origen = fecha, Jornada.MANANA
     else:
-        fecha_origen, jornada_origen = recepcion.fecha - timedelta(days=1), Jornada.TARDE
+        fecha_origen, jornada_origen = fecha - timedelta(days=1), Jornada.TARDE
 
     return (
         Movimiento.objects.filter(
             tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA,
-            sede=recepcion.sede,
+            sede=sede,
             fecha=fecha_origen,
             jornada=jornada_origen,
         )
+        .select_related("area_origen")
+        .prefetch_related("pesajes")
         .order_by("hora")
-        .first()
     )
+
+
+def entrega_origen_de_recepcion(recepcion):
+    """La entrega de ropa sucia que dio origen a esta recepción, o None.
+    Si hay varias (una por servicio), devuelve la más temprana."""
+    if recepcion.tipo_movimiento != TipoMovimiento.ROPA_LIMPIA_RECEPCION:
+        raise ValueError("Solo se enlaza el origen de una recepción de ropa limpia.")
+    return entregas_origen_de(
+        sede=recepcion.sede, fecha=recepcion.fecha, jornada=recepcion.jornada,
+    ).first()
+
+
+def resumen_ciclo(*, sede, fecha, jornada, kg_recibidos=None):
+    """kg enviados (suma de los pesos netos de las entregas de origen) frente a
+    kg recibidos, y la diferencia (RF-014). Solo lectura: no escribe nada.
+
+    Si no hay entregas de origen registradas, `diferencia` queda en None: no se
+    inventa una diferencia contra cero."""
+    entregas = list(entregas_origen_de(sede=sede, fecha=fecha, jornada=jornada))
+    kg_enviados = sum(
+        (p.peso_neto for e in entregas for p in e.pesajes.all()), Decimal("0.00")
+    )
+    recibidos = Decimal(kg_recibidos) if kg_recibidos is not None else None
+    diferencia = kg_enviados - recibidos if (recibidos is not None and entregas) else None
+    return {
+        "entregas": entregas,
+        "kg_enviados": kg_enviados,
+        "kg_recibidos": recibidos,
+        "diferencia": diferencia,
+    }
 
 
 def enlazar_ciclo_ropa(recepcion, *, guardar=True):

@@ -96,7 +96,11 @@ class Movimiento(models.Model):
     jornada = models.CharField(max_length=10, choices=Jornada.choices, editable=False)
 
     sede = models.ForeignKey("core.Sede", on_delete=models.PROTECT, related_name="movimientos")
-    area_origen = models.ForeignKey("core.AreaServicio", on_delete=models.PROTECT, related_name="movimientos")
+    area_origen = models.ForeignKey(
+        "core.AreaServicio", on_delete=models.PROTECT, related_name="movimientos",
+        null=True, blank=True,
+        help_text="Servicio generador. No aplica a la recepción de ropa limpia, que viene de lavandería.",
+    )
 
     entrega_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,

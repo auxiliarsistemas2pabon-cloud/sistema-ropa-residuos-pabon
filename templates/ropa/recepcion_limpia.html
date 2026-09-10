@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block titulo %}Recibir ropa limpia · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Recibir ropa limpia</h1>
+
+{% include "componentes/_stepper.html" %}
+
+<form method="post" class="formulario-pasos" data-formulario-pasos
+      {% if form.resumen.entregas %}data-kg-enviados="{{ form.resumen.kg_enviados|stringformat:'.2f' }}"{% endif %}
+      novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  {# --- Paso 1: Origen --- #}
+  <section class="paso" data-paso>
+    <p class="paso__titulo">Paso 1 de 3 · Origen</p>
+    {% include "componentes/_campo.html" with campo=form.sede %}
+
+    <div class="ciclo">
+      {% if form.resumen and form.resumen.entregas %}
+        <p class="ciclo__titulo">Se enlaza con las entregas de ropa sucia:</p>
+        <ul class="ciclo__entregas">
+          {% for e in form.resumen.entregas %}
+            <li>
+              <span>{{ e.hora|time:"H:i" }} · {{ e.area_origen.nombre|default:"—" }}</span>
+              <span class="cifra-kg">{{ e.pesajes.all.0.peso_neto }} kg</span>
+            </li>
+          {% endfor %}
+        </ul>
+        <p class="ciclo__total">kg enviados: <strong class="cifra-kg">{{ form.resumen.kg_enviados }}</strong></p>
+      {% else %}
+        <p class="ciclo__vacio">No hay entregas de ropa sucia registradas para esta jornada de origen. Puedes registrar la recepción igual.</p>
+      {% endif %}
+    </div>
+
+    <button type="button" class="boton" data-siguiente>Continuar →</button>
+  </section>
+
+  {# --- Paso 2: Pesaje --- #}
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 2 de 3 · Pesaje</p>
+    {% include "componentes/_campo.html" with campo=form.peso_total %}
+    {% include "componentes/_campo.html" with campo=form.tara %}
+    <p class="error-tara" data-error-tara hidden>
+      La tara no puede ser mayor al peso total. Revisa el valor del recipiente.
+    </p>
+    <div class="campo">
+      <label>Peso neto recibido</label>
+      <p class="peso-neto" data-peso-neto>—</p>
+    </div>
+
+    <dl class="diferencia" data-diferencia hidden>
+      <div><dt>Enviado</dt><dd class="cifra-kg" data-dif-enviado>—</dd></div>
+      <div><dt>Recibido</dt><dd class="cifra-kg" data-dif-recibido>—</dd></div>
+      <div class="diferencia__saldo"><dt>Diferencia</dt><dd class="cifra-kg" data-dif-saldo>—</dd></div>
+    </dl>
+
+    <div class="campo" data-obs-diferencia hidden>
+      <label for="{{ form.observacion_diferencia.id_for_label }}">{{ form.observacion_diferencia.label }}</label>
+      {{ form.observacion_diferencia }}
+      <p class="campo__ayuda">Aparece porque hay diferencia. No bloquea el cierre.</p>
+    </div>
+
+    <button type="button" class="boton" data-siguiente data-requiere-peso-valido>Continuar →</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+
+  {# --- Paso 3: Cierre --- #}
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 3 de 3 · Cierre</p>
+    <dl class="calculado">
+      <div><dt>Fecha y hora</dt><dd>las pone el sistema al guardar</dd></div>
+      <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
+    </dl>
+    {% include "componentes/_campo.html" with campo=form.entrega_por %}
+    {% include "componentes/_campo.html" with campo=form.recibe_por %}
+    {% include "componentes/_campo.html" with campo=form.observaciones %}
+    <button type="submit" class="boton" data-requiere-peso-valido>Guardar recepción</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+</form>
+{% endblock %}

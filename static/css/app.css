@@ -188,3 +188,26 @@ a:focus-visible {
 
 .seccion { margin-top: var(--espacio-6); }
 .vacio { color: var(--tinta-suave); }
+
+/* --- Ciclo de retorno de la ropa (pantalla 4) --- */
+.ciclo {
+  margin-bottom: var(--espacio-4);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--acento-suave);
+  border-radius: var(--radio);
+}
+.ciclo__titulo { margin: 0 0 var(--espacio-2); color: var(--tinta-suave); font-size: var(--texto-sm); }
+.ciclo__entregas { list-style: none; margin: 0; padding: 0; }
+.ciclo__entregas li { display: flex; justify-content: space-between; gap: var(--espacio-3); padding: var(--espacio-1) 0; }
+.ciclo__entregas .cifra-kg { font-variant-numeric: tabular-nums; }
+.ciclo__total { margin: var(--espacio-2) 0 0; }
+.ciclo__vacio { margin: 0; color: var(--tinta-suave); }
+
+/* --- Diferencia en vivo (10.4) --- */
+.diferencia { margin: var(--espacio-4) 0; border-top: var(--grosor-borde) solid var(--linea); }
+.diferencia div { display: flex; justify-content: space-between; gap: var(--espacio-3); padding: var(--espacio-2) 0; border-bottom: var(--grosor-borde) solid var(--linea); }
+.diferencia dt { color: var(--tinta-suave); }
+.diferencia dd { margin: 0; font-variant-numeric: tabular-nums; }
+.diferencia__saldo dt, .diferencia__saldo dd { font-weight: var(--peso-semibold); }
+.diferencia.is-alerta .diferencia__saldo dt,
+.diferencia.is-alerta .diferencia__saldo dd { color: var(--alerta); }
