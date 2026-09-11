@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
-<body>
+<body class="{% block clase_body %}{% endblock %}">
   <header class="barra-superior">
     {% if user.is_authenticated %}
       <a class="barra-superior__marca" href="{% url 'panel_principal' %}">Clínica Pabón</a>
@@ -18,7 +18,7 @@
         <button type="submit" class="boton boton--texto">Cerrar sesión</button>
       </form>
     {% else %}
-      <span class="barra-superior__marca">Clínica Pabón</span>
+      <img class="barra-superior__logo" src="{% static 'img/marca/logo-clinica-pabon.jpg' %}" alt="Clínica Pabón">
     {% endif %}
   </header>
 

@@ -7,7 +7,7 @@ body {
   font-family: var(--fuente);
   font-size: var(--texto-base);
   color: var(--tinta);
-  background: var(--fondo);
+  background: var(--fondo-pagina);
   line-height: 1.5;
 }
 
@@ -17,15 +17,32 @@ body {
   gap: var(--espacio-4);
   min-height: 56px;
   padding: var(--espacio-3) var(--espacio-4);
-  border-bottom: var(--grosor-borde) solid var(--linea);
+  background: var(--fondo);
+  box-shadow: var(--sombra-header);
+  position: relative;
+  z-index: 2;
 }
 .barra-superior__marca { font-weight: var(--peso-semibold); color: inherit; text-decoration: none; }
 .barra-superior__usuario { margin-left: auto; color: var(--tinta-suave); }
+.barra-superior__logo { height: 44px; width: auto; display: block; }
 
 .contenido {
   max-width: var(--ancho-max-contenido);
-  margin: 0 auto;
+  margin: var(--espacio-5) auto;
   padding: var(--espacio-5) var(--espacio-4);
+  background: var(--fondo);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+/* Tablets angostas: la tarjeta pasa a ocupar todo el ancho, sin margen ni
+   sombra — el espacio lateral pesa más que el efecto de elevación. */
+@media (max-width: 479px) {
+  .contenido {
+    margin: 0 auto;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 
 h1 { font-size: var(--texto-xl); margin: 0 0 var(--espacio-5); }
@@ -49,6 +66,7 @@ p { margin: 0 0 var(--espacio-3); }
   cursor: pointer;
 }
 .boton[disabled] { opacity: 0.4; cursor: not-allowed; }
+.boton--ancho { display: flex; width: 100%; }
 .boton--texto {
   min-height: auto;
   margin-left: var(--espacio-4);
@@ -137,6 +155,7 @@ a:focus-visible {
   text-decoration: none;
   background: var(--acento);
   border-radius: var(--radio);
+  box-shadow: 0 1px 2px rgba(26, 29, 33, 0.12);
 }
 .acceso small { font-weight: var(--peso-normal); color: rgba(255, 255, 255, 0.8); }
 .acceso--pendiente { color: var(--tinta-suave); background: var(--fondo); border: var(--grosor-borde) solid var(--linea); }
@@ -245,3 +264,84 @@ a:focus-visible {
 .titulo-reporte { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espacio-4); }
 .titulo-reporte .boton--texto { margin: 0; }
 .tabla tfoot th, .tabla tfoot td { font-weight: var(--peso-semibold); border-top: 2px solid var(--linea); }
+
+/* --- Login: escena a toda pantalla con la tarjeta flotando encima (10.1) --- */
+body.pagina-login .barra-superior { min-height: 72px; }
+body.pagina-login .contenido {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.login-escena {
+  min-height: calc(100vh - 73px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espacio-6) var(--espacio-4);
+  background-color: var(--fondo-pagina);
+  /* Tamaño real de banner-ola.jpg (1600×900): nunca se agranda más allá de
+     su resolución nativa, para que no se vea borrosa en pantallas anchas.
+     Anclada arriba: en la mayoría de alturas de ventana esto ya recorta la
+     franja de logos del pie de la imagen, que no aplica en el login. */
+  background-size: auto;
+  background-position: center -50px;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+}
+.login-escena::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(242, 245, 246, 0.55), rgba(242, 245, 246, 0.88));
+}
+
+.login-tarjeta {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  padding: var(--espacio-6) var(--espacio-5) var(--espacio-5);
+  background: var(--fondo);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+}
+.login-tarjeta h1 { font-size: var(--texto-lg); margin-bottom: var(--espacio-1); }
+.login-tarjeta__subtitulo { color: var(--tinta-suave); font-size: var(--texto-sm); margin-bottom: var(--espacio-5); }
+
+.login-tarjeta__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--espacio-4);
+  color: var(--acento);
+  background: var(--acento-suave);
+  border-radius: 50%;
+}
+
+.login-tarjeta__mascota {
+  position: absolute;
+  top: -64px;
+  right: var(--espacio-4);
+  height: 104px;
+  width: auto;
+}
+
+/* --- Campos con ícono (login) --- */
+.campo__con-icono { position: relative; }
+.campo__con-icono .campo__icono {
+  position: absolute;
+  left: var(--espacio-3);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--tinta-suave);
+  pointer-events: none;
+}
+.campo__con-icono input { padding-left: 40px; }
