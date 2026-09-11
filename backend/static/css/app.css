@@ -333,6 +333,86 @@ body.pagina-login .contenido {
   width: auto;
 }
 
+/* --- Login en pantallas anchas: dos paneles, no una tarjeta perdida en un
+   mar de espacio vacío (10.1). Por debajo de 960px no cambia nada: la
+   tablet es el uso real, y ahí la tarjeta centrada ya funciona bien. --- */
+.login-panel-marca { display: none; }
+
+@media (min-width: 960px) {
+  .login-escena {
+    min-height: calc(100vh - 73px);
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    background-image: none !important;
+    overflow: visible;
+  }
+  .login-escena::before { display: none; }
+
+  .login-panel-marca {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 50%;
+    padding: var(--espacio-8);
+    background-color: var(--fondo-pagina);
+    background-size: auto;
+    background-position: center -50px;
+    background-repeat: no-repeat;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-panel-marca::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(242, 245, 246, 0.6), rgba(242, 245, 246, 0.92));
+  }
+  .login-panel-marca__mascota {
+    position: relative;
+    z-index: 1;
+    height: 220px;
+    width: auto;
+  }
+  .login-panel-marca__eslogan {
+    position: relative;
+    z-index: 1;
+    max-width: 320px;
+    margin: var(--espacio-5) 0 0;
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-semibold);
+    color: var(--tinta);
+    text-align: center;
+  }
+  .login-panel-marca__enfasis { color: var(--marca-rojo); }
+
+  .login-tarjeta {
+    flex: 1 1 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: none;
+    padding: var(--espacio-8);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  /* El avatar (56×56) queda con su tamaño propio gracias a align-items:
+     center de arriba — solo el texto y el formulario se ensanchan a una
+     columna legible de 360px, no toda la mitad de la pantalla. */
+  .login-tarjeta > form,
+  .login-tarjeta > h1,
+  .login-tarjeta > .login-tarjeta__subtitulo {
+    width: 100%;
+    max-width: 360px;
+  }
+  .login-tarjeta__mascota { display: none; }
+}
+
 /* --- Campos con ícono (login) --- */
 .campo__con-icono { position: relative; }
 .campo__con-icono .campo__icono {

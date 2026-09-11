@@ -36,6 +36,13 @@ export function Login() {
 
   return (
     <div className="login-escena" style={{ backgroundImage: "url(/img/banner-ola.jpg)" }}>
+      <div className="login-panel-marca" style={{ backgroundImage: "url(/img/banner-ola.jpg)" }}>
+        <img className="login-panel-marca__mascota" src="/img/mascota-wertino.png" alt="" aria-hidden="true" />
+        <p className="login-panel-marca__eslogan">
+          Estamos en tu <span className="login-panel-marca__enfasis">corazón</span>
+        </p>
+      </div>
+
       <div className="login-tarjeta">
         <img className="login-tarjeta__mascota" src="/img/mascota-wertino.png" alt="" aria-hidden="true" />
 
