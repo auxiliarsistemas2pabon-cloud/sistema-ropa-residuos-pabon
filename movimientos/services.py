@@ -131,13 +131,26 @@ def evaluar_conformidad(peso_declarado, peso_sistema):
     }
 
 
+def motivo_no_editable(usuario, movimiento):
+    """None si `usuario` puede corregir `movimiento` ahora mismo; si no, el
+    motivo en español para explicárselo (RF-041, 6.9, 7. del prompt):
+
+        Administradora -> siempre puede, sin límite de ventana.
+        Usuario        -> solo su propio registro y dentro de la ventana
+                           configurable (60 min por defecto)."""
+    if getattr(usuario, "es_administradora", False) or usuario.is_superuser:
+        return None
+    if movimiento.creado_por_id != usuario.pk:
+        return "Este registro no lo creaste tú."
+    minutos = config.VENTANA_EDICION_USUARIO_MINUTOS
+    limite = movimiento.creado_en + timedelta(minutes=minutos)
+    if timezone.now() > limite:
+        return f"Ya pasó la ventana de edición ({minutos} minutos desde que se creó)."
+    return None
+
+
 def puede_editar(usuario, movimiento):
     """RF-041: el rol Usuario solo edita sus propios movimientos y dentro de
     la ventana configurable (60 min por defecto); la Administradora edita sin
     límite de ventana (7. del prompt)."""
-    if getattr(usuario, "es_administradora", False):
-        return True
-    if movimiento.creado_por_id != usuario.pk:
-        return False
-    limite = timedelta(minutes=config.VENTANA_EDICION_USUARIO_MINUTOS)
-    return timezone.now() - movimiento.creado_en <= limite
+    return motivo_no_editable(usuario, movimiento) is None

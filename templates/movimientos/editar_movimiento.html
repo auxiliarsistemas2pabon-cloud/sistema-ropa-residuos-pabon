@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block titulo %}Corregir movimiento · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Corregir registro</h1>
+<p class="tinta-suave">
+  {{ movimiento.get_tipo_movimiento_display }} · {{ movimiento.fecha|date:"d M" }} {{ movimiento.hora|time:"H:i" }}
+  · {{ movimiento.area_origen.nombre|default:"—" }}
+</p>
+{% if limite_edicion %}
+  <p class="tinta-suave">Puedes corregirlo hasta las {{ limite_edicion|time:"H:i" }}.</p>
+{% endif %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  {% if "peso_total" in form.fields %}
+    {% include "componentes/_campo.html" with campo=form.peso_total %}
+    {% include "componentes/_campo.html" with campo=form.tara %}
+    <p class="error-tara" data-error-tara hidden>
+      La tara no puede ser mayor al peso total. Revisa el valor del recipiente.
+    </p>
+    <div class="campo">
+      <label>Peso neto</label>
+      <p class="peso-neto" data-peso-neto>—</p>
+    </div>
+  {% endif %}
+
+  {% if "cantidad_unidades" in form.fields %}
+    {% include "componentes/_campo.html" with campo=form.cantidad_unidades %}
+  {% endif %}
+
+  {% include "componentes/_campo.html" with campo=form.observaciones %}
+
+  <button type="submit" class="boton" {% if "peso_total" in form.fields %}data-requiere-peso-valido{% endif %}>
+    Guardar corrección
+  </button>
+  <a class="boton boton--texto" href="{% url 'movimientos:detalle_movimiento' movimiento.pk %}">Cancelar</a>
+</form>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block titulo %}No editable · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>No puedes corregir este registro</h1>
+<p>{{ motivo }}</p>
+<p>
+  Si de verdad necesita cambiar, pídeselo a la Administradora — ella puede
+  corregirlo sin límite de tiempo.
+</p>
+<p><a href="{% url 'movimientos:detalle_movimiento' movimiento.pk %}">← Volver al detalle</a></p>
+{% endblock %}

@@ -1,15 +1,19 @@
 from datetime import timedelta
 
+from constance import config
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from core.decorators import solo_administradora
 from reportes.exportadores import libro_de_tabla
 
 from .filters import NovedadFilter
+from .forms import EdicionMovimientoForm
 from .models import EstadoMovimiento, Movimiento, Novedad
+from .services import motivo_no_editable, puede_editar
 
 
 def _novedades_filtradas(request):
@@ -130,8 +134,43 @@ def detalle_movimiento(request, pk):
         "rotulos": movimiento.rotulos.all(),
         "entrega_gestor": getattr(movimiento, "entrega_gestor", None),
         "recepciones_enlazadas": movimiento.movimientos_resultantes.select_related("sede").all(),
+        "puede_editar": puede_editar(request.user, movimiento),
     }
     if request.user.es_administradora or request.user.is_superuser:
         contexto["historial"] = _historial_con_cambios(movimiento)
 
     return render(request, "movimientos/detalle_movimiento.html", contexto)
+
+
+@login_required
+def editar_movimiento(request, pk):
+    """Autocorrección de un movimiento propio (RF-041): el peso, la cantidad
+    de unidades y las observaciones. La Administradora sin límite de
+    ventana; el Usuario, solo lo suyo y dentro de la ventana configurable."""
+    movimiento = get_object_or_404(
+        Movimiento.objects.select_related("sede", "area_origen"), pk=pk,
+    )
+    motivo = motivo_no_editable(request.user, movimiento)
+    if motivo:
+        return render(
+            request, "movimientos/no_editable.html", {"movimiento": movimiento, "motivo": motivo},
+        )
+
+    if request.method == "POST":
+        form = EdicionMovimientoForm(request.POST, movimiento=movimiento)
+        if form.is_valid():
+            form.guardar()
+            messages.success(request, "Corrección guardada.")
+            return redirect("movimientos:detalle_movimiento", pk=movimiento.pk)
+    else:
+        form = EdicionMovimientoForm(movimiento=movimiento)
+
+    limite_edicion = None
+    if not (request.user.es_administradora or request.user.is_superuser):
+        limite_edicion = movimiento.creado_en + timedelta(minutes=config.VENTANA_EDICION_USUARIO_MINUTOS)
+
+    return render(
+        request,
+        "movimientos/editar_movimiento.html",
+        {"form": form, "movimiento": movimiento, "limite_edicion": limite_edicion},
+    )

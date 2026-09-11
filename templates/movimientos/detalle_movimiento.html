@@ -3,7 +3,12 @@
 {% block titulo %}Movimiento #{{ movimiento.pk }} · Clínica Pabón{% endblock %}
 
 {% block contenido %}
-<h1>{{ movimiento.get_tipo_movimiento_display }}</h1>
+<div class="titulo-reporte">
+  <h1>{{ movimiento.get_tipo_movimiento_display }}</h1>
+  {% if puede_editar %}
+    <a class="boton boton--texto" href="{% url 'movimientos:editar_movimiento' movimiento.pk %}">Corregir</a>
+  {% endif %}
+</div>
 
 <dl class="calculado">
   <div><dt>Fecha y hora</dt><dd>{{ movimiento.fecha|date:"d M Y" }} · {{ movimiento.hora|time:"H:i" }}</dd></div>
