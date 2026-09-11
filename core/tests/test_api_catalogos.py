@@ -52,6 +52,20 @@ def test_usuario_no_ve_ni_escribe_directorio_de_usuarios(api_client, usuario, ad
     ).status_code == 403
 
 
+def test_usuario_lee_directorio_de_activos_para_selects_de_captura(api_client, usuario, administradora):
+    Usuario = usuario.__class__
+    Usuario.objects.create_user(username="inactivo", password="x", activo=False)
+    api_client.force_authenticate(user=usuario)
+
+    resp = api_client.get(reverse("api-usuario-activos"))
+    assert resp.status_code == 200
+    nombres = {fila["nombre_completo"] for fila in resp.data}
+    assert usuario.username in nombres or usuario.get_full_name() in nombres
+    assert "inactivo" not in nombres
+    # solo id + nombre_completo, nunca username/documento/rol
+    assert set(resp.data[0].keys()) == {"id", "nombre_completo"}
+
+
 def test_administradora_crea_usuario_sin_tocar_permisos_a_mano(api_client, administradora):
     api_client.force_authenticate(user=administradora)
     resp = api_client.post(

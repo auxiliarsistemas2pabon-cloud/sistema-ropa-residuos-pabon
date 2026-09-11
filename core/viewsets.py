@@ -1,10 +1,18 @@
 from rest_framework import mixins
+from rest_framework.decorators import action
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from .models import AreaServicio, GestorExterno, Sede, Usuario
 from .permissions import IsAdministradora
-from .serializers import AreaServicioSerializer, GestorExternoSerializer, SedeSerializer, UsuarioSerializer
+from .serializers import (
+    AreaServicioSerializer,
+    GestorExternoSerializer,
+    SedeSerializer,
+    UsuarioActivoSerializer,
+    UsuarioSerializer,
+)
 
 
 class SinBorradoModelViewSet(
@@ -53,3 +61,18 @@ class UsuarioViewSet(SinBorradoModelViewSet):
     serializer_class = UsuarioSerializer
     permission_classes = [IsAuthenticated, IsAdministradora]
     filterset_fields = ["rol", "activo"]
+
+    @action(detail=False, permission_classes=[IsAuthenticated])
+    def activos(self, request):
+        """Directorio mínimo (id + nombre) para los selects de
+        entrega_por/recibe_por/responsable de los formularios de captura —
+        exactamente lo mismo que hoy ve el Usuario en el <select> del HTML
+        (nombre, nunca username/documento/rol). A diferencia del resto de
+        este viewset, cualquier autenticado puede llamarla, no solo
+        Administradora."""
+        usuarios = Usuario.objects.filter(activo=True).order_by("first_name", "username")
+        datos = [
+            {"id": u.id, "nombre_completo": u.get_full_name() or u.username}
+            for u in usuarios
+        ]
+        return Response(UsuarioActivoSerializer(datos, many=True).data)

@@ -28,6 +28,14 @@ class UsuarioMeSerializer(serializers.Serializer):
     is_superuser = serializers.BooleanField()
 
 
+class UsuarioActivoSerializer(serializers.Serializer):
+    """Directorio mínimo para selects de captura — ver
+    core.viewsets.UsuarioViewSet.activos."""
+
+    id = serializers.IntegerField()
+    nombre_completo = serializers.CharField()
+
+
 class SedeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sede
