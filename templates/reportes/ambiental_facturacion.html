@@ -87,7 +87,10 @@
 </section>
 
 <section class="seccion">
-  <h2>Conciliación con el gestor</h2>
+  <div class="titulo-reporte">
+    <h2>Conciliación con el gestor</h2>
+    <a class="boton boton--texto" href="{% url 'reportes:exportar_conciliacion' %}?mes={{ mes_valor }}">Exportar</a>
+  </div>
   {% if conciliacion %}
     <table class="tabla tabla-kg">
       <thead><tr><th>Gestor</th><th>Factura</th><th class="num">kg interno</th><th class="num">kg facturado</th><th class="num">Diferencia</th></tr></thead>

@@ -182,3 +182,19 @@ def exportar_facturacion(request):
         libro_de_tabla(f"Facturacion {anio}-{mes:02d}", columnas, filas, num_desde=2),
         f"facturacion_{anio}-{mes:02d}",
     )
+
+
+@solo_administradora
+def exportar_conciliacion(request):
+    """Conciliación entre lo pesado internamente y lo facturado por el
+    gestor externo (RF-038), exportable como cualquier otro reporte (RF-033)."""
+    anio, mes = _mes_pedido(request)
+    columnas = ["Gestor", "Factura", "kg interno", "kg facturado", "Diferencia"]
+    filas = [
+        [x["gestor"], x["factura"], x["kg_interno"], x["kg_facturado"], x["diferencia"]]
+        for x in conciliacion_gestor(anio, mes)
+    ]
+    return _respuesta_xlsx(
+        libro_de_tabla(f"Conciliacion {anio}-{mes:02d}", columnas, filas, num_desde=2),
+        f"conciliacion_{anio}-{mes:02d}",
+    )

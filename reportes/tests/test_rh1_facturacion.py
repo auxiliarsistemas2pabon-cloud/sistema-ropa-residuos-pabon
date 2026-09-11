@@ -104,3 +104,29 @@ def test_ambiental_facturacion_solo_administradora(client, usuario, administrado
     assert client.get(reverse("reportes:ambiental_facturacion")).status_code == 403
     client.force_login(administradora)
     assert client.get(reverse("reportes:ambiental_facturacion")).status_code == 200
+
+
+def test_exportar_conciliacion_xlsx(client, administradora, crear_movimiento, usuario, gestor):
+    mov = crear_movimiento(
+        tipo=TipoMovimiento.RESIDUO_RECOLECCION, fecha=date(2026, 3, 10), hora=time(9, 0),
+        periodo_facturacion=date(2026, 3, 1),
+    )
+    Pesaje.objects.create(movimiento=mov, peso_total=Decimal("10.30"), tara=Decimal("0.30"), pesado_por=usuario)
+    EntregaGestor.objects.create(
+        movimiento=mov, gestor_externo=gestor, numero_factura="F9",
+        kg_facturados=Decimal("9.50"), valor_facturado=Decimal("1"),
+    )
+
+    client.force_login(administradora)
+    resp = client.get(reverse("reportes:exportar_conciliacion"), {"mes": "2026-03"})
+    assert resp.status_code == 200
+    ws = load_workbook(BytesIO(resp.getvalue())).active
+    assert [c.value for c in ws[1]] == ["Gestor", "Factura", "kg interno", "kg facturado", "Diferencia"]
+    assert ws.cell(row=2, column=1).value == gestor.nombre
+    assert ws.cell(row=2, column=4).value == 9.5
+    assert ws.cell(row=2, column=5).value == 0.5
+
+
+def test_exportar_conciliacion_solo_administradora(client, usuario):
+    client.force_login(usuario)
+    assert client.get(reverse("reportes:exportar_conciliacion")).status_code == 403
