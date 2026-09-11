@@ -389,40 +389,43 @@ body.pagina-login .contenido {
 .login-tarjeta .boton--ancho:hover { background: #000000; border-color: #000000; }
 
 /* --- Login en pantallas anchas: la marca a la izquierda, la tarjeta de
-   acceso a la derecha. Por debajo de 960px queda todo en una columna
-   (uso real en tablet de hospital en vertical), con la mascota reducida
-   por clamp() en vez de ocultarse. --- */
+   acceso a la derecha. Ambas columnas comparten UN solo eje vertical
+   (align-items: center en la fila + justify-content: center dentro de
+   cada columna) para que el centro de la marca y el centro de la tarjeta
+   queden en la misma línea — antes cada una se alineaba por su cuenta
+   (space-between vs. centrado) y el conjunto se veía descuadrado. Por
+   debajo de 960px queda todo en una columna (uso real en tablet de
+   hospital en vertical), con la mascota reducida por clamp(). --- */
 @media (min-width: 960px) {
   .login-escena {
     flex-direction: row;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
     gap: var(--espacio-8);
-    padding: var(--espacio-8);
+    padding: var(--espacio-6) var(--espacio-8);
   }
 
   .login-marca {
     flex: 1 1 50%;
     max-width: 560px;
     align-items: flex-start;
-    justify-content: space-between;
+    justify-content: center;
+    gap: var(--espacio-6);
     text-align: left;
-    padding: var(--espacio-5) 0;
   }
-  .login-marca__logo { height: 116px; }
+  .login-marca__logo { height: 108px; }
   .login-marca__protagonista {
     flex-direction: row;
-    align-items: flex-end;
+    align-items: center;
     gap: var(--espacio-5);
     text-align: left;
   }
-  .login-marca__mascota { height: 300px; }
-  .login-marca__texto h1 { font-size: 2.75rem; line-height: 1.1; }
+  .login-marca__mascota { height: 260px; }
+  .login-marca__texto h1 { font-size: 2.5rem; line-height: 1.15; }
   .login-marca__texto p { margin: var(--espacio-4) 0 0; max-width: 320px; }
 
   .login-tarjeta {
     flex: 0 1 400px;
-    align-self: center;
   }
 }
 
