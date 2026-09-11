@@ -7,7 +7,7 @@ from .models import ConfiguracionJornada, Movimiento, Novedad, Pesaje, Validacio
 
 
 @admin.register(ConfiguracionJornada)
-class ConfiguracionJornadaAdmin(SimpleHistoryAdmin):
+class ConfiguracionJornadaAdmin(SinBorrado, SimpleHistoryAdmin):
     list_display = ["sede", "proceso", "jornada", "hora_inicio", "hora_fin"]
     list_filter = ["sede", "proceso", "jornada"]
 

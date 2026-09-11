@@ -29,7 +29,7 @@ class EntregaGestorAdmin(SinBorrado, SimpleHistoryAdmin):
 
 
 @admin.register(ColumnaRH1)
-class ColumnaRH1Admin(SimpleHistoryAdmin):
+class ColumnaRH1Admin(SinBorrado, SimpleHistoryAdmin):
     list_display = ["nombre", "orden", "grupo", "activo"]
     list_editable = ["orden", "activo"]
     filter_horizontal = ["categorias"]

@@ -1,8 +1,10 @@
 from datetime import date, time, timedelta
 
 import pytest
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.test import RequestFactory
 from django.utils import timezone
 
 from movimientos.models import Movimiento, TipoMovimiento
@@ -64,10 +66,35 @@ def test_grupo_usuario_no_toca_catalogos_ni_parametros():
     assert {"add_detalleresiduo", "add_rotulo"} <= perms
 
 
+def test_grupo_usuario_si_puede_validar_entrega():
+    # ropa:validacion (RF-023) lo declara el personal en el punto de pesaje,
+    # no solo la Administradora (ver test_guardar_validacion_via_vista).
+    perms = set(Group.objects.get(name="Usuario").permissions.values_list("codename", flat=True))
+    assert {"add_validacionentrega", "change_validacionentrega", "view_validacionentrega"} <= perms
+
+
 def test_ningun_grupo_puede_eliminar_registros():
     for nombre in ("Administradora", "Usuario"):
         perms = set(Group.objects.get(name=nombre).permissions.values_list("codename", flat=True))
         assert not any(p.startswith("delete_") for p in perms)
+
+
+APPS_DEL_SISTEMA = {"core", "movimientos", "ropa", "residuos"}
+
+
+def test_nada_se_puede_eliminar_desde_el_admin_ni_como_superusuario():
+    # 6.8: inmutabilidad total. Ningún modelo propio del sistema (catálogo u
+    # operativo) debe permitir eliminarse desde el admin, ni siquiera al
+    # superusuario técnico. Los modelos de infraestructura de Django (Group,
+    # etc.) quedan fuera: no son datos de la clínica.
+    superusuario = Usuario(is_superuser=True, is_staff=True)
+    request = RequestFactory().get("/admin/")
+    request.user = superusuario
+    bloqueados = [
+        model for model, model_admin in admin.site._registry.items()
+        if model._meta.app_label in APPS_DEL_SISTEMA and model_admin.has_delete_permission(request)
+    ]
+    assert bloqueados == []
 
 
 # --- ventana de edición (RF-041) ---
