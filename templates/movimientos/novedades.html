@@ -3,7 +3,12 @@
 {% block titulo %}Novedades · Clínica Pabón{% endblock %}
 
 {% block contenido %}
-<h1>Novedades</h1>
+<div class="titulo-reporte">
+  <h1>Novedades</h1>
+  {% if user.es_administradora or user.is_superuser %}
+    <a class="boton boton--texto" href="{% url 'movimientos:exportar_novedades' %}?{{ request.GET.urlencode }}">Exportar a Excel</a>
+  {% endif %}
+</div>
 
 <form method="get" class="fila-filtro">
   {% for campo in filtro.form %}
@@ -27,7 +32,7 @@
             <td>{{ n.movimiento.area_origen.nombre|default:"—" }}</td>
             <td class="num cifra-kg">{{ n.cantidad_afectada|default:"—" }}</td>
             <td>{{ n.observacion|default:"—" }}</td>
-            <td>{{ n.registrado_por.get_full_name|default:n.registrado_por.username }}</td>
+            <td>{{ n.registrado_por }}</td>
           </tr>
         {% endfor %}
       </tbody>

@@ -1,24 +1,60 @@
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required, permission_required
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+
+from core.decorators import solo_administradora
+from reportes.exportadores import libro_de_tabla
 
 from .filters import NovedadFilter
 from .models import EstadoMovimiento, Movimiento, Novedad
 
 
-@login_required
-@permission_required("movimientos.view_movimiento", raise_exception=True)
-def lista_novedades(request):
+def _novedades_filtradas(request):
     novedades = (
         Novedad.objects.select_related(
             "movimiento", "movimiento__sede", "movimiento__area_origen", "registrado_por",
         )
         .order_by("-registrado_en")
     )
-    filtro = NovedadFilter(request.GET, queryset=novedades)
+    return NovedadFilter(request.GET, queryset=novedades)
+
+
+@login_required
+@permission_required("movimientos.view_movimiento", raise_exception=True)
+def lista_novedades(request):
+    filtro = _novedades_filtradas(request)
     return render(request, "movimientos/novedades.html", {"filtro": filtro})
+
+
+@solo_administradora
+def exportar_novedades(request):
+    """Reporte de novedades en Excel (RF-033, RF-037), respetando los mismos
+    filtros que la pantalla. Descarga exclusiva de la Administradora (7. del
+    prompt: "descarga todos los reportes")."""
+    filtro = _novedades_filtradas(request)
+    columnas = ["Fecha", "Tipo", "Sede", "Servicio", "kg afectados", "Observación", "Registró"]
+    filas = [
+        [
+            n.registrado_en.strftime("%Y-%m-%d %H:%M"),
+            n.get_tipo_novedad_display(),
+            n.movimiento.sede.nombre,
+            n.movimiento.area_origen.nombre if n.movimiento.area_origen else "",
+            n.cantidad_afectada if n.cantidad_afectada is not None else "",
+            n.observacion,
+            str(n.registrado_por),
+        ]
+        for n in filtro.qs
+    ]
+    wb = libro_de_tabla("Novedades", columnas, filas)
+    resp = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = 'attachment; filename="novedades.xlsx"'
+    wb.save(resp)
+    return resp
 
 
 @login_required
