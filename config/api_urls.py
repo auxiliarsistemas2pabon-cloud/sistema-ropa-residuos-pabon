@@ -7,9 +7,16 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 import movimientos.views as movimientos_views
+import reportes.views as reportes_views
 from core.api_views import ConfiguracionAPIView, CsrfCookieView, LoginView, LogoutView, MeView
 from core.viewsets import AreaServicioViewSet, GestorExternoViewSet, SedeViewSet, UsuarioViewSet
 from movimientos.viewsets import MovimientoViewSet, NovedadViewSet
+from reportes.api_views import (
+    ConsolidadoAPIView,
+    FacturacionConciliacionAPIView,
+    FacturacionResumenAPIView,
+    RH1APIView,
+)
 from residuos.api_views import CortePeligrososAPIView, GeneracionResiduoAPIView, RecoleccionResiduoAPIView
 from residuos.viewsets import CategoriaResiduoViewSet, ColumnaRH1ViewSet
 from ropa.api_views import (
@@ -56,8 +63,24 @@ urlpatterns = [
     path("movimientos/recoleccion-residuo/", RecoleccionResiduoAPIView.as_view(), name="api-recoleccion-residuo"),
     path("ropa/ciclo-retorno/", CicloRetornoAPIView.as_view(), name="api-ciclo-retorno"),
     path("residuos/corte-peligrosos/", CortePeligrososAPIView.as_view(), name="api-corte-peligrosos"),
-    # Reutiliza tal cual la vista de exportación existente (ya decorada con
-    # @solo_administradora): mismo Excel, una URL más bajo /api/.
+    path("consolidados/<slug:clave>/", ConsolidadoAPIView.as_view(), name="api-consolidado"),
+    path("rh1/", RH1APIView.as_view(), name="api-rh1"),
+    path("facturacion/resumen/", FacturacionResumenAPIView.as_view(), name="api-facturacion-resumen"),
+    path(
+        "facturacion/conciliacion/",
+        FacturacionConciliacionAPIView.as_view(),
+        name="api-facturacion-conciliacion",
+    ),
+    # Reutilizan tal cual las vistas de exportación existentes (ya decoradas
+    # con @solo_administradora): mismo Excel, una URL más bajo /api/.
     path("novedades/exportar.xlsx", movimientos_views.exportar_novedades, name="api-novedades-exportar"),
+    path("consolidados/exportar/<slug:clave>.xlsx", reportes_views.exportar, name="api-consolidado-exportar"),
+    path("rh1/exportar.xlsx", reportes_views.exportar_rh1, name="api-rh1-exportar"),
+    path("facturacion/resumen/exportar.xlsx", reportes_views.exportar_facturacion, name="api-facturacion-exportar"),
+    path(
+        "facturacion/conciliacion/exportar.xlsx",
+        reportes_views.exportar_conciliacion,
+        name="api-facturacion-conciliacion-exportar",
+    ),
     path("", include(router.urls)),
 ]
