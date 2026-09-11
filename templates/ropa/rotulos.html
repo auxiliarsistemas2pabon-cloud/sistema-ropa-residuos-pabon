@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block titulo %}Registrar rótulos · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Registrar rótulos</h1>
+<p class="tinta-suave">
+  Se retiran al recolectar la ropa sucia y quedan asociados a esa entrega.
+  Una entrega puede tener varios rótulos — uno por tula.
+</p>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  {% include "componentes/_campo.html" with campo=form.sede %}
+  {% include "componentes/_campo.html" with campo=form.movimiento %}
+  {% if not form.fields.movimiento.queryset %}
+    <p class="vacio">
+      No hay entregas de ropa sucia hoy para esta sede. Registra primero la
+      entrega en «Entregar ropa sucia».
+    </p>
+  {% endif %}
+
+  {% include "componentes/_campo.html" with campo=form.codigo_rotulo %}
+  {% include "componentes/_campo.html" with campo=form.contenido %}
+  {% include "componentes/_campo.html" with campo=form.sin_rotular %}
+
+  <button type="submit" class="boton">Guardar rótulo</button>
+</form>
+
+{% if rotulos_de_la_entrega %}
+  <section class="seccion">
+    <h2>Rótulos ya registrados para esta entrega</h2>
+    <ul class="lista-novedades">
+      {% for r in rotulos_de_la_entrega %}
+        <li>
+          {% if r.rotulada %}Código {{ r.codigo_rotulo|default:"s/n" }}{% else %}<strong>Sin rotular</strong>{% endif %}
+          {% if r.contenido %} · {{ r.contenido }}{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+{% endblock %}

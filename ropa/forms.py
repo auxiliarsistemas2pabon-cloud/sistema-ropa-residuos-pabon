@@ -21,7 +21,7 @@ from movimientos.services import (
     suma_por_servicio,
 )
 
-from .models import DetalleRopa, Prenda
+from .models import DetalleRopa, Prenda, Rotulo
 
 Usuario = get_user_model()
 
@@ -357,3 +357,78 @@ class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
             cantidad_unidades=self.cleaned_data["cantidad_unidades"],
         )
         return movimiento, detalle
+
+
+class _EntregaChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, movimiento):
+        pesaje = movimiento.pesajes.first()
+        kg = f"{pesaje.peso_neto} kg" if pesaje else "sin pesaje"
+        return f"{movimiento.hora:%H:%M} · {movimiento.area_origen.nombre} · {kg}"
+
+
+class RotuloForm(forms.Form):
+    """Registro de rótulos (pantalla 8): se retiran al recolectar la ropa
+    sucia y se relacionan con esa entrega (§8 y §9 del lineamiento de ropa).
+    Un mismo movimiento puede tener varios rótulos (una tula cada uno)."""
+
+    sede = forms.ModelChoiceField(
+        queryset=Sede.objects.filter(activo=True).order_by("nombre"), label="Sede",
+    )
+    movimiento = _EntregaChoiceField(
+        queryset=Movimiento.objects.none(), label="Entrega de ropa sucia",
+        help_text="Solo se muestran las entregas de hoy.",
+    )
+    codigo_rotulo = forms.CharField(label="Código del rótulo", required=False)
+    contenido = forms.CharField(
+        label="Contenido (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
+    )
+    sin_rotular = forms.BooleanField(label="Llegó sin rotular", required=False)
+
+    def __init__(self, *args, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        sede = self._sede_seleccionada()
+        if sede:
+            self.fields["movimiento"].queryset = (
+                Movimiento.objects.filter(
+                    tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA,
+                    sede=sede, fecha=timezone.localdate(),
+                )
+                .select_related("area_origen")
+                .prefetch_related("pesajes")
+                .order_by("-hora")
+            )
+        if not self.is_bound and sede:
+            self.fields["sede"].initial = sede
+
+    def _sede_seleccionada(self):
+        if self.is_bound:
+            candidato = self.data.get("sede")
+        else:
+            candidato = self.initial.get("sede")
+        if candidato:
+            try:
+                return Sede.objects.get(pk=candidato)
+            except (Sede.DoesNotExist, ValueError, TypeError):
+                pass
+        if self.is_bound:
+            return None
+        return Sede.objects.filter(activo=True).order_by("nombre").first()
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("sin_rotular") and not (cleaned.get("codigo_rotulo") or "").strip():
+            self.add_error(
+                "codigo_rotulo",
+                "Si llegó rotulada, registra el código. Si no tiene, marca «Llegó sin rotular».",
+            )
+        return cleaned
+
+    def guardar(self, *args, **kwargs):
+        movimiento = self.cleaned_data["movimiento"]
+        return Rotulo.objects.create(
+            movimiento=movimiento,
+            area_servicio=movimiento.area_origen,
+            codigo_rotulo=self.cleaned_data.get("codigo_rotulo", "").strip(),
+            contenido=self.cleaned_data.get("contenido", "").strip(),
+            rotulada=not self.cleaned_data.get("sin_rotular"),
+        )

@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from movimientos.models import Proceso
@@ -10,8 +11,10 @@ from .forms import (
     DistribucionRopaLimpiaForm,
     EntregaRopaSuciaForm,
     RecepcionRopaLimpiaForm,
+    RotuloForm,
     ValidacionEntregaForm,
 )
+from .models import Rotulo
 
 
 @login_required
@@ -83,6 +86,38 @@ def distribucion_ropa_limpia(request):
         form = DistribucionRopaLimpiaForm(usuario=request.user)
 
     return render(request, "ropa/distribucion_limpia.html", {"form": form})
+
+
+@login_required
+@permission_required("movimientos.add_movimiento", raise_exception=True)
+def registro_rotulos(request):
+    rotulos_de_la_entrega = None
+
+    if request.method == "POST":
+        form = RotuloForm(request.POST, usuario=request.user)
+        if form.is_valid():
+            rotulo = form.guardar()
+            resumen = "sin rotular" if not rotulo.rotulada else f"código {rotulo.codigo_rotulo}"
+            messages.success(
+                request, f"Rótulo guardado · {rotulo.area_servicio.nombre} · {resumen}",
+            )
+            return redirect(
+                f"{reverse('ropa:rotulos')}?sede={rotulo.movimiento.sede_id}"
+                f"&movimiento={rotulo.movimiento_id}"
+            )
+    else:
+        inicial = {}
+        if request.GET.get("sede"):
+            inicial["sede"] = request.GET["sede"]
+        movimiento_id = request.GET.get("movimiento")
+        if movimiento_id:
+            inicial["movimiento"] = movimiento_id
+            rotulos_de_la_entrega = Rotulo.objects.filter(movimiento_id=movimiento_id).order_by("-id")
+        form = RotuloForm(initial=inicial, usuario=request.user)
+
+    return render(
+        request, "ropa/rotulos.html", {"form": form, "rotulos_de_la_entrega": rotulos_de_la_entrega},
+    )
 
 
 @login_required

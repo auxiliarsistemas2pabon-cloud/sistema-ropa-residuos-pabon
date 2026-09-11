@@ -87,6 +87,16 @@ a:focus-visible {
 .campo .is-invalido,
 .campo--error input,
 .campo--error select { border-color: var(--alerta); }
+
+.campo input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  min-height: auto;
+  padding: 0;
+  vertical-align: middle;
+  accent-color: var(--acento);
+}
+.campo--casilla label { display: inline; margin: 0 0 0 var(--espacio-2); }
 .campo__ayuda { margin: var(--espacio-1) 0 0; font-size: var(--texto-sm); color: var(--tinta-suave); }
 .campo__error { margin: var(--espacio-1) 0 0; font-size: var(--texto-sm); color: var(--alerta); }
 

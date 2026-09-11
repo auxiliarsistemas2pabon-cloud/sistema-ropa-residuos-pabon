@@ -9,5 +9,6 @@ urlpatterns = [
     path("ropa/limpia/", views.menu_ropa_limpia, name="limpia_menu"),
     path("ropa/limpia/recepcion/", views.recepcion_ropa_limpia, name="recepcion_limpia"),
     path("ropa/limpia/distribucion/", views.distribucion_ropa_limpia, name="distribucion_limpia"),
+    path("ropa/rotulos/", views.registro_rotulos, name="rotulos"),
     path("ropa/validacion/", views.validacion_entrega, name="validacion"),
 ]
