@@ -36,17 +36,20 @@ def test_prendas():
 
 
 def test_categorias_de_residuos_arbol():
-    assert CategoriaResiduo.objects.count() == 23
-
-    toxicos = CategoriaResiduo.objects.get(nombre="Tóxicos")
-    assert toxicos.grupo == GrupoResiduo.OTRO_PELIGROSO
-    assert toxicos.categoria_padre is None
-    assert toxicos.subcategorias.count() == 4
+    # FR-SIG-193 oficial (residuos/migrations/0005): 22 categorías activas,
+    # planas (sin jerarquía) — más 2 desactivadas de la siembra provisional.
+    assert CategoriaResiduo.objects.filter(activo=True).count() == 22
+    assert CategoriaResiduo.objects.filter(activo=False).count() == 2
 
     pilas = CategoriaResiduo.objects.get(nombre="Pilas")
-    assert pilas.categoria_padre == toxicos
+    assert pilas.categoria_padre is None
+    assert pilas.grupo == GrupoResiduo.OTRO_PELIGROSO
     assert pilas.es_peligroso
 
-    assert CategoriaResiduo.objects.filter(grupo=GrupoResiduo.RIESGO_BIOLOGICO).count() == 4
-    assert CategoriaResiduo.objects.filter(grupo=GrupoResiduo.NO_PELIGROSO).count() == 2
-    assert CategoriaResiduo.objects.filter(grupo=GrupoResiduo.OTROS).count() == 4
+    radioactivos = CategoriaResiduo.objects.get(nombre="Residuos o desechos radioactivos")
+    assert radioactivos.es_peligroso  # anidado bajo RESIDUOS PELIGROSOS en el formato oficial
+
+    assert CategoriaResiduo.objects.filter(grupo=GrupoResiduo.RIESGO_BIOLOGICO, activo=True).count() == 4
+    assert CategoriaResiduo.objects.filter(grupo=GrupoResiduo.NO_PELIGROSO, activo=True).count() == 2
+    assert CategoriaResiduo.objects.filter(grupo=GrupoResiduo.OTRO_PELIGROSO, activo=True).count() == 16
+    assert CategoriaResiduo.objects.filter(grupo=GrupoResiduo.OTROS, activo=True).count() == 0

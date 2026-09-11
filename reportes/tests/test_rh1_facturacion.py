@@ -29,8 +29,10 @@ def gestor(db):
 
 
 def test_columnas_rh1_sembradas():
-    assert ColumnaRH1.objects.filter(activo=True).count() == 5
+    # Formato oficial FR-SIG-193 (residuos/migrations/0005): 22 columnas.
+    assert ColumnaRH1.objects.filter(activo=True).count() == 22
     assert ColumnaRH1.objects.filter(nombre="Biosanitarios").exists()
+    assert ColumnaRH1.objects.filter(nombre="Residuos o desechos radioactivos").exists()
 
 
 def test_rh1_del_mes_suma_por_dia(crear_movimiento, usuario):

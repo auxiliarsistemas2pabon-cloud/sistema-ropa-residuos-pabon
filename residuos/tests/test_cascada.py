@@ -38,12 +38,16 @@ def test_opciones_categoria_sin_grupo_no_devuelve_nada(client, usuario):
 
 
 def test_opciones_tipo_de_categoria_con_hijos(client, usuario):
-    toxicos = CategoriaResiduo.objects.get(nombre="Tóxicos")
+    # El catálogo oficial (FR-SIG-193) no trae categorías anidadas de fábrica;
+    # se crean aquí para probar la cascada si la Administradora agrega una.
+    padre = CategoriaResiduo.objects.create(nombre="Padre de prueba", grupo="OTRO_PELIGROSO")
+    CategoriaResiduo.objects.create(nombre="Hijo A", grupo="OTRO_PELIGROSO", categoria_padre=padre)
+    CategoriaResiduo.objects.create(nombre="Hijo B", grupo="OTRO_PELIGROSO", categoria_padre=padre)
     client.force_login(usuario)
-    resp = client.get(reverse("residuos:opciones_tipo"), {"categoria": toxicos.pk})
+    resp = client.get(reverse("residuos:opciones_tipo"), {"categoria": padre.pk})
     cuerpo = resp.content.decode()
-    assert "Pilas" in cuerpo
-    assert "Material de osteosíntesis" in cuerpo
+    assert "Hijo A" in cuerpo
+    assert "Hijo B" in cuerpo
 
 
 def test_opciones_tipo_de_categoria_sin_hijos_va_vacia(client, usuario):

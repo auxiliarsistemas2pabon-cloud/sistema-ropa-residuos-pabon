@@ -19,9 +19,9 @@
     <a class="boton boton--texto" href="{% url 'reportes:exportar_rh1' %}?mes={{ mes_valor }}">Exportar RH1</a>
   </div>
   <p class="tinta-suave">
-    Generación por día calendario. La estructura de columnas es configurable
-    desde el admin (Columnas del RH1) — falta el formato oficial de la
-    autoridad ambiental para dejarlo definitivo.
+    Generación por día calendario, con las 22 columnas del formato oficial
+    FR-SIG-193. La estructura sigue siendo configurable desde el admin
+    (Columnas del RH1) si la autoridad ambiental la actualiza.
   </p>
   {% if rh1.columnas %}
     <div class="tabla-envoltura">

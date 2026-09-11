@@ -15,13 +15,20 @@ def biosanitarios(db):
 
 
 @pytest.fixture
-def toxicos(db):
-    return CategoriaResiduo.objects.get(nombre="Tóxicos")
+def pilas(db):
+    return CategoriaResiduo.objects.get(nombre="Pilas")
 
 
 @pytest.fixture
-def pilas(db):
-    return CategoriaResiduo.objects.get(nombre="Pilas")
+def categoria_con_hijo(db):
+    # El catálogo oficial (FR-SIG-193) no trae categorías anidadas, pero la
+    # cascada "tipo específico" sigue siendo una función real del formulario
+    # si la Administradora agrega una jerarquía propia desde el admin.
+    padre = CategoriaResiduo.objects.create(nombre="Padre de prueba", grupo="OTRO_PELIGROSO")
+    hijo = CategoriaResiduo.objects.create(
+        nombre="Hijo de prueba", grupo="OTRO_PELIGROSO", categoria_padre=padre,
+    )
+    return padre, hijo
 
 
 def _datos(sede, area, usuario, **extra):
@@ -55,14 +62,15 @@ def test_post_valido_crea_movimiento_pesaje_y_detalle(client, usuario, sede, are
     assert detalle.peso_kg == Decimal("3.50")
 
 
-def test_el_tipo_especifico_es_la_categoria_final(client, usuario, sede, area, toxicos, pilas):
+def test_el_tipo_especifico_es_la_categoria_final(client, usuario, sede, area, categoria_con_hijo):
+    padre, hijo = categoria_con_hijo
     client.force_login(usuario)
     client.post(
         reverse("residuos:generacion"),
-        _datos(sede, area, usuario, grupo="OTRO_PELIGROSO", categoria=toxicos.pk, tipo_especifico=pilas.pk),
+        _datos(sede, area, usuario, grupo="OTRO_PELIGROSO", categoria=padre.pk, tipo_especifico=hijo.pk),
     )
     detalle = Movimiento.objects.get(tipo_movimiento=TipoMovimiento.RESIDUO_GENERACION).detalles_residuo.get()
-    assert detalle.categoria_residuo == pilas
+    assert detalle.categoria_residuo == hijo
 
 
 def test_categoria_de_otro_grupo_no_valida(client, usuario, sede, area):
@@ -77,11 +85,12 @@ def test_categoria_de_otro_grupo_no_valida(client, usuario, sede, area):
     assert Movimiento.objects.count() == 0
 
 
-def test_tipo_que_no_es_hijo_de_la_categoria_no_valida(client, usuario, sede, area, biosanitarios, pilas):
+def test_tipo_que_no_es_hijo_de_la_categoria_no_valida(client, usuario, sede, area, biosanitarios, categoria_con_hijo):
+    _padre, hijo = categoria_con_hijo  # hijo es de otro padre, no de biosanitarios
     client.force_login(usuario)
     resp = client.post(
         reverse("residuos:generacion"),
-        _datos(sede, area, usuario, categoria=biosanitarios.pk, tipo_especifico=pilas.pk),
+        _datos(sede, area, usuario, categoria=biosanitarios.pk, tipo_especifico=hijo.pk),
     )
     assert resp.status_code == 200
     assert "no pertenece a la categoría elegida" in resp.content.decode()
