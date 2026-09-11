@@ -30,7 +30,10 @@ class DetalleRopa(models.Model):
     movimiento = models.ForeignKey("movimientos.Movimiento", on_delete=models.PROTECT, related_name="detalles_ropa")
     prenda = models.ForeignKey(Prenda, on_delete=models.PROTECT, related_name="detalles")
     cantidad_unidades = models.PositiveIntegerField(null=True, blank=True)
-    peso_kg = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
+    peso_kg = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)],
+        help_text="No aplica a la distribución de ropa limpia, que se registra por prenda y cantidad.",
+    )
 
     history = HistoricalRecords()
 
@@ -46,7 +49,9 @@ class DetalleRopa(models.Model):
             raise ValidationError("Esta prenda controla unidades: registra la cantidad.")
 
     def __str__(self):
-        return f"{self.prenda} · {self.peso_kg} kg"
+        if self.peso_kg is not None:
+            return f"{self.prenda} · {self.peso_kg} kg"
+        return f"{self.prenda} · {self.cantidad_unidades or '—'} unidades"
 
 
 class Rotulo(models.Model):

@@ -21,6 +21,8 @@ from movimientos.services import (
     suma_por_servicio,
 )
 
+from .models import DetalleRopa, Prenda
+
 Usuario = get_user_model()
 
 
@@ -289,3 +291,69 @@ class ValidacionEntregaForm(forms.Form):
             },
         )
         return validacion
+
+
+class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
+    """Distribución de ropa limpia a los servicios (pantalla 5, RF-015). Se
+    registra por prenda y cantidad, no por peso: un movimiento por prenda
+    entregada a un servicio, igual que la entrega de ropa sucia es un
+    movimiento por servicio."""
+
+    sede = forms.ModelChoiceField(
+        queryset=Sede.objects.filter(activo=True).order_by("nombre"), label="Sede",
+    )
+    area_receptora = forms.ModelChoiceField(
+        queryset=AreaServicio.objects.none(), label="Servicio que recibe",
+    )
+    prenda = forms.ModelChoiceField(
+        queryset=Prenda.objects.filter(activo=True).order_by("nombre"), label="Prenda",
+    )
+    cantidad_unidades = forms.IntegerField(label="Cantidad entregada", min_value=1)
+    entrega_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Entrega")
+    recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe")
+    observaciones = forms.CharField(
+        label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
+    )
+
+    def __init__(self, *args, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        sede = self._sede_seleccionada()
+        self.fields["area_receptora"].queryset = (
+            AreaServicio.objects.filter(activo=True, genera_ropa=True, sede=sede).order_by("nombre")
+            if sede
+            else AreaServicio.objects.filter(activo=True, genera_ropa=True).order_by("nombre")
+        )
+        if not self.is_bound:
+            if sede:
+                self.fields["sede"].initial = sede
+            if usuario is not None:
+                self.fields["entrega_por"].initial = usuario
+
+    def _sede_seleccionada(self):
+        if self.is_bound:
+            try:
+                return Sede.objects.get(pk=self.data.get("sede"))
+            except (Sede.DoesNotExist, ValueError, TypeError):
+                return None
+        return Sede.objects.filter(activo=True).order_by("nombre").first()
+
+    def guardar(self, *, creado_por):
+        fecha, hora, estado = self.momento()
+        movimiento = Movimiento.objects.create(
+            tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_DISTRIBUCION,
+            fecha=fecha,
+            hora=hora,
+            sede=self.cleaned_data["sede"],
+            area_origen=self.cleaned_data["area_receptora"],
+            entrega_por=self.cleaned_data["entrega_por"],
+            recibe_por=self.cleaned_data["recibe_por"],
+            observaciones=self.cleaned_data.get("observaciones", ""),
+            estado=estado,
+            creado_por=creado_por,
+        )
+        detalle = DetalleRopa.objects.create(
+            movimiento=movimiento,
+            prenda=self.cleaned_data["prenda"],
+            cantidad_unidades=self.cleaned_data["cantidad_unidades"],
+        )
+        return movimiento, detalle

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block titulo %}Ropa limpia · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Ropa limpia</h1>
+
+<div class="accesos">
+  <a class="acceso" href="{% url 'ropa:recepcion_limpia' %}">Recibir de lavandería</a>
+  <a class="acceso" href="{% url 'ropa:distribucion_limpia' %}">Distribuir a servicios</a>
+</div>
+{% endblock %}

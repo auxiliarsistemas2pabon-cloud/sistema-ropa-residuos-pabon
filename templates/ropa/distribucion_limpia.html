@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block titulo %}Distribuir ropa limpia · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Distribuir ropa limpia</h1>
+
+{% include "componentes/_stepper.html" %}
+
+<form method="post" class="formulario-pasos" data-formulario-pasos novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  {# --- Paso 1: Origen --- #}
+  <section class="paso" data-paso>
+    <p class="paso__titulo">Paso 1 de 3 · Origen</p>
+    {% include "componentes/_campo.html" with campo=form.sede %}
+    {% include "componentes/_campo.html" with campo=form.area_receptora %}
+    <div class="campo">
+      <label>Tipo de movimiento</label>
+      <p class="dato-fijo">Distribución de ropa limpia</p>
+    </div>
+    <button type="button" class="boton" data-siguiente>Continuar →</button>
+  </section>
+
+  {# --- Paso 2: Prenda --- #}
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 2 de 3 · Prenda</p>
+    {% include "componentes/_campo.html" with campo=form.prenda %}
+    {% include "componentes/_campo.html" with campo=form.cantidad_unidades %}
+    <p class="campo__ayuda">
+      Si hay más de una prenda para el mismo servicio, regístralas una por una —
+      cada una queda como un movimiento independiente, igual que la entrega de ropa sucia.
+    </p>
+    <button type="button" class="boton" data-siguiente>Continuar →</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+
+  {# --- Paso 3: Cierre --- #}
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 3 de 3 · Cierre</p>
+    <dl class="calculado">
+      <div><dt>Fecha y hora</dt><dd>las pone el sistema al guardar</dd></div>
+      <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
+    </dl>
+    {% include "componentes/_campo.html" with campo=form.entrega_por %}
+    {% include "componentes/_campo.html" with campo=form.recibe_por %}
+    {% include "componentes/_campo.html" with campo=form.observaciones %}
+    {% include "componentes/_carga_diferida.html" %}
+    <button type="submit" class="boton">Guardar distribución</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+</form>
+{% endblock %}

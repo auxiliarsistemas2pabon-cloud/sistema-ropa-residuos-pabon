@@ -6,7 +6,17 @@ from django.utils import timezone
 from movimientos.models import Proceso
 from movimientos.services import calcular_jornada
 
-from .forms import EntregaRopaSuciaForm, RecepcionRopaLimpiaForm, ValidacionEntregaForm
+from .forms import (
+    DistribucionRopaLimpiaForm,
+    EntregaRopaSuciaForm,
+    RecepcionRopaLimpiaForm,
+    ValidacionEntregaForm,
+)
+
+
+@login_required
+def menu_ropa_limpia(request):
+    return render(request, "ropa/limpia_menu.html")
 
 
 @login_required
@@ -54,6 +64,25 @@ def recepcion_ropa_limpia(request):
         form = RecepcionRopaLimpiaForm(usuario=request.user)
 
     return render(request, "ropa/recepcion_limpia.html", {"form": form})
+
+
+@login_required
+@permission_required("movimientos.add_movimiento", raise_exception=True)
+def distribucion_ropa_limpia(request):
+    if request.method == "POST":
+        form = DistribucionRopaLimpiaForm(request.POST, usuario=request.user)
+        if form.is_valid():
+            movimiento, detalle = form.guardar(creado_por=request.user)
+            messages.success(
+                request,
+                f"Distribución guardada · {movimiento.area_origen.nombre} · "
+                f"{detalle.cantidad_unidades} × {detalle.prenda.nombre} · {movimiento.hora:%H:%M}",
+            )
+            return redirect("ropa:distribucion_limpia")
+    else:
+        form = DistribucionRopaLimpiaForm(usuario=request.user)
+
+    return render(request, "ropa/distribucion_limpia.html", {"form": form})
 
 
 @login_required
