@@ -1,21 +1,5 @@
-__pycache__/
-*.py[cod]
-*$py.class
-
-.venv/
-venv/
-env/
-
-.env
-*.sqlite3
-
-/staticfiles/
-/media/
-/backups/
-
-.pytest_cache/
-.coverage
-htmlcov/
+# Cada subproyecto tiene su propio .gitignore (backend/.gitignore, frontend/.gitignore).
+# Este solo cubre lo que puede aparecer en cualquiera de los dos, o fuera de ambos.
 
 .vscode/
 .idea/

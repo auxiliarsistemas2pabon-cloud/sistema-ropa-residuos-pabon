@@ -13,7 +13,7 @@ Clínica Cardioneurovascular Pabón S.A.S.
 
 ```bash
 git clone https://github.com/auxiliarsistemas2pabon-cloud/sistema-ropa-residuos-pabon.git
-cd sistema-ropa-residuos-pabon
+cd sistema-ropa-residuos-pabon/backend
 
 cp .env.example .env
 # Editar .env:
