@@ -92,6 +92,10 @@ TIME_ZONE = "America/Bogota"
 USE_I18N = True
 USE_TZ = True
 
+# El español localiza los decimales con coma (5,30); el resto de la app usa
+# punto (JS, mensajes, formularios con localize=False) — se homogeniza aquí.
+FORMAT_MODULE_PATH = ["config.formats"]
+
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"

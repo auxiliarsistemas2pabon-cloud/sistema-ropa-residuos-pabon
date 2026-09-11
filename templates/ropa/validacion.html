@@ -29,7 +29,7 @@
         <tbody>
           {% for f in form.desglose.filas %}
             <tr>
-              <td>{{ f.movimiento.hora|time:"H:i" }}</td>
+              <td><a href="{% url 'movimientos:detalle_movimiento' f.movimiento.pk %}">{{ f.movimiento.hora|time:"H:i" }}</a></td>
               <td>{{ f.servicio.nombre }}</td>
               <td class="num cifra-kg">{{ f.kg }}</td>
             </tr>

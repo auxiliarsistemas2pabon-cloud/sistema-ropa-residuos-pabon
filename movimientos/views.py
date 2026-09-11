@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required, permission_required
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
 from .filters import NovedadFilter
@@ -47,3 +47,55 @@ def revision_dia_anterior(request):
             "pendientes": [m for m in movimientos if m.estado == EstadoMovimiento.PENDIENTE_CARGA],
         },
     )
+
+
+def _historial_con_cambios(movimiento):
+    """Empareja cada versión histórica con la anterior y calcula qué campos
+    cambiaron, usando el diff que ya calcula django-simple-history. Más
+    reciente primero."""
+    campos = {f.name: f.verbose_name for f in Movimiento._meta.get_fields() if hasattr(f, "verbose_name")}
+    registros = list(movimiento.history.all().select_related("history_user").order_by("history_date"))
+    filas = []
+    anterior = None
+    for registro in registros:
+        cambios = []
+        if anterior is not None and registro.history_type == "~":
+            for cambio in registro.diff_against(anterior).changes:
+                cambios.append({
+                    "campo": campos.get(cambio.field, cambio.field),
+                    "antes": cambio.old,
+                    "despues": cambio.new,
+                })
+        filas.append({"registro": registro, "cambios": cambios})
+        anterior = registro
+    filas.reverse()
+    return filas
+
+
+@login_required
+@permission_required("movimientos.view_movimiento", raise_exception=True)
+def detalle_movimiento(request, pk):
+    """Pantalla 11: datos del movimiento, pesajes, detalle, novedades e
+    historial de cambios. El historial completo es solo para la
+    Administradora (7. del prompt); el resto del detalle es para ambos roles."""
+    movimiento = get_object_or_404(
+        Movimiento.objects.select_related(
+            "sede", "area_origen", "entrega_por", "recibe_por", "creado_por",
+            "mov_origen", "mov_origen__area_origen",
+        ),
+        pk=pk,
+    )
+    contexto = {
+        "movimiento": movimiento,
+        "pesajes": movimiento.pesajes.select_related("pesado_por").all(),
+        "novedades": movimiento.novedades.select_related("registrado_por").order_by("-registrado_en"),
+        "detalles_ropa": movimiento.detalles_ropa.select_related("prenda").all(),
+        "detalles_residuo": movimiento.detalles_residuo.select_related("categoria_residuo").all(),
+        "rotulos": movimiento.rotulos.all(),
+        "entrega_gestor": getattr(movimiento, "entrega_gestor", None),
+        "recepciones_enlazadas": movimiento.movimientos_resultantes.select_related("sede").all(),
+    }
+    if request.user.es_administradora or request.user.is_superuser:
+        contexto["historial"] = _historial_con_cambios(movimiento)
+
+    return render(request, "movimientos/detalle_movimiento.html", contexto)

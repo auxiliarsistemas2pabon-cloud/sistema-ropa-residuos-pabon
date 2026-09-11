@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block titulo %}Movimiento #{{ movimiento.pk }} · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>{{ movimiento.get_tipo_movimiento_display }}</h1>
+
+<dl class="calculado">
+  <div><dt>Fecha y hora</dt><dd>{{ movimiento.fecha|date:"d M Y" }} · {{ movimiento.hora|time:"H:i" }}</dd></div>
+  <div><dt>Jornada</dt><dd>{{ movimiento.get_jornada_display }}</dd></div>
+  <div><dt>Sede</dt><dd>{{ movimiento.sede.nombre }}</dd></div>
+  <div><dt>Servicio</dt><dd>{{ movimiento.area_origen.nombre|default:"—" }}</dd></div>
+  <div><dt>Estado</dt><dd>{{ movimiento.get_estado_display }}</dd></div>
+  <div><dt>Entrega</dt><dd>{{ movimiento.entrega_por|default:"—" }}</dd></div>
+  <div><dt>Recibe</dt><dd>{{ movimiento.recibe_por|default:"—" }}</dd></div>
+  <div><dt>Periodo de facturación</dt><dd>{{ movimiento.periodo_facturacion|date:"M Y" }}</dd></div>
+  <div><dt>Registrado por</dt><dd>{{ movimiento.creado_por }} · {{ movimiento.creado_en|date:"d M Y H:i" }}</dd></div>
+</dl>
+
+{% if movimiento.observaciones %}
+  <p><strong>Observaciones:</strong> {{ movimiento.observaciones }}</p>
+{% endif %}
+
+{% if movimiento.mov_origen %}
+  <p class="tinta-suave">
+    Viene de:
+    <a href="{% url 'movimientos:detalle_movimiento' movimiento.mov_origen.pk %}">
+      {{ movimiento.mov_origen.get_tipo_movimiento_display }} · {{ movimiento.mov_origen.fecha|date:"d M" }} {{ movimiento.mov_origen.hora|time:"H:i" }}
+    </a>
+  </p>
+{% endif %}
+{% if recepciones_enlazadas %}
+  <p class="tinta-suave">
+    Regresó como:
+    {% for r in recepciones_enlazadas %}
+      <a href="{% url 'movimientos:detalle_movimiento' r.pk %}">{{ r.fecha|date:"d M" }} {{ r.hora|time:"H:i" }}</a>{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+  </p>
+{% endif %}
+
+{% if pesajes %}
+  <h2>Pesaje{{ pesajes|length|pluralize }}</h2>
+  <table class="tabla tabla-kg">
+    <thead><tr><th class="num">Peso total</th><th class="num">Tara</th><th class="num">Peso neto</th><th>Pesado por</th></tr></thead>
+    <tbody>
+      {% for p in pesajes %}
+        <tr>
+          <td class="num cifra-kg">{{ p.peso_total }}</td>
+          <td class="num cifra-kg">{{ p.tara }}</td>
+          <td class="num cifra-kg">{{ p.peso_neto }}</td>
+          <td>{{ p.pesado_por }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{% if detalles_ropa %}
+  <h2>Detalle de ropa</h2>
+  <table class="tabla tabla-kg">
+    <thead><tr><th>Prenda</th><th class="num">Unidades</th><th class="num">kg</th></tr></thead>
+    <tbody>
+      {% for d in detalles_ropa %}
+        <tr><td>{{ d.prenda.nombre }}</td><td class="num">{{ d.cantidad_unidades|default:"—" }}</td><td class="num cifra-kg">{{ d.peso_kg|default:"—" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{% if detalles_residuo %}
+  <h2>Detalle de residuos</h2>
+  <table class="tabla tabla-kg">
+    <thead><tr><th>Categoría</th><th class="num">kg</th><th class="num">Bolsas</th></tr></thead>
+    <tbody>
+      {% for d in detalles_residuo %}
+        <tr><td>{{ d.categoria_residuo.nombre }}</td><td class="num cifra-kg">{{ d.peso_kg }}</td><td class="num">{{ d.cantidad_bolsas|default:"—" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{% if rotulos %}
+  <h2>Rótulos</h2>
+  <ul class="lista-novedades">
+    {% for r in rotulos %}
+      <li>{% if r.rotulada %}Código {{ r.codigo_rotulo|default:"s/n" }}{% else %}<strong>Sin rotular</strong>{% endif %}{% if r.contenido %} · {{ r.contenido }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% if entrega_gestor %}
+  <h2>Entrega al gestor</h2>
+  <dl class="calculado">
+    <div><dt>Gestor</dt><dd>{{ entrega_gestor.gestor_externo.nombre }}</dd></div>
+    <div><dt>Factura</dt><dd>{{ entrega_gestor.numero_factura|default:"—" }}</dd></div>
+    <div><dt>kg facturados</dt><dd class="cifra-kg">{{ entrega_gestor.kg_facturados }}</dd></div>
+    <div><dt>Valor</dt><dd>{{ entrega_gestor.valor_facturado }}</dd></div>
+  </dl>
+{% endif %}
+
+<h2>Novedades</h2>
+{% if novedades %}
+  <ul class="lista-novedades">
+    {% for n in novedades %}
+      <li><strong>{{ n.get_tipo_novedad_display }}</strong>{% if n.cantidad_afectada %} · {{ n.cantidad_afectada }} kg{% endif %}{% if n.observacion %} · {{ n.observacion }}{% endif %} <span class="tinta-suave">({{ n.registrado_por }}, {{ n.registrado_en|date:"d M H:i" }})</span></li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="vacio">Sin novedades.</p>
+{% endif %}
+
+{% if historial is not None %}
+  <h2>Historial de cambios</h2>
+  {% if historial %}
+    <div class="tabla-envoltura">
+      <table class="tabla">
+        <thead><tr><th>Cuándo</th><th>Quién</th><th>Acción</th><th>Cambios</th></tr></thead>
+        <tbody>
+          {% for fila in historial %}
+            <tr>
+              <td>{{ fila.registro.history_date|date:"d M Y H:i" }}</td>
+              <td>{{ fila.registro.history_user|default:"—" }}</td>
+              <td>
+                {% if fila.registro.history_type == "+" %}Creado
+                {% elif fila.registro.history_type == "-" %}Eliminado
+                {% else %}Modificado{% endif %}
+              </td>
+              <td>
+                {% if fila.cambios %}
+                  <ul class="lista-novedades">
+                    {% for c in fila.cambios %}
+                      <li>{{ c.campo }}: <span class="tinta-suave">{{ c.antes|default:"—" }}</span> → {{ c.despues|default:"—" }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="vacio">Sin historial.</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

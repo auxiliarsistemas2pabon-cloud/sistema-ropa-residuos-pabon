@@ -22,7 +22,7 @@
       <tbody>
         {% for m in movimientos %}
           <tr>
-            <td>{{ m.hora|time:"H:i" }}</td>
+            <td><a href="{% url 'movimientos:detalle_movimiento' m.pk %}">{{ m.hora|time:"H:i" }}</a></td>
             <td>{{ m.get_tipo_movimiento_display }}</td>
             <td>{{ m.area_origen.nombre|default:"—" }}</td>
             <td class="num cifra-kg">{{ m.pesajes.all.0.peso_neto|default:"—" }}</td>

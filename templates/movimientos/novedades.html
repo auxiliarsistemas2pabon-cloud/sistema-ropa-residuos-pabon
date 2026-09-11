@@ -21,7 +21,7 @@
       <tbody>
         {% for n in filtro.qs %}
           <tr>
-            <td>{{ n.registrado_en|date:"d M · H:i" }}</td>
+            <td><a href="{% url 'movimientos:detalle_movimiento' n.movimiento_id %}">{{ n.registrado_en|date:"d M · H:i" }}</a></td>
             <td>{{ n.get_tipo_novedad_display }}</td>
             <td>{{ n.movimiento.sede.nombre }}</td>
             <td>{{ n.movimiento.area_origen.nombre|default:"—" }}</td>
