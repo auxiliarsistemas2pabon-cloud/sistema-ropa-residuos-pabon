@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
 
 from core.models import AreaServicio, Sede
 
@@ -11,6 +12,18 @@ def usuario(db):
     return Usuario.objects.create_user(
         username="operario", password="clave-de-prueba", rol=Usuario.Rol.USUARIO,
     )
+
+
+@pytest.fixture
+def administradora(db):
+    return Usuario.objects.create_user(
+        username="jefa", password="clave-de-prueba", rol=Usuario.Rol.ADMIN,
+    )
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
 
 
 @pytest.fixture
