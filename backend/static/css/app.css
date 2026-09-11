@@ -322,15 +322,28 @@ body.pagina-login .contenido {
   text-align: center;
 }
 
+/* Dos logos —Clínica Pabón (marca comercial) y Centro de Cuidados
+   Cardioneurovasculares Pabón S.A.S. (razón social)— en una sola tarjeta
+   blanca, con un divisor entre ambos (10.10-11 del manual de marca: logos
+   alineados, misma altura, separados por una línea). height con clamp()
+   en vez de un valor fijo por breakpoint: así el conjunto nunca desborda
+   la tarjeta en el tramo donde las dos columnas del login se aprietan
+   (justo alrededor de los 960px). */
 .login-marca__logo-tarjeta {
   display: inline-flex;
   align-items: center;
-  padding: var(--espacio-3) var(--espacio-5);
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
   background: var(--fondo);
   border-radius: 16px;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
 }
-.login-marca__logo { height: 76px; width: auto; display: block; }
+.login-marca__logo { height: clamp(52px, 6vw, 108px); width: auto; display: block; }
+.login-marca__divisor {
+  align-self: stretch;
+  width: 1px;
+  background: var(--linea);
+}
 
 .login-marca__protagonista {
   display: flex;
@@ -413,7 +426,6 @@ body.pagina-login .contenido {
     gap: var(--espacio-6);
     text-align: left;
   }
-  .login-marca__logo { height: 108px; }
   .login-marca__protagonista {
     flex-direction: row;
     align-items: center;

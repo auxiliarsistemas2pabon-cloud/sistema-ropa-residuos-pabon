@@ -39,6 +39,8 @@ export function Login() {
       <div className="login-marca">
         <div className="login-marca__logo-tarjeta">
           <img className="login-marca__logo" src="/img/logo-clinica-pabon.jpg" alt="Clínica Cardioneurovascular Pabón" />
+          <span className="login-marca__divisor" aria-hidden="true" />
+          <img className="login-marca__logo" src="/img/logo-centro-cuidados.png" alt="Centro de Cuidados Cardioneurovasculares Pabón S.A.S." />
         </div>
 
         <div className="login-marca__protagonista">
