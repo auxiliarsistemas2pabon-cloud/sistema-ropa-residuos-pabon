@@ -3,7 +3,22 @@ from django import forms
 
 from core.models import AreaServicio, Sede
 
-from .models import Novedad, TipoNovedad
+from .models import Movimiento, Novedad, TipoMovimiento, TipoNovedad
+
+
+class MovimientoFilter(django_filters.FilterSet):
+    fecha = django_filters.DateFilter(field_name="fecha")
+    desde = django_filters.DateFilter(field_name="fecha", lookup_expr="gte")
+    hasta = django_filters.DateFilter(field_name="fecha", lookup_expr="lte")
+    sede = django_filters.ModelChoiceFilter(queryset=Sede.objects.order_by("nombre"))
+    servicio = django_filters.ModelChoiceFilter(
+        field_name="area_origen", queryset=AreaServicio.objects.order_by("nombre"),
+    )
+    tipo = django_filters.ChoiceFilter(field_name="tipo_movimiento", choices=TipoMovimiento.choices)
+
+    class Meta:
+        model = Movimiento
+        fields = []
 
 
 class NovedadFilter(django_filters.FilterSet):
