@@ -35,23 +35,28 @@ export function Login() {
   }
 
   return (
-    <div className="login-escena" style={{ backgroundImage: "url(/img/banner-ola.jpg)" }}>
-      <div className="login-panel-marca" style={{ backgroundImage: "url(/img/banner-ola.jpg)" }}>
-        <img className="login-panel-marca__mascota" src="/img/mascota-wertino.png" alt="" aria-hidden="true" />
-        <p className="login-panel-marca__eslogan">
-          Estamos en tu <span className="login-panel-marca__enfasis">corazón</span>
-        </p>
+    <div className="login-escena">
+      <div className="login-marca">
+        <div className="login-marca__logo-tarjeta">
+          <img className="login-marca__logo" src="/img/logo-clinica-pabon.jpg" alt="Clínica Cardioneurovascular Pabón" />
+        </div>
+
+        <div className="login-marca__protagonista">
+          <img className="login-marca__mascota" src="/img/mascota-wertino.png" alt="" aria-hidden="true" />
+          <div className="login-marca__texto">
+            <h1>
+              Estamos en tu <span className="login-marca__enfasis">corazón</span>
+            </h1>
+            <p>Sistema de Registro y Control de Ropa Hospitalaria y Residuos.</p>
+          </div>
+        </div>
+
+        <p className="login-marca__ciudad">Pasto, Nariño · Colombia</p>
       </div>
 
       <div className="login-tarjeta">
-        <img className="login-tarjeta__mascota" src="/img/mascota-wertino.png" alt="" aria-hidden="true" />
-
-        <div className="login-tarjeta__avatar" aria-hidden="true">
-          <IconoPersona size={28} />
-        </div>
-
         <h1>Iniciar sesión</h1>
-        <p className="login-tarjeta__subtitulo">Registro y Control de Ropa Hospitalaria y Residuos</p>
+        <p className="login-tarjeta__subtitulo">Ingresa tus credenciales de acceso</p>
 
         <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
           {errorGeneral && <Aviso error>{errorGeneral}</Aviso>}

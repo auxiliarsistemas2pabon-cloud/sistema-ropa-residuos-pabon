@@ -5,24 +5,26 @@
 {% block clase_body %}pagina-login{% endblock %}
 
 {% block contenido %}
-<div class="login-escena" style="background-image: url('{% static 'img/marca/banner-ola.jpg' %}')">
-  <div class="login-panel-marca" style="background-image: url('{% static 'img/marca/banner-ola.jpg' %}')">
-    <img class="login-panel-marca__mascota" src="{% static 'img/marca/mascota-wertino.png' %}" alt="">
-    <p class="login-panel-marca__eslogan">Estamos en tu <span class="login-panel-marca__enfasis">corazón</span></p>
+<div class="login-escena">
+  <div class="login-marca">
+    <div class="login-marca__logo-tarjeta">
+      <img class="login-marca__logo" src="{% static 'img/marca/logo-clinica-pabon.jpg' %}" alt="Clínica Cardioneurovascular Pabón">
+    </div>
+
+    <div class="login-marca__protagonista">
+      <img class="login-marca__mascota" src="{% static 'img/marca/mascota-wertino.png' %}" alt="">
+      <div class="login-marca__texto">
+        <h1>Estamos en tu <span class="login-marca__enfasis">corazón</span></h1>
+        <p>Sistema de Registro y Control de Ropa Hospitalaria y Residuos.</p>
+      </div>
+    </div>
+
+    <p class="login-marca__ciudad">Pasto, Nariño · Colombia</p>
   </div>
 
   <div class="login-tarjeta">
-    <img class="login-tarjeta__mascota" src="{% static 'img/marca/mascota-wertino.png' %}" alt="">
-
-    <div class="login-tarjeta__avatar" aria-hidden="true">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="8" r="4"></circle>
-        <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"></path>
-      </svg>
-    </div>
-
     <h1>Iniciar sesión</h1>
-    <p class="login-tarjeta__subtitulo">Registro y Control de Ropa Hospitalaria y Residuos</p>
+    <p class="login-tarjeta__subtitulo">Ingresa tus credenciales de acceso</p>
 
     <form method="post">
       {% csrf_token %}

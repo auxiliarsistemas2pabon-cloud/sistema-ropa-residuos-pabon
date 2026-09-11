@@ -18,6 +18,7 @@
      propio manual pide usarlo "con discreción". */
   --marca-rojo: #D80000;
   --marca-rojo-suave: #FBE3E3;
+  --marca-rojo-oscuro: #9E1A17; /* extremo oscuro del degradado del login, derivado del rojo oficial */
 
   /* ---- elevación (tarjetas sobre --fondo-pagina) ---- */
   --sombra-header: 0 1px 2px rgba(26, 29, 33, 0.06);

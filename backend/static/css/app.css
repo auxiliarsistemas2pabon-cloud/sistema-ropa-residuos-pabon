@@ -265,8 +265,14 @@ a:focus-visible {
 .titulo-reporte .boton--texto { margin: 0; }
 .tabla tfoot th, .tabla tfoot td { font-weight: var(--peso-semibold); border-top: 2px solid var(--linea); }
 
-/* --- Login: escena a toda pantalla con la tarjeta flotando encima (10.1) --- */
-body.pagina-login .barra-superior { min-height: 72px; }
+/* --- Login: "Marca al frente" — rojo institucional de fondo, la mascota
+   como protagonista y el logo en tarjeta blanca; la tarjeta de acceso
+   flota al lado (10.1). Dirección elegida por el usuario entre 3
+   propuestas visuales mostradas en un canvas de diseño. El botón "Entrar"
+   es negro (--tinta) aquí por pedido explícito del usuario — en el resto
+   de la app el verde (--acento) sigue siendo el color de acción
+   operativa. --- */
+body.pagina-login .barra-superior { display: none; }
 body.pagina-login .contenido {
   max-width: none;
   margin: 0;
@@ -277,27 +283,88 @@ body.pagina-login .contenido {
 }
 
 .login-escena {
-  min-height: calc(100vh - 73px);
+  min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--espacio-6) var(--espacio-4);
-  background-color: var(--fondo-pagina);
-  /* Tamaño real de banner-ola.jpg (1600×900): nunca se agranda más allá de
-     su resolución nativa, para que no se vea borrosa en pantallas anchas.
-     Anclada arriba: en la mayoría de alturas de ventana esto ya recorta la
-     franja de logos del pie de la imagen, que no aplica en el login. */
-  background-size: auto;
-  background-position: center -50px;
-  background-repeat: no-repeat;
+  gap: var(--espacio-6);
+  padding: var(--espacio-7) var(--espacio-4);
+  background: linear-gradient(135deg, var(--marca-rojo) 0%, #C12722 55%, var(--marca-rojo-oscuro) 100%);
   position: relative;
   overflow: hidden;
 }
-.login-escena::before {
+.login-escena::before,
+.login-escena::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(242, 245, 246, 0.55), rgba(242, 245, 246, 0.88));
+  border-radius: 50%;
+  pointer-events: none;
+}
+.login-escena::before {
+  width: 60vw; height: 60vw; max-width: 640px; max-height: 640px;
+  top: -30vw; right: -20vw;
+  background: rgba(255, 255, 255, 0.05);
+}
+.login-escena::after {
+  width: 45vw; height: 45vw; max-width: 480px; max-height: 480px;
+  bottom: -25vw; left: -15vw;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.login-marca {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espacio-5);
+  text-align: center;
+}
+
+.login-marca__logo-tarjeta {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--espacio-3) var(--espacio-5);
+  background: var(--fondo);
+  border-radius: 16px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+}
+.login-marca__logo { height: 76px; width: auto; display: block; }
+
+.login-marca__protagonista {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+.login-marca__mascota {
+  height: clamp(120px, 30vw, 200px);
+  width: auto;
+  filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.3));
+}
+.login-marca__texto h1 {
+  margin: 0;
+  font-size: var(--texto-xl);
+  font-weight: var(--peso-bold);
+  color: var(--fondo);
+  letter-spacing: -0.01em;
+}
+.login-marca__texto p {
+  max-width: 340px;
+  margin: var(--espacio-2) auto 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--texto-base);
+}
+.login-marca__ciudad {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .login-tarjeta {
@@ -307,110 +374,56 @@ body.pagina-login .contenido {
   max-width: 400px;
   padding: var(--espacio-6) var(--espacio-5) var(--espacio-5);
   background: var(--fondo);
-  border-radius: var(--radio-tarjeta);
-  box-shadow: var(--sombra-tarjeta);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
 }
 .login-tarjeta h1 { font-size: var(--texto-lg); margin-bottom: var(--espacio-1); }
 .login-tarjeta__subtitulo { color: var(--tinta-suave); font-size: var(--texto-sm); margin-bottom: var(--espacio-5); }
 
-.login-tarjeta__avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: var(--espacio-4);
-  color: var(--marca-rojo);
-  background: var(--marca-rojo-suave);
-  border-radius: 50%;
+.login-tarjeta .boton--ancho {
+  color: var(--fondo);
+  background: var(--tinta);
+  border-color: var(--tinta);
+  box-shadow: 0 1px 2px rgba(26, 29, 33, 0.2), 0 10px 24px rgba(26, 29, 33, 0.28);
 }
+.login-tarjeta .boton--ancho:hover { background: #000000; border-color: #000000; }
 
-.login-tarjeta__mascota {
-  position: absolute;
-  top: -64px;
-  right: var(--espacio-4);
-  height: 104px;
-  width: auto;
-}
-
-/* --- Login en pantallas anchas: dos paneles, no una tarjeta perdida en un
-   mar de espacio vacío (10.1). Por debajo de 960px no cambia nada: la
-   tablet es el uso real, y ahí la tarjeta centrada ya funciona bien. --- */
-.login-panel-marca { display: none; }
-
+/* --- Login en pantallas anchas: la marca a la izquierda, la tarjeta de
+   acceso a la derecha. Por debajo de 960px queda todo en una columna
+   (uso real en tablet de hospital en vertical), con la mascota reducida
+   por clamp() en vez de ocultarse. --- */
 @media (min-width: 960px) {
   .login-escena {
-    min-height: calc(100vh - 73px);
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
+    flex-direction: row;
     align-items: stretch;
-    justify-content: stretch;
-    background-image: none !important;
-    overflow: visible;
-  }
-  .login-escena::before { display: none; }
-
-  .login-panel-marca {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    flex: 1 1 50%;
+    gap: var(--espacio-8);
     padding: var(--espacio-8);
-    background-color: var(--fondo-pagina);
-    background-size: auto;
-    background-position: center -50px;
-    background-repeat: no-repeat;
-    position: relative;
-    overflow: hidden;
   }
-  .login-panel-marca::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(242, 245, 246, 0.6), rgba(242, 245, 246, 0.92));
+
+  .login-marca {
+    flex: 1 1 50%;
+    max-width: 560px;
+    align-items: flex-start;
+    justify-content: space-between;
+    text-align: left;
+    padding: var(--espacio-5) 0;
   }
-  .login-panel-marca__mascota {
-    position: relative;
-    z-index: 1;
-    height: 220px;
-    width: auto;
+  .login-marca__logo { height: 116px; }
+  .login-marca__protagonista {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: var(--espacio-5);
+    text-align: left;
   }
-  .login-panel-marca__eslogan {
-    position: relative;
-    z-index: 1;
-    max-width: 320px;
-    margin: var(--espacio-5) 0 0;
-    font-size: var(--texto-xl);
-    font-weight: var(--peso-semibold);
-    color: var(--tinta);
-    text-align: center;
-  }
-  .login-panel-marca__enfasis { color: var(--marca-rojo); }
+  .login-marca__mascota { height: 300px; }
+  .login-marca__texto h1 { font-size: 2.75rem; line-height: 1.1; }
+  .login-marca__texto p { margin: var(--espacio-4) 0 0; max-width: 320px; }
 
   .login-tarjeta {
-    flex: 1 1 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-width: none;
-    padding: var(--espacio-8);
-    border-radius: 0;
-    box-shadow: none;
+    flex: 0 1 400px;
+    align-self: center;
   }
-  /* El avatar (56×56) queda con su tamaño propio gracias a align-items:
-     center de arriba — solo el texto y el formulario se ensanchan a una
-     columna legible de 360px, no toda la mitad de la pantalla. */
-  .login-tarjeta > form,
-  .login-tarjeta > h1,
-  .login-tarjeta > .login-tarjeta__subtitulo {
-    width: 100%;
-    max-width: 360px;
-  }
-  .login-tarjeta__mascota { display: none; }
 }
 
 /* --- Campos con ícono (login) --- */
