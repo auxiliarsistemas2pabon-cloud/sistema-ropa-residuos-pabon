@@ -100,3 +100,24 @@ docker compose -f docker-compose.prod.yml exec web python manage.py check --depl
 - El servidor y la base operan en `America/Bogota`, horarios en formato 24 h.
 - Los catálogos (sedes, servicios, prendas, categorías, columnas del RH1,
   parámetros de jornada y umbrales) se editan desde `/admin/` sin desplegar.
+
+## 8. API REST (para el frontend React)
+
+Bajo `/api/` corre una API DRF con autenticación por sesión (no JWT) sobre el
+mismo login/logout de siempre. Si el frontend se sirve desde un origen
+distinto (p. ej. el dev server de Vite), hay que declarar ese origen en dos
+variables de entorno nuevas en `.env`:
+
+```bash
+CORS_ALLOWED_ORIGINS=https://app.clinica-pabon.tudominio.com
+CSRF_TRUSTED_ORIGINS=https://app.clinica-pabon.tudominio.com
+```
+
+Si en cambio el build del frontend se sirve desde el mismo dominio que la
+API (recomendado en producción: menos superficie de CORS, cookies sin
+complicaciones), estas variables pueden dejarse vacías.
+
+El flujo de arranque que debe seguir el cliente JS es: `GET /api/auth/csrf/`
+(fija la cookie `csrftoken`) → `POST /api/auth/login/` con el encabezado
+`X-CSRFToken` → las peticiones siguientes ya quedan autenticadas por cookie
+de sesión, con el mismo cierre por inactividad de 30 minutos de siempre.

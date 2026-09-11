@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "dbbackup",
+    "rest_framework",
+    "corsheaders",
     # propias
     "core",
     "movimientos",
@@ -38,6 +40,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -119,6 +122,30 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "panel_principal"
 LOGOUT_REDIRECT_URL = "login"
+
+# API REST (DRF) para el futuro frontend React. Autenticación por sesión
+# (no JWT) para reutilizar el cierre por inactividad de arriba y para que
+# las descargas de Excel sigan funcionando con un <a href> normal.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+}
+
+# CORS/CSRF para un frontend servido desde otro origen (p.ej. Vite en
+# desarrollo). Nunca CORS_ALLOW_ALL_ORIGINS=True: es incompatible con
+# credenciales (cookies) y anularía la protección de sesión.
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
