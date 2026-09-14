@@ -9,6 +9,10 @@ import { Panel } from "./pages/Panel";
 import { Proximamente } from "./pages/Proximamente";
 import { EntregaSucia } from "./features/ropa/EntregaSucia";
 import { DetalleMovimiento } from "./features/movimientos/Detalle";
+import { Novedades } from "./features/movimientos/Novedades";
+import { Consolidados } from "./features/reportes/Consolidados";
+import { RH1Facturacion } from "./features/reportes/RH1Facturacion";
+import { Catalogos } from "./features/core/Catalogos";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -29,7 +33,7 @@ export default function App() {
                 <Route path="/" element={<Panel />} />
                 <Route path="/movimiento/:id" element={<DetalleMovimiento />} />
                 <Route path="/dia-anterior" element={<Proximamente titulo="Día anterior" />} />
-                <Route path="/novedades" element={<Proximamente titulo="Novedades" />} />
+                <Route path="/novedades" element={<Novedades />} />
                 <Route path="/validacion" element={<Proximamente titulo="Validar entrega a lavandería" />} />
               </Route>
 
@@ -41,9 +45,9 @@ export default function App() {
               </Route>
 
               <Route element={<RutaProtegida paraAdministradora={true} />}>
-                <Route path="/consolidados" element={<Proximamente titulo="Consolidados" />} />
-                <Route path="/rh1-facturacion" element={<Proximamente titulo="RH1 y facturación" />} />
-                <Route path="/catalogos" element={<Proximamente titulo="Catálogos y parámetros" />} />
+                <Route path="/consolidados" element={<Consolidados />} />
+                <Route path="/rh1-facturacion" element={<RH1Facturacion />} />
+                <Route path="/catalogos" element={<Catalogos />} />
               </Route>
             </Route>
           </Routes>

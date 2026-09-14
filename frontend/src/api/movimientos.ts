@@ -32,7 +32,7 @@ export interface MovimientoResumen {
   creado_en: string;
 }
 
-interface Paginado<T> {
+export interface Paginado<T> {
   count: number;
   next: string | null;
   previous: string | null;
@@ -60,10 +60,35 @@ export interface Novedad {
   movimiento: number;
   tipo_novedad: string;
   tipo_novedad_display: string;
+  movimiento_sede: string;
+  movimiento_servicio: string | null;
   cantidad_afectada: string | null;
   observacion: string;
   registrado_por: UsuarioMinimo;
   registrado_en: string;
+}
+
+export interface FiltrosNovedades {
+  desde?: string;
+  hasta?: string;
+  sede?: number;
+  servicio?: number;
+  tipo_novedad?: string;
+}
+
+/** 25 por página (ver REST_FRAMEWORK.PAGE_SIZE) — a diferencia de la lista
+ * de hoy en el panel, acá puede haber de sobra más de una página, así que
+ * se expone `next` para "cargar más" en vez de truncar en silencio. */
+export async function listarNovedades(
+  filtros: FiltrosNovedades,
+  siguiente?: string,
+): Promise<Paginado<Novedad>> {
+  if (siguiente) {
+    const { data } = await api.get<Paginado<Novedad>>(siguiente);
+    return data;
+  }
+  const { data } = await api.get<Paginado<Novedad>>("/novedades/", { params: filtros });
+  return data;
 }
 
 export interface DetalleRopa {

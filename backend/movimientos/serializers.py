@@ -33,11 +33,16 @@ class PesajeSerializer(serializers.ModelSerializer):
 class NovedadSerializer(serializers.ModelSerializer):
     tipo_novedad_display = serializers.CharField(source="get_tipo_novedad_display", read_only=True)
     registrado_por = UsuarioMinimoSerializer(read_only=True)
+    movimiento_sede = serializers.CharField(source="movimiento.sede.nombre", read_only=True)
+    movimiento_servicio = serializers.CharField(
+        source="movimiento.area_origen.nombre", read_only=True, default=None,
+    )
 
     class Meta:
         model = Novedad
         fields = [
             "id", "movimiento", "tipo_novedad", "tipo_novedad_display",
+            "movimiento_sede", "movimiento_servicio",
             "cantidad_afectada", "observacion", "registrado_por", "registrado_en",
         ]
 

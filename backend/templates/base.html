@@ -11,8 +11,17 @@
 <body class="{% block clase_body %}{% endblock %}">
   <header class="barra-superior">
     {% if user.is_authenticated %}
-      <a class="barra-superior__marca" href="{% url 'panel_principal' %}">Clínica Pabón</a>
-      <span class="barra-superior__usuario">{{ user.get_full_name|default:user.username }}</span>
+      <a class="barra-superior__marca" href="{% url 'panel_principal' %}">
+        <img class="barra-superior__logo" src="{% static 'img/marca/logo-clinica-pabon.jpg' %}" alt="Clínica Pabón">
+        <span class="barra-superior__divisor" aria-hidden="true"></span>
+        <img class="barra-superior__logo barra-superior__logo--centro" src="{% static 'img/marca/logo-centro-cuidados.png' %}" alt="Centro de Cuidados Cardioneurovasculares Pabón S.A.S.">
+      </a>
+      <span class="barra-superior__usuario">
+        <span class="barra-superior__nombre">{{ user.get_full_name|default:user.username }}</span>
+        <span class="insignia-rol{% if user.es_administradora or user.is_superuser %} insignia-rol--admin{% endif %}">
+          {% if user.es_administradora or user.is_superuser %}Administradora{% else %}Usuario{% endif %}
+        </span>
+      </span>
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
         <button type="submit" class="boton boton--texto">Cerrar sesión</button>

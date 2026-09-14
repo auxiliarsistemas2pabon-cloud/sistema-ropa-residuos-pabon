@@ -1,8 +1,9 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
 from django.shortcuts import render
 from django.utils import timezone
 
-from movimientos.models import Movimiento
+from movimientos.models import EstadoMovimiento, Movimiento, Pesaje
 
 
 @login_required
@@ -15,8 +16,15 @@ def panel_principal(request):
         .prefetch_related("pesajes")
         .order_by("-hora")
     )
+    kg_hoy = Pesaje.objects.filter(movimiento__fecha=hoy).aggregate(total=Sum("peso_neto"))["total"] or 0
+    pendientes_hoy = movimientos_hoy.filter(estado=EstadoMovimiento.PENDIENTE_CARGA).count()
     return render(
         request,
         "core/panel_principal.html",
-        {"movimientos_hoy": movimientos_hoy},
+        {
+            "movimientos_hoy": movimientos_hoy,
+            "hoy": hoy,
+            "kg_hoy": kg_hoy,
+            "pendientes_hoy": pendientes_hoy,
+        },
     )

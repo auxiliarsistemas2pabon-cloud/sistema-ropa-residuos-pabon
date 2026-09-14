@@ -6,7 +6,23 @@
 <h1>Ropa limpia</h1>
 
 <div class="accesos">
-  <a class="acceso" href="{% url 'ropa:recepcion_limpia' %}">Recibir de lavandería</a>
-  <a class="acceso" href="{% url 'ropa:distribucion_limpia' %}">Distribuir a servicios</a>
+  <a class="acceso" href="{% url 'ropa:recepcion_limpia' %}">
+    <span class="acceso__icono" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
+        <path d="M12 3v10M8 9l4 4 4-4"></path>
+      </svg>
+    </span>
+    <span class="acceso__texto">Recibir de lavandería</span>
+  </a>
+  <a class="acceso" href="{% url 'ropa:distribucion_limpia' %}">
+    <span class="acceso__icono" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
+        <path d="M12 13V3M8 7l4-4 4 4"></path>
+      </svg>
+    </span>
+    <span class="acceso__texto">Distribuir a servicios</span>
+  </a>
 </div>
 {% endblock %}

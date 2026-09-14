@@ -6,8 +6,33 @@
 <h1>Residuos hospitalarios</h1>
 
 <div class="accesos">
-  <a class="acceso" href="{% url 'residuos:generacion' %}">Generación de residuos</a>
-  <a class="acceso" href="{% url 'residuos:recoleccion' %}">Recolección de residuos</a>
-  <a class="acceso acceso--pendiente" href="{% url 'residuos:consolidado_peligrosos' %}">Consolidado de peligrosos<small>corte del día</small></a>
+  <a class="acceso" href="{% url 'residuos:generacion' %}">
+    <span class="acceso__icono" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 7h16M9 7V4h6v3"></path>
+        <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"></path>
+        <path d="M10 11v6M14 11v6"></path>
+      </svg>
+    </span>
+    <span class="acceso__texto">Generación de residuos</span>
+  </a>
+  <a class="acceso" href="{% url 'residuos:recoleccion' %}">
+    <span class="acceso__icono" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
+        <path d="M12 3v10M8 9l4 4 4-4"></path>
+      </svg>
+    </span>
+    <span class="acceso__texto">Recolección de residuos</span>
+  </a>
+  <a class="acceso acceso--pendiente" href="{% url 'residuos:consolidado_peligrosos' %}">
+    <span class="acceso__icono" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3.5 21 19H3z"></path>
+        <path d="M12 9.5v4.5M12 17h.01"></path>
+      </svg>
+    </span>
+    <span class="acceso__texto">Consolidado de peligrosos<small>corte del día</small></span>
+  </a>
 </div>
 {% endblock %}
