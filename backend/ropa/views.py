@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import redirect, render
@@ -5,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from movimientos.models import Proceso
-from movimientos.services import calcular_jornada
+from movimientos.services import calcular_jornada, corte_ropa_sucia
 
 from .forms import (
     DistribucionRopaLimpiaForm,
@@ -117,6 +119,18 @@ def registro_rotulos(request):
 
     return render(
         request, "ropa/rotulos.html", {"form": form, "rotulos_de_la_entrega": rotulos_de_la_entrega},
+    )
+
+
+@login_required
+@permission_required("movimientos.view_movimiento", raise_exception=True)
+def corte_control(request):
+    hoy = timezone.localdate()
+    corte = corte_ropa_sucia(hoy)
+    return render(
+        request,
+        "ropa/corte_control.html",
+        {"corte": corte, "hoy": hoy, "ayer": hoy - timedelta(days=1)},
     )
 
 

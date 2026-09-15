@@ -6,7 +6,7 @@ from django.db.models import Sum
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from .forms import GeneracionResiduoForm, RecoleccionResiduoForm
+from .forms import EntregaGestorForm, GeneracionResiduoForm, RecoleccionResiduoForm
 from .models import CategoriaResiduo, DetalleResiduo
 
 
@@ -72,6 +72,25 @@ def opciones_tipo(request):
         else CategoriaResiduo.objects.none()
     )
     return render(request, "residuos/_opciones_tipo.html", {"tipos": tipos})
+
+
+@login_required
+@permission_required("residuos.add_entregagestor", raise_exception=True)
+def entrega_gestor(request):
+    if request.method == "POST":
+        form = EntregaGestorForm(request.POST)
+        if form.is_valid():
+            entrega = form.guardar()
+            messages.success(
+                request,
+                f"Entrega registrada · {entrega.gestor_externo.nombre} · "
+                f"{entrega.kg_facturados} kg facturados",
+            )
+            return redirect("residuos:entrega_gestor")
+    else:
+        form = EntregaGestorForm()
+
+    return render(request, "residuos/entrega_gestor.html", {"form": form})
 
 
 @login_required

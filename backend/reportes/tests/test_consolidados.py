@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 
 from core.models import AreaServicio
 from movimientos.models import Pesaje, TipoMovimiento
-from reportes.services import por_jornada, ropa_por_sede, ropa_por_servicio
+from reportes.services import por_jornada, residuos_por_categoria, ropa_por_sede, ropa_por_servicio
 from residuos.models import CategoriaResiduo, DetalleResiduo
 
 Usuario = get_user_model()
@@ -54,6 +54,22 @@ def test_por_jornada_separa_manana_y_tarde(datos):
     assert filas["Mañana"]["ropa_kg"] == Decimal("34.60")
     assert filas["Tarde"]["ropa_kg"] == Decimal("6.00")
     assert filas["Mañana"]["residuos_kg"] == Decimal("4.00")
+
+
+def test_residuos_por_categoria_totaliza_solo_no_peligrosos(datos, usuario, crear_movimiento):
+    # "datos" ya deja 4.00 kg de Biosanitarios (riesgo biológico) — no debe
+    # sumarse al total de no peligrosos (RF-021).
+    aprovechables = CategoriaResiduo.objects.get(nombre="Aprovechables")
+    no_aprovechables = CategoriaResiduo.objects.get(nombre="No aprovechables")
+    for cat, kg in [(aprovechables, "5.00"), (no_aprovechables, "2.50")]:
+        gen = crear_movimiento(tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=DIA, hora=time(9, 0))
+        DetalleResiduo.objects.create(movimiento=gen, categoria_residuo=cat, peso_kg=Decimal(kg))
+
+    filas, total_no_peligrosos = residuos_por_categoria({})
+    assert total_no_peligrosos == Decimal("7.50")  # 5.00 + 2.50, sin el biológico
+
+    por_nombre = {f["categoria_residuo__nombre"]: f["kg"] for f in filas}
+    assert por_nombre["Biosanitarios"] == Decimal("4.00")
 
 
 def test_filtro_de_mes(datos):

@@ -56,3 +56,34 @@ export async function obtenerCortePeligrosos(fecha?: string): Promise<CortePelig
   });
   return data;
 }
+
+export interface RecoleccionSinFactura {
+  id: number;
+  fecha: string;
+  hora: string;
+  sede_nombre: string;
+  servicio_nombre: string | null;
+  peso_neto: string | null;
+}
+
+export async function listarRecoleccionesSinFactura(): Promise<RecoleccionSinFactura[]> {
+  const { data } = await api.get<RecoleccionSinFactura[]>("/residuos/recolecciones-sin-factura/");
+  return data;
+}
+
+export interface DatosEntregaGestor {
+  movimiento: number;
+  gestor_externo: number;
+  numero_factura?: string;
+  kg_facturados: string;
+  valor_facturado: string;
+}
+
+export interface EntregaGestor extends DatosEntregaGestor {
+  id: number;
+}
+
+export async function crearEntregaGestor(datos: DatosEntregaGestor): Promise<EntregaGestor> {
+  const { data } = await api.post<EntregaGestor>("/residuos/entregas-gestor/", datos);
+  return data;
+}

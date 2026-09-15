@@ -52,6 +52,7 @@ export interface Pesaje {
   peso_total: string;
   tara: string;
   peso_neto: string;
+  cantidad_bolsas: number | null;
   pesado_por: number;
 }
 

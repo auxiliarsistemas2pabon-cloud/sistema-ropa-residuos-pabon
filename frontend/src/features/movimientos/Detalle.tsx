@@ -76,6 +76,7 @@ export function DetalleMovimiento() {
                 <th className="num">Peso total</th>
                 <th className="num">Tara</th>
                 <th className="num">Peso neto</th>
+                <th className="num">Bolsas</th>
               </tr>
             </thead>
             <tbody>
@@ -84,6 +85,7 @@ export function DetalleMovimiento() {
                   <td className="num cifra-kg">{p.peso_total}</td>
                   <td className="num cifra-kg">{p.tara}</td>
                   <td className="num cifra-kg">{p.peso_neto}</td>
+                  <td className="num">{p.cantidad_bolsas ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

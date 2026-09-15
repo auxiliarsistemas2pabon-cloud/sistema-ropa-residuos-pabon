@@ -131,3 +131,40 @@ def test_tara_mayor_al_total_no_guarda(client, usuario, sede, area):
     )
     assert resp.status_code == 200
     assert Movimiento.objects.filter(tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION).count() == 0
+
+
+# --- RF-012 (tipo de ropa y cantidad de prendas) ---
+
+def test_post_con_tipo_de_ropa_crea_detalle_ropa(client, usuario, sede, area):
+    from ropa.models import DetalleRopa, Prenda
+
+    prenda = Prenda.objects.filter(activo=True, controla_unidades=True).first()
+    datos = _datos(sede, usuario)
+    datos["prenda"] = prenda.pk
+    datos["cantidad_unidades"] = "12"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:recepcion_limpia"), datos)
+    assert resp.status_code == 302
+
+    detalle = DetalleRopa.objects.get()
+    assert detalle.prenda == prenda
+    assert detalle.cantidad_unidades == 12
+
+
+def test_sin_tipo_de_ropa_no_crea_detalle(client, usuario, sede, area):
+    from ropa.models import DetalleRopa
+
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:recepcion_limpia"), _datos(sede, usuario))
+    assert resp.status_code == 302
+    assert DetalleRopa.objects.count() == 0
+
+
+def test_cantidad_de_prendas_sin_tipo_no_valida(client, usuario, sede, area):
+    datos = _datos(sede, usuario)
+    datos["cantidad_unidades"] = "4"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:recepcion_limpia"), datos)
+    assert resp.status_code == 200
+    assert "Selecciona el tipo de ropa" in resp.content.decode()
+    assert Movimiento.objects.filter(tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION).count() == 0

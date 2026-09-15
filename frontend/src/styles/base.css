@@ -374,8 +374,9 @@ a:focus-visible {
 .lista-novedades { margin: 0; padding-left: var(--espacio-4); }
 .lista-novedades li { margin-bottom: var(--espacio-2); }
 
-.titulo-reporte { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espacio-4); }
+.titulo-reporte { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espacio-4); flex-wrap: wrap; }
 .titulo-reporte .boton--texto { margin: 0; }
+.titulo-reporte__acciones { display: flex; align-items: baseline; gap: var(--espacio-3); flex-wrap: wrap; }
 .tabla tfoot th, .tabla tfoot td { font-weight: var(--peso-semibold); border-top: 2px solid var(--linea); }
 
 /* --- Estado de carga / vacío --- */

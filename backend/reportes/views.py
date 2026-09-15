@@ -61,13 +61,11 @@ def _rep_ropa_por_sede(f):
 
 
 def _rep_residuos_por_categoria(f):
-    filas = residuos_por_categoria(f)
-    return (
-        "Residuos por categoría",
-        ["Grupo", "Categoría", "kg"],
-        [[_texto(x["categoria_residuo__grupo"]), _texto(x["categoria_residuo__nombre"]), _num(x["kg"])]
-         for x in filas],
-    )
+    filas, total_no_peligrosos = residuos_por_categoria(f)
+    datos = [[_texto(x["categoria_residuo__grupo"]), _texto(x["categoria_residuo__nombre"]), _num(x["kg"])]
+             for x in filas]
+    datos.append([_texto(""), _texto("Total no peligrosos"), _num(total_no_peligrosos)])
+    return "Residuos por categoría", ["Grupo", "Categoría", "kg"], datos
 
 
 def _rep_residuos_por_servicio(f):

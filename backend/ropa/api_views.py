@@ -1,5 +1,6 @@
 from datetime import date as date_cls
 
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from core.api_errors import form_errors_response
 from core.models import Sede
 from movimientos.models import Jornada, Movimiento
 from movimientos.serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer
-from movimientos.services import resumen_ciclo
+from movimientos.services import corte_ropa_sucia, resumen_ciclo
 
 from .forms import DistribucionRopaLimpiaForm, EntregaRopaSuciaForm, RecepcionRopaLimpiaForm
 
@@ -109,4 +110,34 @@ class CicloRetornoAPIView(APIView):
         return Response({
             "entregas": MovimientoResumenSerializer(resumen["entregas"], many=True).data,
             "kg_enviados": resumen["kg_enviados"],
+        })
+
+
+class CorteControlRopaSuciaAPIView(APIView):
+    """Corte de control de ropa sucia (RF-044, §7 del lineamiento de ropa):
+    entrega de las 18:00 de ayer + entrega de las 10:00 de hoy. Reutiliza tal
+    cual movimientos.services.corte_ropa_sucia() — vista de consulta, no
+    duplica ningún pesaje."""
+
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    queryset = Movimiento.objects.none()
+
+    def get_queryset(self):
+        return self.queryset
+
+    def get(self, request):
+        fecha_param = request.query_params.get("fecha")
+        if fecha_param:
+            try:
+                fecha = date_cls.fromisoformat(fecha_param)
+            except ValueError:
+                return Response({"fecha": ["Formato inválido, usa AAAA-MM-DD."]}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            fecha = timezone.localdate()
+
+        corte = corte_ropa_sucia(fecha)
+        return Response({
+            "fecha": fecha,
+            "entregas": MovimientoResumenSerializer([f["movimiento"] for f in corte["filas"]], many=True).data,
+            "total": corte["total"],
         })

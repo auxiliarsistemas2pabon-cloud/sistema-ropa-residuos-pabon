@@ -1,11 +1,11 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from core.models import AreaServicio, Sede
+from core.models import AreaServicio, GestorExterno, Sede
 from movimientos.forms import RegistroDiferidoMixin
 from movimientos.models import Movimiento, Pesaje, TipoMovimiento
 
-from .models import CategoriaResiduo, GrupoResiduo
+from .models import CategoriaResiduo, EntregaGestor, GrupoResiduo
 
 Usuario = get_user_model()
 
@@ -178,3 +178,54 @@ class RecoleccionResiduoForm(_ResiduoBaseForm):
             "entrega_por": self.cleaned_data["entrega_por"],
             "recibe_por": self.cleaned_data["recibe_por"],
         }
+
+
+class _RecoleccionChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, movimiento):
+        pesaje = movimiento.pesajes.first()
+        kg = f"{pesaje.peso_neto} kg" if pesaje else "sin pesaje"
+        servicio = movimiento.area_origen.nombre if movimiento.area_origen else "—"
+        return f"{movimiento.fecha:%d/%m/%Y} {movimiento.hora:%H:%M} · {movimiento.sede.nombre} · {servicio} · {kg}"
+
+
+class EntregaGestorForm(forms.Form):
+    """Registra la factura del gestor externo sobre una recolección de
+    residuos ya guardada (RF-022, RF-038) — la Administradora concilia luego
+    kg pesados internamente contra kg facturados desde RH1 y facturación."""
+
+    movimiento = _RecoleccionChoiceField(
+        queryset=Movimiento.objects.none(), label="Recolección de residuos",
+        help_text="Solo se muestran las recolecciones que todavía no tienen factura registrada.",
+    )
+    gestor_externo = forms.ModelChoiceField(
+        queryset=GestorExterno.objects.filter(activo=True).order_by("nombre"), label="Gestor externo",
+    )
+    numero_factura = forms.CharField(label="Número de factura (opcional)", required=False)
+    kg_facturados = forms.DecimalField(
+        label="kg facturados", max_digits=10, decimal_places=2, min_value=0, localize=False,
+        widget=_peso_widget(),
+    )
+    valor_facturado = forms.DecimalField(
+        label="Valor facturado", max_digits=12, decimal_places=2, min_value=0, localize=False,
+        widget=forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.01", "min": "0"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["movimiento"].queryset = (
+            Movimiento.objects.filter(
+                tipo_movimiento=TipoMovimiento.RESIDUO_RECOLECCION, entrega_gestor__isnull=True,
+            )
+            .select_related("sede", "area_origen")
+            .prefetch_related("pesajes")
+            .order_by("-fecha", "-hora")
+        )
+
+    def guardar(self):
+        return EntregaGestor.objects.create(
+            movimiento=self.cleaned_data["movimiento"],
+            gestor_externo=self.cleaned_data["gestor_externo"],
+            numero_factura=self.cleaned_data.get("numero_factura", "").strip(),
+            kg_facturados=self.cleaned_data["kg_facturados"],
+            valor_facturado=self.cleaned_data["valor_facturado"],
+        )

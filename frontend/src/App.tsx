@@ -11,11 +11,13 @@ import { RopaLimpiaMenu } from "./features/ropa/RopaLimpiaMenu";
 import { RecepcionLimpia } from "./features/ropa/RecepcionLimpia";
 import { DistribucionLimpia } from "./features/ropa/DistribucionLimpia";
 import { Rotulos } from "./features/ropa/Rotulos";
+import { CorteControl } from "./features/ropa/CorteControl";
 import { Validacion } from "./features/ropa/Validacion";
 import { ResiduosMenu } from "./features/residuos/ResiduosMenu";
 import { Generacion } from "./features/residuos/Generacion";
 import { Recoleccion } from "./features/residuos/Recoleccion";
 import { ConsolidadoPeligrosos } from "./features/residuos/ConsolidadoPeligrosos";
+import { EntregaGestor } from "./features/residuos/EntregaGestor";
 import { DetalleMovimiento } from "./features/movimientos/Detalle";
 import { DiaAnterior } from "./features/movimientos/DiaAnterior";
 import { Novedades } from "./features/movimientos/Novedades";
@@ -44,6 +46,7 @@ export default function App() {
                 <Route path="/dia-anterior" element={<DiaAnterior />} />
                 <Route path="/novedades" element={<Novedades />} />
                 <Route path="/validacion" element={<Validacion />} />
+                <Route path="/ropa/corte-control" element={<CorteControl />} />
               </Route>
 
               <Route element={<RutaProtegida paraAdministradora={false} />}>
@@ -61,6 +64,7 @@ export default function App() {
               <Route element={<RutaProtegida paraAdministradora={true} />}>
                 <Route path="/consolidados" element={<Consolidados />} />
                 <Route path="/rh1-facturacion" element={<RH1Facturacion />} />
+                <Route path="/residuos/entrega-gestor" element={<EntregaGestor />} />
                 <Route path="/catalogos" element={<Catalogos />} />
               </Route>
             </Route>

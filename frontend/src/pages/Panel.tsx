@@ -12,6 +12,7 @@ import {
   IconoParametros,
   IconoPila,
   IconoResiduo,
+  IconoTijeras,
 } from "../components/Iconos";
 
 function fechaDeHoy(): string {
@@ -94,6 +95,9 @@ export function Panel() {
               <Link to="/validacion">
                 <IconoCheckCirculo size={16} /> Validar entrega a lavandería
               </Link>
+              <Link to="/ropa/corte-control">
+                <IconoTijeras size={16} /> Corte de control de ropa sucia
+              </Link>
             </p>
           </>
         ) : (
@@ -134,6 +138,9 @@ export function Panel() {
               </Link>
               <Link to="/validacion">
                 <IconoCheckCirculo size={16} /> Validar entrega a lavandería
+              </Link>
+              <Link to="/ropa/corte-control">
+                <IconoTijeras size={16} /> Corte de control de ropa sucia
               </Link>
               <Link to="/ropa/rotulos">Registrar rótulos</Link>
             </p>

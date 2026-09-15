@@ -17,10 +17,16 @@ from reportes.api_views import (
     FacturacionResumenAPIView,
     RH1APIView,
 )
-from residuos.api_views import CortePeligrososAPIView, GeneracionResiduoAPIView, RecoleccionResiduoAPIView
-from residuos.viewsets import CategoriaResiduoViewSet, ColumnaRH1ViewSet
+from residuos.api_views import (
+    CortePeligrososAPIView,
+    GeneracionResiduoAPIView,
+    RecoleccionesSinFacturaAPIView,
+    RecoleccionResiduoAPIView,
+)
+from residuos.viewsets import CategoriaResiduoViewSet, ColumnaRH1ViewSet, EntregaGestorViewSet
 from ropa.api_views import (
     CicloRetornoAPIView,
+    CorteControlRopaSuciaAPIView,
     DistribucionRopaLimpiaAPIView,
     EntregaRopaSuciaAPIView,
     RecepcionRopaLimpiaAPIView,
@@ -39,6 +45,7 @@ router.register("movimientos", MovimientoViewSet, basename="api-movimiento")
 router.register("novedades", NovedadViewSet, basename="api-novedad")
 router.register("rotulos", RotuloViewSet, basename="api-rotulo")
 router.register("validacion-entrega", ValidacionEntregaViewSet, basename="api-validacion-entrega")
+router.register("residuos/entregas-gestor", EntregaGestorViewSet, basename="api-entrega-gestor")
 
 urlpatterns = [
     path("auth/csrf/", CsrfCookieView.as_view(), name="api-auth-csrf"),
@@ -62,7 +69,13 @@ urlpatterns = [
     path("movimientos/generacion-residuo/", GeneracionResiduoAPIView.as_view(), name="api-generacion-residuo"),
     path("movimientos/recoleccion-residuo/", RecoleccionResiduoAPIView.as_view(), name="api-recoleccion-residuo"),
     path("ropa/ciclo-retorno/", CicloRetornoAPIView.as_view(), name="api-ciclo-retorno"),
+    path("ropa/corte-control/", CorteControlRopaSuciaAPIView.as_view(), name="api-corte-control-ropa"),
     path("residuos/corte-peligrosos/", CortePeligrososAPIView.as_view(), name="api-corte-peligrosos"),
+    path(
+        "residuos/recolecciones-sin-factura/",
+        RecoleccionesSinFacturaAPIView.as_view(),
+        name="api-recolecciones-sin-factura",
+    ),
     path("consolidados/<slug:clave>/", ConsolidadoAPIView.as_view(), name="api-consolidado"),
     path("rh1/", RH1APIView.as_view(), name="api-rh1"),
     path("facturacion/resumen/", FacturacionResumenAPIView.as_view(), name="api-facturacion-resumen"),

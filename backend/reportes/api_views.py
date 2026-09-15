@@ -20,7 +20,7 @@ from .views import _mes_pedido
 
 # Los consolidados que devuelven (filas, total) o (fecha, filas, total) en vez
 # de una lista plana — el resto normaliza a {"filas": [...]}.
-_CON_TOTAL = {"ropa_por_sede"}
+_CON_TOTAL = {"ropa_por_sede", "residuos_por_categoria"}
 _CON_FECHA_Y_TOTAL = {"corte_peligrosos"}
 
 _SERVICIOS = {

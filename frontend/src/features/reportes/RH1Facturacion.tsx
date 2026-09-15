@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { listarSedes } from "../../api/catalogos";
 import {
   obtenerFacturacionConciliacion,
@@ -180,7 +181,10 @@ export function RH1Facturacion() {
       <section className="tarjeta-panel">
         <div className="titulo-reporte">
           <h2>Conciliación con el gestor</h2>
-          <a className="boton boton--texto" href={urlExportarConciliacion(mesAplicado)}>Exportar</a>
+          <span className="titulo-reporte__acciones">
+            <Link className="boton boton--texto" to="/residuos/entrega-gestor">Registrar entrega</Link>
+            <a className="boton boton--texto" href={urlExportarConciliacion(mesAplicado)}>Exportar</a>
+          </span>
         </div>
         {cargandoConciliacion ? (
           <p className="estado-carga">Cargando…</p>

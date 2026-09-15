@@ -60,12 +60,20 @@ def ropa_por_sede(filtros):
 
 
 def residuos_por_categoria(filtros):
+    """Por grupo y categoría, más el total de no peligrosos (RF-021:
+    aprovechables + no aprovechables) — el resto de grupos ya se puede leer
+    fila por fila, pero este es el único que el lineamiento pide sumado."""
     qs = _filtrar_por_movimiento(DetalleResiduo.objects.de_generacion(), filtros)
-    return list(
+    filas = list(
         qs.values("categoria_residuo__grupo", "categoria_residuo__nombre")
         .annotate(kg=Sum("peso_kg"))
         .order_by("categoria_residuo__grupo", "categoria_residuo__nombre")
     )
+    total_no_peligrosos = sum(
+        (f["kg"] for f in filas if f["categoria_residuo__grupo"] == GrupoResiduo.NO_PELIGROSO),
+        Decimal("0.00"),
+    )
+    return filas, total_no_peligrosos
 
 
 def residuos_por_servicio(filtros):

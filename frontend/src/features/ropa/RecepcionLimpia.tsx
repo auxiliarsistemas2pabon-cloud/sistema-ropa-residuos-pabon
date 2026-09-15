@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
-import { listarSedes, listarUsuariosActivos } from "../../api/catalogos";
+import { listarPrendas, listarSedes, listarUsuariosActivos } from "../../api/catalogos";
 import { crearRecepcionRopaLimpia } from "../../api/ropa";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
 
@@ -12,6 +12,8 @@ interface DatosFormulario {
   sede: string;
   peso_total: string;
   tara: string;
+  prenda: string;
+  cantidad_unidades: string;
   entrega_por: string;
   recibe_por: string;
   observaciones: string;
@@ -46,6 +48,7 @@ export function RecepcionLimpia() {
 
   const { data: sedes } = useQuery({ queryKey: ["sedes"], queryFn: listarSedes });
   const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: listarUsuariosActivos });
+  const { data: prendas } = useQuery({ queryKey: ["prendas"], queryFn: listarPrendas });
 
   const totalNum = parseFloat(pesoTotal || "0") || 0;
   const taraNum = parseFloat(tara || "0") || 0;
@@ -80,6 +83,7 @@ export function RecepcionLimpia() {
       sede: Number(datos.sede),
       peso_total: datos.peso_total,
       tara: datos.tara || "0",
+      ...(datos.prenda ? { prenda: Number(datos.prenda), cantidad_unidades: Number(datos.cantidad_unidades) } : {}),
       entrega_por: Number(datos.entrega_por),
       recibe_por: Number(datos.recibe_por),
       observaciones: datos.observaciones,
@@ -169,6 +173,29 @@ export function RecepcionLimpia() {
               <dd>la calcula el sistema</dd>
             </div>
           </dl>
+          <div className="campo">
+            <label htmlFor="prenda">Tipo de ropa (opcional, si se controla por unidades)</label>
+            <select id="prenda" {...register("prenda")}>
+              <option value="">Seleccionar…</option>
+              {prendas?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="campo">
+            <label htmlFor="cantidad_unidades">Cantidad de prendas</label>
+            <input
+              id="cantidad_unidades"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              {...register("cantidad_unidades")}
+            />
+          </div>
+          <p className="campo__ayuda">Solo si necesitas control por tipo de prenda de esta recepción.</p>
           <div className="campo">
             <label htmlFor="entrega_por">Entrega</label>
             <select id="entrega_por" {...register("entrega_por", { required: true })}>

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block titulo %}Entrega al gestor · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Entrega al gestor externo</h1>
+<p class="tinta-suave">
+  Registra la factura del gestor sobre una recolección de residuos ya guardada.
+  Después podrás conciliar kg pesados internamente contra kg facturados desde
+  RH1 y facturación.
+</p>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  {% include "componentes/_campo.html" with campo=form.movimiento %}
+  {% if not form.fields.movimiento.queryset %}
+    <p class="vacio">
+      No hay recolecciones de residuos sin factura registrada. Registra primero
+      la recolección en «Registrar residuos».
+    </p>
+  {% endif %}
+
+  {% include "componentes/_campo.html" with campo=form.gestor_externo %}
+  {% include "componentes/_campo.html" with campo=form.numero_factura %}
+  {% include "componentes/_campo.html" with campo=form.kg_facturados %}
+  {% include "componentes/_campo.html" with campo=form.valor_facturado %}
+
+  <button type="submit" class="boton">Guardar entrega</button>
+</form>
+{% endblock %}

@@ -1,11 +1,16 @@
 import { api } from "./client";
-import type { MovimientoDetalle, Paginado, Rotulo } from "./movimientos";
+import type { MovimientoDetalle, MovimientoResumen, Paginado, Rotulo } from "./movimientos";
 
 export interface DatosEntregaRopaSucia {
   sede: number;
   area_origen: number;
   peso_total: string;
   tara?: string;
+  /** RF-009: cuántas bolsas o tulas, cuando se controle este dato. */
+  cantidad_bolsas?: number;
+  /** RF-011: detalle por prenda, opcional — cuando se realiza control por unidades. */
+  prenda?: number;
+  cantidad_unidades?: number;
   entrega_por: number;
   recibe_por: number;
   observaciones?: string;
@@ -23,6 +28,9 @@ export interface DatosRecepcionRopaLimpia {
   sede: number;
   peso_total: string;
   tara?: string;
+  /** RF-012: tipo de ropa y cantidad de prendas, opcional. */
+  prenda?: number;
+  cantidad_unidades?: number;
   entrega_por: number;
   recibe_por: number;
   observaciones?: string;
@@ -80,6 +88,19 @@ export async function crearRotulo(datos: DatosRotulo): Promise<Rotulo> {
 export async function listarRotulosDeMovimiento(movimientoId: number): Promise<Rotulo[]> {
   const { data } = await api.get<Paginado<Rotulo>>("/rotulos/", { params: { movimiento: movimientoId } });
   return data.results;
+}
+
+export interface CorteControlRopaSucia {
+  fecha: string;
+  entregas: MovimientoResumen[];
+  total: string;
+}
+
+export async function obtenerCorteControlRopaSucia(fecha?: string): Promise<CorteControlRopaSucia> {
+  const { data } = await api.get<CorteControlRopaSucia>("/ropa/corte-control/", {
+    params: fecha ? { fecha } : {},
+  });
+  return data;
 }
 
 export type Jornada = "MANANA" | "TARDE";

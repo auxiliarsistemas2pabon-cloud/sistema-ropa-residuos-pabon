@@ -35,6 +35,7 @@
       <label>Peso neto</label>
       <p class="peso-neto" data-peso-neto>—</p>
     </div>
+    {% include "componentes/_campo.html" with campo=form.cantidad_bolsas %}
     <button type="button" class="boton" data-siguiente data-requiere-peso-valido>Continuar →</button>
     <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
   </section>
@@ -46,6 +47,11 @@
       <div><dt>Fecha y hora</dt><dd>las pone el sistema al guardar</dd></div>
       <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
     </dl>
+    {% include "componentes/_campo.html" with campo=form.prenda %}
+    {% include "componentes/_campo.html" with campo=form.cantidad_unidades %}
+    <p class="campo__ayuda">
+      Solo si necesitas control por unidades de una prenda específica en esta entrega.
+    </p>
     {% include "componentes/_campo.html" with campo=form.entrega_por %}
     {% include "componentes/_campo.html" with campo=form.recibe_por %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}

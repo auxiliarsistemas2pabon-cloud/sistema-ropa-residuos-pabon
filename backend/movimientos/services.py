@@ -5,6 +5,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from constance import config
+from django.db.models import Q
 from django.utils import timezone
 
 from .models import ConfiguracionJornada, Jornada, Movimiento, TipoMovimiento
@@ -107,6 +108,36 @@ def suma_por_servicio(*, sede, fecha, jornada):
     for e in entregas:
         neto = sum((p.peso_neto for p in e.pesajes.all()), Decimal("0.00"))
         filas.append({"movimiento": e, "servicio": e.area_origen, "kg": neto})
+        total += neto
+    return {"filas": filas, "total": total}
+
+
+def corte_ropa_sucia(fecha):
+    """Corte de control de ropa sucia (RF-044, §7 del lineamiento de ropa):
+
+        entrega de las 18:00 del día anterior (jornada TARDE)
+        + entrega de las 10:00 del día vigente (jornada MAÑANA)
+
+    Es solo una vista de consulta y seguimiento, igual que el corte de
+    residuos peligrosos — no modifica, no mueve y no duplica ningún pesaje,
+    y no se suma al consolidado del periodo (evita contar dos veces el
+    pesaje de las 10:00)."""
+    dia_anterior = fecha - timedelta(days=1)
+    entregas = (
+        Movimiento.objects.filter(tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA)
+        .filter(
+            Q(fecha=dia_anterior, jornada=Jornada.TARDE)
+            | Q(fecha=fecha, jornada=Jornada.MANANA)
+        )
+        .select_related("sede", "area_origen")
+        .prefetch_related("pesajes")
+        .order_by("fecha", "hora")
+    )
+    filas = []
+    total = Decimal("0.00")
+    for e in entregas:
+        neto = sum((p.peso_neto for p in e.pesajes.all()), Decimal("0.00"))
+        filas.append({"movimiento": e, "sede": e.sede, "servicio": e.area_origen, "kg": neto})
         total += neto
     return {"filas": filas, "total": total}
 

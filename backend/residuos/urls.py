@@ -11,4 +11,5 @@ urlpatterns = [
     path("residuos/opciones/categoria/", views.opciones_categoria, name="opciones_categoria"),
     path("residuos/opciones/tipo/", views.opciones_tipo, name="opciones_tipo"),
     path("residuos/consolidado-peligrosos/", views.consolidado_peligrosos, name="consolidado_peligrosos"),
+    path("residuos/entrega-gestor/", views.entrega_gestor, name="entrega_gestor"),
 ]

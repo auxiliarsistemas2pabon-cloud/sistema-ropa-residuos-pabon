@@ -8,8 +8,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.api_errors import form_errors_response
-from movimientos.models import Movimiento
-from movimientos.serializers import MovimientoDetalleSerializer
+from core.permissions import IsAdministradora
+from movimientos.models import Movimiento, TipoMovimiento
+from movimientos.serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer
 
 from .forms import GeneracionResiduoForm, RecoleccionResiduoForm
 from .models import DetalleResiduo
@@ -82,3 +83,27 @@ class CortePeligrososAPIView(APIView):
             "detalles": DetalleResiduoSerializer(corte, many=True).data,
             "total": total,
         })
+
+
+class RecoleccionesSinFacturaAPIView(APIView):
+    """Recolecciones de residuos que todavía no tienen entrega a gestor
+    registrada (RF-022, RF-038) — lo que necesita el select de la pantalla
+    de entrega al gestor. Exclusivo de la Administradora, igual que
+    EntregaGestorViewSet."""
+
+    permission_classes = [IsAuthenticated, IsAdministradora]
+    queryset = Movimiento.objects.none()
+
+    def get_queryset(self):
+        return self.queryset
+
+    def get(self, request):
+        movimientos = (
+            Movimiento.objects.filter(
+                tipo_movimiento=TipoMovimiento.RESIDUO_RECOLECCION, entrega_gestor__isnull=True,
+            )
+            .select_related("sede", "area_origen")
+            .prefetch_related("pesajes")
+            .order_by("-fecha", "-hora")
+        )
+        return Response(MovimientoResumenSerializer(movimientos, many=True).data)

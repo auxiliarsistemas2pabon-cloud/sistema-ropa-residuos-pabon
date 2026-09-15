@@ -95,3 +95,59 @@ def test_sin_permiso_no_entra(client):
     client.force_login(solo)
     resp = client.get(reverse("ropa:entrega_sucia"))
     assert resp.status_code == 403
+
+
+# --- RF-009 (cantidad de bolsas) y RF-011 (detalle por prenda) ---
+
+def test_post_con_cantidad_bolsas_se_guarda(client, usuario, datos_validos):
+    datos_validos["cantidad_bolsas"] = "3"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+    assert Movimiento.objects.get().pesajes.get().cantidad_bolsas == 3
+
+
+def test_post_con_prenda_crea_detalle_ropa(client, usuario, datos_validos):
+    from ropa.models import DetalleRopa, Prenda
+
+    prenda = Prenda.objects.filter(activo=True, controla_unidades=True).first()
+    datos_validos["prenda"] = prenda.pk
+    datos_validos["cantidad_unidades"] = "5"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+
+    detalle = DetalleRopa.objects.get()
+    assert detalle.movimiento == Movimiento.objects.get()
+    assert detalle.prenda == prenda
+    assert detalle.cantidad_unidades == 5
+
+
+def test_sin_prenda_no_crea_detalle_ropa(client, usuario, datos_validos):
+    from ropa.models import DetalleRopa
+
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+    assert DetalleRopa.objects.count() == 0
+
+
+def test_cantidad_unidades_sin_prenda_no_valida(client, usuario, datos_validos):
+    datos_validos["cantidad_unidades"] = "5"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 200
+    assert "Selecciona la prenda" in resp.content.decode()
+    assert Movimiento.objects.count() == 0
+
+
+def test_prenda_que_controla_unidades_exige_cantidad(client, usuario, datos_validos):
+    from ropa.models import Prenda
+
+    prenda = Prenda.objects.filter(activo=True, controla_unidades=True).first()
+    datos_validos["prenda"] = prenda.pk
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 200
+    assert "registra la cantidad" in resp.content.decode()
+    assert Movimiento.objects.count() == 0

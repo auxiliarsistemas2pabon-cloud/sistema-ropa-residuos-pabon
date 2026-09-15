@@ -26,7 +26,7 @@ class UsuarioMinimoSerializer(serializers.ModelSerializer):
 class PesajeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pesaje
-        fields = ["id", "movimiento", "peso_total", "tara", "peso_neto", "pesado_por"]
+        fields = ["id", "movimiento", "peso_total", "tara", "peso_neto", "cantidad_bolsas", "pesado_por"]
         read_only_fields = ["peso_neto"]
 
 

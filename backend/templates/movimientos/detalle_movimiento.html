@@ -46,13 +46,14 @@
 {% if pesajes %}
   <h2>Pesaje{{ pesajes|length|pluralize }}</h2>
   <table class="tabla tabla-kg">
-    <thead><tr><th class="num">Peso total</th><th class="num">Tara</th><th class="num">Peso neto</th><th>Pesado por</th></tr></thead>
+    <thead><tr><th class="num">Peso total</th><th class="num">Tara</th><th class="num">Peso neto</th><th class="num">Bolsas</th><th>Pesado por</th></tr></thead>
     <tbody>
       {% for p in pesajes %}
         <tr>
           <td class="num cifra-kg">{{ p.peso_total }}</td>
           <td class="num cifra-kg">{{ p.tara }}</td>
           <td class="num cifra-kg">{{ p.peso_neto }}</td>
+          <td class="num">{{ p.cantidad_bolsas|default:"—" }}</td>
           <td>{{ p.pesado_por }}</td>
         </tr>
       {% endfor %}

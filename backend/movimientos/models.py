@@ -169,6 +169,10 @@ class Pesaje(models.Model):
     tara = models.DecimalField(max_digits=8, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     peso_neto = models.DecimalField(max_digits=8, decimal_places=2, editable=False, validators=[MinValueValidator(0)])
     pesado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pesajes")
+    cantidad_bolsas = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Cantidad de bolsas o tulas, cuando se controle este dato (RF-009).",
+    )
 
     history = HistoricalRecords()
 

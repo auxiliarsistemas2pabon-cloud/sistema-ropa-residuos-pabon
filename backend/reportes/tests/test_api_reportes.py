@@ -40,6 +40,19 @@ def test_consolidado_ropa_por_sede_trae_total(api_client, administradora, datos_
     assert resp.data["total"] == Decimal("11.20")
 
 
+def test_consolidado_residuos_por_categoria_trae_total_no_peligrosos(api_client, administradora, crear_movimiento):
+    aprovechables = CategoriaResiduo.objects.get(nombre="Aprovechables")
+    bio = CategoriaResiduo.objects.get(nombre="Biosanitarios")
+    for cat, kg in [(aprovechables, "5.00"), (bio, "4.00")]:
+        gen = crear_movimiento(tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=DIA, hora=time(9, 0))
+        DetalleResiduo.objects.create(movimiento=gen, categoria_residuo=cat, peso_kg=Decimal(kg))
+
+    api_client.force_authenticate(user=administradora)
+    resp = api_client.get(reverse("api-consolidado", args=["residuos_por_categoria"]))
+    assert resp.status_code == 200
+    assert resp.data["total"] == Decimal("5.00")  # solo Aprovechables, no Biosanitarios
+
+
 def test_consolidado_clave_desconocida_404(api_client, administradora):
     api_client.force_authenticate(user=administradora)
     resp = api_client.get(reverse("api-consolidado", args=["inventado"]))

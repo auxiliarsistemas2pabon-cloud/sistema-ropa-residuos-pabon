@@ -82,6 +82,9 @@ function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidad
                   {clave === "corte_peligrosos" && (
                     <tr><th colSpan={2}>Total del corte</th><td className="num cifra-kg">{kg(data.total)}</td></tr>
                   )}
+                  {clave === "residuos_por_categoria" && (
+                    <tr><th colSpan={2}>Total no peligrosos</th><td className="num cifra-kg">{kg(data.total)}</td></tr>
+                  )}
                 </tbody>
               </>
             )}

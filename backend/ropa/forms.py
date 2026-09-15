@@ -61,6 +61,18 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
         queryset=Usuario.objects.filter(activo=True).order_by("first_name", "username"),
         label="Recibe",
     )
+    cantidad_bolsas = forms.IntegerField(
+        label="Cantidad de bolsas (opcional)", required=False, min_value=1,
+        widget=forms.NumberInput(attrs={"inputmode": "numeric", "step": "1", "min": "1"}),
+    )
+    prenda = forms.ModelChoiceField(
+        queryset=Prenda.objects.filter(activo=True).order_by("nombre"),
+        label="Prenda (opcional, si se controla por unidades)", required=False,
+    )
+    cantidad_unidades = forms.IntegerField(
+        label="Cantidad de unidades", required=False, min_value=1,
+        widget=forms.NumberInput(attrs={"inputmode": "numeric", "step": "1", "min": "1"}),
+    )
     observaciones = forms.CharField(
         label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
     )
@@ -96,6 +108,13 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
                 "tara",
                 "La tara no puede ser mayor al peso total. Revisa el valor del recipiente.",
             )
+
+        prenda = cleaned.get("prenda")
+        cantidad_unidades = cleaned.get("cantidad_unidades")
+        if cantidad_unidades and not prenda:
+            self.add_error("prenda", "Selecciona la prenda para registrar la cantidad de unidades.")
+        if prenda and prenda.controla_unidades and not cantidad_unidades:
+            self.add_error("cantidad_unidades", "Esta prenda controla unidades: registra la cantidad.")
         return cleaned
 
     def guardar(self, *, creado_por):
@@ -116,8 +135,15 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
             movimiento=movimiento,
             peso_total=self.cleaned_data["peso_total"],
             tara=self.cleaned_data.get("tara") or 0,
+            cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"),
             pesado_por=creado_por,
         )
+        prenda = self.cleaned_data.get("prenda")
+        if prenda:
+            DetalleRopa.objects.create(
+                movimiento=movimiento, prenda=prenda,
+                cantidad_unidades=self.cleaned_data.get("cantidad_unidades"),
+            )
         return movimiento
 
 
@@ -138,6 +164,14 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
         label="Tara (kg)", max_digits=8, decimal_places=2, min_value=0,
         required=False, initial=0, localize=False,
         widget=forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.01", "min": "0"}),
+    )
+    prenda = forms.ModelChoiceField(
+        queryset=Prenda.objects.filter(activo=True).order_by("nombre"),
+        label="Tipo de ropa (opcional, si se controla por unidades)", required=False,
+    )
+    cantidad_unidades = forms.IntegerField(
+        label="Cantidad de prendas", required=False, min_value=1,
+        widget=forms.NumberInput(attrs={"inputmode": "numeric", "step": "1", "min": "1"}),
     )
     entrega_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Entrega")
     recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe")
@@ -184,6 +218,13 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
                 "tara",
                 "La tara no puede ser mayor al peso total. Revisa el valor del recipiente.",
             )
+
+        prenda = cleaned.get("prenda")
+        cantidad_unidades = cleaned.get("cantidad_unidades")
+        if cantidad_unidades and not prenda:
+            self.add_error("prenda", "Selecciona el tipo de ropa para registrar la cantidad de prendas.")
+        if prenda and prenda.controla_unidades and not cantidad_unidades:
+            self.add_error("cantidad_unidades", "Esta prenda controla unidades: registra la cantidad.")
         return cleaned
 
     def guardar(self, *, creado_por):
@@ -206,6 +247,12 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
             tara=self.cleaned_data.get("tara") or 0,
             pesado_por=creado_por,
         )
+        prenda = self.cleaned_data.get("prenda")
+        if prenda:
+            DetalleRopa.objects.create(
+                movimiento=movimiento, prenda=prenda,
+                cantidad_unidades=self.cleaned_data.get("cantidad_unidades"),
+            )
         enlazar_ciclo_ropa(movimiento)
 
         resumen = resumen_ciclo(

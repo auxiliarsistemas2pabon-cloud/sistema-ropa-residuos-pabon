@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block titulo %}Corte de control · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Corte de control de ropa sucia</h1>
+
+<p class="tinta-suave">
+  Corte del día {{ hoy|date:"d M Y" }}: entrega de las 18:00 del {{ ayer|date:"d M" }}
+  más entrega de las 10:00 de hoy. Es una vista de consulta y seguimiento — no
+  se suma al consolidado del periodo, para no contar dos veces el pesaje de
+  las 10:00.
+</p>
+
+{% if corte.filas %}
+  <div class="tabla-envoltura">
+    <table class="tabla tabla-kg">
+      <thead>
+        <tr><th>Fecha</th><th>Jornada</th><th>Sede</th><th>Servicio</th><th class="num">kg</th></tr>
+      </thead>
+      <tbody>
+        {% for f in corte.filas %}
+          <tr>
+            <td><a href="{% url 'movimientos:detalle_movimiento' f.movimiento.pk %}">{{ f.movimiento.fecha|date:"d M" }} {{ f.movimiento.hora|time:"H:i" }}</a></td>
+            <td>{{ f.movimiento.get_jornada_display }}</td>
+            <td>{{ f.sede.nombre }}</td>
+            <td>{{ f.servicio.nombre|default:"—" }}</td>
+            <td class="num cifra-kg">{{ f.kg }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th colspan="4">Total del corte</th><td class="num cifra-kg">{{ corte.total }}</td></tr>
+      </tfoot>
+    </table>
+  </div>
+{% else %}
+  <p class="vacio">No hay entregas de ropa sucia en este corte.</p>
+{% endif %}
+{% endblock %}
