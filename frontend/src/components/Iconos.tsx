@@ -106,3 +106,30 @@ export function IconoResiduo({ size = 22 }: { size?: number }) {
     </svg>
   );
 }
+
+export function IconoBandejaEntrada({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+      <path d="M12 3v10M8 9l4 4 4-4" />
+    </svg>
+  );
+}
+
+export function IconoBandejaSalida({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+      <path d="M12 13V3M8 7l4-4 4 4" />
+    </svg>
+  );
+}
+
+export function IconoAlertaTriangulo({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5 21 19H3z" />
+      <path d="M12 9.5v4.5M12 17h.01" />
+    </svg>
+  );
+}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block titulo %}Catálogos y parámetros · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+  <header class="panel__encabezado">
+    <h1>Catálogos y parámetros</h1>
+  </header>
+
+  <section class="tarjeta-panel">
+    <h2>Sedes</h2>
+    {% if sedes %}
+      <div class="tabla-envoltura">
+        <table class="tabla">
+          <thead><tr><th>Nombre</th><th>Activa</th></tr></thead>
+          <tbody>
+            {% for sede in sedes %}
+              <tr>
+                <td>{{ sede.nombre }}</td>
+                <td>
+                  <form class="form-en-linea" method="post" action="{% url 'alternar_activo' 'sede' sede.pk %}">
+                    {% csrf_token %}
+                    <input type="checkbox" onchange="this.form.submit()" {% if sede.activo %}checked{% endif %}>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="vacio">Todavía no hay sedes registradas.</p>
+    {% endif %}
+    <details class="carga-diferida">
+      <summary>+ Agregar sede</summary>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="formulario" value="sede">
+        {% for campo in formulario_sede %}{% include "componentes/_campo.html" with campo=campo %}{% endfor %}
+        <button type="submit" class="boton">Guardar sede</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="tarjeta-panel">
+    <h2>Servicios</h2>
+    {% if servicios %}
+      <div class="tabla-envoltura">
+        <table class="tabla">
+          <thead><tr><th>Sede</th><th>Nombre</th><th>Ropa</th><th>Residuos</th><th>Activo</th></tr></thead>
+          <tbody>
+            {% for servicio in servicios %}
+              <tr>
+                <td>{{ servicio.sede.nombre }}</td>
+                <td>{{ servicio.nombre }}</td>
+                <td>{{ servicio.genera_ropa|yesno:"Sí,—" }}</td>
+                <td>{{ servicio.genera_residuos|yesno:"Sí,—" }}</td>
+                <td>
+                  <form class="form-en-linea" method="post" action="{% url 'alternar_activo' 'servicio' servicio.pk %}">
+                    {% csrf_token %}
+                    <input type="checkbox" onchange="this.form.submit()" {% if servicio.activo %}checked{% endif %}>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="vacio">Todavía no hay servicios registrados.</p>
+    {% endif %}
+    <details class="carga-diferida">
+      <summary>+ Agregar servicio</summary>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="formulario" value="servicio">
+        {% for campo in formulario_servicio %}{% include "componentes/_campo.html" with campo=campo %}{% endfor %}
+        <button type="submit" class="boton">Guardar servicio</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="tarjeta-panel">
+    <h2>Gestores externos</h2>
+    {% if gestores %}
+      <div class="tabla-envoltura">
+        <table class="tabla tabla-kg">
+          <thead><tr><th>Nombre</th><th>NIT</th><th class="num">Tarifa/kg</th><th>Activo</th></tr></thead>
+          <tbody>
+            {% for gestor in gestores %}
+              <tr>
+                <td>{{ gestor.nombre }}</td>
+                <td>{{ gestor.nit }}</td>
+                <td class="num cifra-kg">{{ gestor.tarifa_kg_vigente|default:"—" }}</td>
+                <td>
+                  <form class="form-en-linea" method="post" action="{% url 'alternar_activo' 'gestor' gestor.pk %}">
+                    {% csrf_token %}
+                    <input type="checkbox" onchange="this.form.submit()" {% if gestor.activo %}checked{% endif %}>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="vacio">Todavía no hay gestores externos registrados.</p>
+    {% endif %}
+    <details class="carga-diferida">
+      <summary>+ Agregar gestor externo</summary>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="formulario" value="gestor">
+        {% for campo in formulario_gestor %}{% include "componentes/_campo.html" with campo=campo %}{% endfor %}
+        <button type="submit" class="boton">Guardar gestor</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="tarjeta-panel">
+    <h2>Usuarios</h2>
+    {% if usuarios %}
+      <div class="tabla-envoltura">
+        <table class="tabla">
+          <thead><tr><th>Usuario</th><th>Nombre</th><th>Documento</th><th>Rol</th><th>Activo</th></tr></thead>
+          <tbody>
+            {% for usuario in usuarios %}
+              <tr>
+                <td>{{ usuario.username }}</td>
+                <td>{{ usuario.first_name }} {{ usuario.last_name }}</td>
+                <td>{{ usuario.documento|default:"—" }}</td>
+                <td>
+                  <form class="form-en-linea" method="post" action="{% url 'cambiar_rol' usuario.pk %}">
+                    {% csrf_token %}
+                    <select name="rol" onchange="this.form.submit()">
+                      {% for valor, etiqueta in roles %}
+                        <option value="{{ valor }}" {% if usuario.rol == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                      {% endfor %}
+                    </select>
+                  </form>
+                </td>
+                <td>
+                  <form class="form-en-linea" method="post" action="{% url 'alternar_activo' 'usuario' usuario.pk %}">
+                    {% csrf_token %}
+                    <input type="checkbox" onchange="this.form.submit()" {% if usuario.activo %}checked{% endif %}>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="vacio">Todavía no hay usuarios registrados.</p>
+    {% endif %}
+    <details class="carga-diferida">
+      <summary>+ Agregar usuario</summary>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="formulario" value="usuario">
+        {% for campo in formulario_usuario %}{% include "componentes/_campo.html" with campo=campo %}{% endfor %}
+        <button type="submit" class="boton">Guardar usuario</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="tarjeta-panel">
+    <h2>Configuración</h2>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="formulario" value="configuracion">
+      <div class="fila-filtro">
+        {% for campo in formulario_config %}{% include "componentes/_campo.html" with campo=campo %}{% endfor %}
+      </div>
+      <button type="submit" class="boton">Guardar configuración</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

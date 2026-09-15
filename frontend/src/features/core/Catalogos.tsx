@@ -162,7 +162,7 @@ function GestoresSeccion() {
   const { data: gestores, isLoading } = useQuery({ queryKey: ["catalogo-gestores"], queryFn: listarTodosLosGestores });
 
   const crear = useMutation({
-    mutationFn: () => crearGestor({ nombre: form.nombre, nit: form.nit, tarifa_kg_vigente: form.tarifa_kg_vigente || undefined }),
+    mutationFn: () => crearGestor({ nombre: form.nombre, nit: form.nit, tarifa_kg_vigente: form.tarifa_kg_vigente }),
     onSuccess: () => { setForm({ nombre: "", nit: "", tarifa_kg_vigente: "" }); setErrores({}); void qc.invalidateQueries({ queryKey: ["catalogo-gestores"] }); },
     onError: (e) => setErrores(erroresDeCampo(e)),
   });
@@ -212,8 +212,9 @@ function GestoresSeccion() {
             {errores.nit && <p className="campo__error">{errores.nit[0]}</p>}
           </div>
           <div className="campo">
-            <label htmlFor="gestor-tarifa">Tarifa por kg (opcional)</label>
-            <input id="gestor-tarifa" type="number" step="0.01" min="0" value={form.tarifa_kg_vigente} onChange={(e) => setForm((f) => ({ ...f, tarifa_kg_vigente: e.target.value }))} />
+            <label htmlFor="gestor-tarifa">Tarifa por kg</label>
+            <input id="gestor-tarifa" type="number" step="0.01" min="0" value={form.tarifa_kg_vigente} onChange={(e) => setForm((f) => ({ ...f, tarifa_kg_vigente: e.target.value }))} required />
+            {errores.tarifa_kg_vigente && <p className="campo__error">{errores.tarifa_kg_vigente[0]}</p>}
           </div>
           <button type="submit" className="boton" disabled={crear.isPending}>Guardar gestor</button>
         </form>

@@ -142,3 +142,22 @@ export async function obtenerMovimiento(id: number): Promise<MovimientoDetalle> 
   const { data } = await api.get<MovimientoDetalle>(`/movimientos/${id}/`);
   return data;
 }
+
+export async function listarEntregasRopaSuciaDeHoy(sede: number, fecha: string): Promise<MovimientoResumen[]> {
+  const { data } = await api.get<Paginado<MovimientoResumen>>("/movimientos/", {
+    params: { tipo: "ROPA_SUCIA_ENTREGA", sede, fecha },
+  });
+  return data.results;
+}
+
+export interface DiaAnterior {
+  ayer: string;
+  movimientos: MovimientoResumen[];
+  novedades: Novedad[];
+  pendientes_count: number;
+}
+
+export async function obtenerDiaAnterior(): Promise<DiaAnterior> {
+  const { data } = await api.get<DiaAnterior>("/movimientos/dia-anterior/");
+  return data;
+}

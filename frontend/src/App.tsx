@@ -6,9 +6,18 @@ import { Layout } from "./components/Layout";
 import { LayoutLogin } from "./components/LayoutLogin";
 import { Login } from "./pages/Login";
 import { Panel } from "./pages/Panel";
-import { Proximamente } from "./pages/Proximamente";
 import { EntregaSucia } from "./features/ropa/EntregaSucia";
+import { RopaLimpiaMenu } from "./features/ropa/RopaLimpiaMenu";
+import { RecepcionLimpia } from "./features/ropa/RecepcionLimpia";
+import { DistribucionLimpia } from "./features/ropa/DistribucionLimpia";
+import { Rotulos } from "./features/ropa/Rotulos";
+import { Validacion } from "./features/ropa/Validacion";
+import { ResiduosMenu } from "./features/residuos/ResiduosMenu";
+import { Generacion } from "./features/residuos/Generacion";
+import { Recoleccion } from "./features/residuos/Recoleccion";
+import { ConsolidadoPeligrosos } from "./features/residuos/ConsolidadoPeligrosos";
 import { DetalleMovimiento } from "./features/movimientos/Detalle";
+import { DiaAnterior } from "./features/movimientos/DiaAnterior";
 import { Novedades } from "./features/movimientos/Novedades";
 import { Consolidados } from "./features/reportes/Consolidados";
 import { RH1Facturacion } from "./features/reportes/RH1Facturacion";
@@ -32,16 +41,21 @@ export default function App() {
               <Route element={<RutaProtegida />}>
                 <Route path="/" element={<Panel />} />
                 <Route path="/movimiento/:id" element={<DetalleMovimiento />} />
-                <Route path="/dia-anterior" element={<Proximamente titulo="Día anterior" />} />
+                <Route path="/dia-anterior" element={<DiaAnterior />} />
                 <Route path="/novedades" element={<Novedades />} />
-                <Route path="/validacion" element={<Proximamente titulo="Validar entrega a lavandería" />} />
+                <Route path="/validacion" element={<Validacion />} />
               </Route>
 
               <Route element={<RutaProtegida paraAdministradora={false} />}>
                 <Route path="/ropa/entrega-sucia" element={<EntregaSucia />} />
-                <Route path="/ropa/limpia" element={<Proximamente titulo="Ropa limpia" />} />
-                <Route path="/ropa/rotulos" element={<Proximamente titulo="Registrar rótulos" />} />
-                <Route path="/residuos" element={<Proximamente titulo="Registrar residuos" />} />
+                <Route path="/ropa/limpia" element={<RopaLimpiaMenu />} />
+                <Route path="/ropa/limpia/recepcion" element={<RecepcionLimpia />} />
+                <Route path="/ropa/limpia/distribucion" element={<DistribucionLimpia />} />
+                <Route path="/ropa/rotulos" element={<Rotulos />} />
+                <Route path="/residuos" element={<ResiduosMenu />} />
+                <Route path="/residuos/generacion" element={<Generacion />} />
+                <Route path="/residuos/recoleccion" element={<Recoleccion />} />
+                <Route path="/residuos/consolidado-peligrosos" element={<ConsolidadoPeligrosos />} />
               </Route>
 
               <Route element={<RutaProtegida paraAdministradora={true} />}>

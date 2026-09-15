@@ -91,6 +91,66 @@ export function DetalleMovimiento() {
         </>
       )}
 
+      {movimiento.detalles_ropa.length > 0 && (
+        <>
+          <h2>Prenda{movimiento.detalles_ropa.length > 1 ? "s" : ""}</h2>
+          <table className="tabla">
+            <thead>
+              <tr>
+                <th>Prenda</th>
+                <th className="num">Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movimiento.detalles_ropa.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.prenda_nombre}</td>
+                  <td className="num">{d.cantidad_unidades ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {movimiento.detalles_residuo.length > 0 && (
+        <>
+          <h2>Residuo</h2>
+          <table className="tabla tabla-kg">
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th className="num">kg</th>
+                <th className="num">Bolsas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movimiento.detalles_residuo.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.categoria_nombre}</td>
+                  <td className="num cifra-kg">{d.peso_kg}</td>
+                  <td className="num">{d.cantidad_bolsas ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {movimiento.rotulos.length > 0 && (
+        <>
+          <h2>Rótulo{movimiento.rotulos.length > 1 ? "s" : ""}</h2>
+          <ul className="lista-novedades">
+            {movimiento.rotulos.map((r) => (
+              <li key={r.id}>
+                {r.rotulada ? `Código ${r.codigo_rotulo || "s/n"}` : "Sin rotular"}
+                {r.contenido && ` · ${r.contenido}`}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <h2>Novedades</h2>
       {movimiento.novedades.length > 0 ? (
         <ul className="lista-novedades">

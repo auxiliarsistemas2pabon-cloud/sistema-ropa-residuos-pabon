@@ -47,7 +47,7 @@ export function Login() {
           <img className="login-marca__mascota" src="/img/mascota-wertino.png" alt="" aria-hidden="true" />
           <div className="login-marca__texto">
             <h1>
-              Estamos en tu <span className="login-marca__enfasis">corazón</span>
+              Trabajamos con el <span className="login-marca__enfasis">corazón</span>
             </h1>
             <p>Sistema de Registro y Control de Ropa Hospitalaria y Residuos.</p>
           </div>

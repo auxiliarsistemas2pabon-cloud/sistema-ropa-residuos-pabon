@@ -77,6 +77,36 @@ export async function listarUsuariosActivos(): Promise<UsuarioActivo[]> {
   return data;
 }
 
+export interface Prenda {
+  id: number;
+  nombre: string;
+  disposicion: string;
+  controla_unidades: boolean;
+  activo: boolean;
+}
+
+export async function listarPrendas(): Promise<Prenda[]> {
+  const { data } = await api.get<Prenda[]>("/catalogos/prendas/");
+  return data.filter((p) => p.activo);
+}
+
+export type GrupoResiduo = "NO_PELIGROSO" | "RIESGO_BIOLOGICO" | "OTRO_PELIGROSO" | "OTROS";
+
+export interface CategoriaResiduo {
+  id: number;
+  categoria_padre: number | null;
+  grupo: GrupoResiduo;
+  nombre: string;
+  color_bolsa: string;
+  activo: boolean;
+  es_peligroso: boolean;
+}
+
+export async function listarCategoriasResiduo(): Promise<CategoriaResiduo[]> {
+  const { data } = await api.get<CategoriaResiduo[]>("/catalogos/categorias-residuo/");
+  return data.filter((c) => c.activo);
+}
+
 // --- Administración de catálogos (pantalla "Catálogos y parámetros") ---
 // A diferencia de listarSedes/listarServicios (para selects de captura, solo
 // activos), estas traen todo — la Administradora necesita ver y reactivar
@@ -117,7 +147,7 @@ export async function listarTodosLosGestores(): Promise<GestorExterno[]> {
   const { data } = await api.get<GestorExterno[]>("/catalogos/gestores-externos/");
   return data;
 }
-export async function crearGestor(datos: { nombre: string; nit: string; tarifa_kg_vigente?: string }): Promise<GestorExterno> {
+export async function crearGestor(datos: { nombre: string; nit: string; tarifa_kg_vigente: string }): Promise<GestorExterno> {
   const { data } = await api.post<GestorExterno>("/catalogos/gestores-externos/", datos);
   return data;
 }

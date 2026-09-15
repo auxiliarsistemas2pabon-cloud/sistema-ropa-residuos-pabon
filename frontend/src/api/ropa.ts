@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { MovimientoDetalle } from "./movimientos";
+import type { MovimientoDetalle, Paginado, Rotulo } from "./movimientos";
 
 export interface DatosEntregaRopaSucia {
   sede: number;
@@ -16,5 +16,122 @@ export interface DatosEntregaRopaSucia {
 
 export async function crearEntregaRopaSucia(datos: DatosEntregaRopaSucia): Promise<MovimientoDetalle> {
   const { data } = await api.post<MovimientoDetalle>("/movimientos/entrega-ropa-sucia/", datos);
+  return data;
+}
+
+export interface DatosRecepcionRopaLimpia {
+  sede: number;
+  peso_total: string;
+  tara?: string;
+  entrega_por: number;
+  recibe_por: number;
+  observaciones?: string;
+  observacion_diferencia?: string;
+  fecha?: string;
+  hora?: string;
+}
+
+export interface ResumenCiclo {
+  kg_enviados: string;
+  kg_recibidos: string | null;
+  diferencia: string | null;
+}
+
+export interface RespuestaRecepcionLimpia {
+  movimiento: MovimientoDetalle;
+  resumen_ciclo: ResumenCiclo;
+}
+
+export async function crearRecepcionRopaLimpia(datos: DatosRecepcionRopaLimpia): Promise<RespuestaRecepcionLimpia> {
+  const { data } = await api.post<RespuestaRecepcionLimpia>("/movimientos/recepcion-ropa-limpia/", datos);
+  return data;
+}
+
+export interface DatosDistribucionRopaLimpia {
+  sede: number;
+  area_receptora: number;
+  prenda: number;
+  cantidad_unidades: number;
+  entrega_por: number;
+  recibe_por: number;
+  observaciones?: string;
+  fecha?: string;
+  hora?: string;
+}
+
+export async function crearDistribucionRopaLimpia(datos: DatosDistribucionRopaLimpia): Promise<MovimientoDetalle> {
+  const { data } = await api.post<MovimientoDetalle>("/movimientos/distribucion-ropa-limpia/", datos);
+  return data;
+}
+
+export interface DatosRotulo {
+  sede: number;
+  movimiento: number;
+  codigo_rotulo?: string;
+  contenido?: string;
+  sin_rotular?: boolean;
+}
+
+export async function crearRotulo(datos: DatosRotulo): Promise<Rotulo> {
+  const { data } = await api.post<Rotulo>("/rotulos/", datos);
+  return data;
+}
+
+export async function listarRotulosDeMovimiento(movimientoId: number): Promise<Rotulo[]> {
+  const { data } = await api.get<Paginado<Rotulo>>("/rotulos/", { params: { movimiento: movimientoId } });
+  return data.results;
+}
+
+export type Jornada = "MANANA" | "TARDE";
+
+export interface FilaDesglose {
+  movimiento: number;
+  servicio: string;
+  kg: string;
+}
+
+export interface DesgloseValidacion {
+  filas: FilaDesglose[];
+  total: string;
+}
+
+export async function obtenerDesgloseValidacion(params: {
+  sede: number;
+  fecha: string;
+  jornada: Jornada;
+}): Promise<DesgloseValidacion> {
+  const { data } = await api.get<DesgloseValidacion>("/validacion-entrega/desglose/", { params });
+  return data;
+}
+
+export interface DatosValidacionEntrega {
+  sede: number;
+  fecha: string;
+  jornada: Jornada;
+  peso_declarado: string;
+  observacion?: string;
+}
+
+export interface EvaluacionConformidad {
+  diferencia: string;
+  porcentaje: string;
+  conforme: boolean;
+  bloquea: boolean;
+}
+
+export interface RespuestaValidacionEntrega {
+  id: number;
+  sede: number;
+  fecha: string;
+  jornada: Jornada;
+  peso_declarado: string;
+  observacion: string;
+  validado_por: number;
+  validado_en: string;
+  evaluacion: EvaluacionConformidad;
+}
+
+export async function crearValidacionEntrega(datos: DatosValidacionEntrega): Promise<RespuestaValidacionEntrega> {
+  const { data } = await api.post<RespuestaValidacionEntrega>("/validacion-entrega/", datos);
   return data;
 }
