@@ -133,15 +133,16 @@ def test_tara_mayor_al_total_no_guarda(client, usuario, sede, area):
     assert Movimiento.objects.filter(tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION).count() == 0
 
 
-# --- RF-012 (tipo de ropa y cantidad de prendas) ---
+# --- RF-012 (tipo de ropa y cantidad de prendas, varias a la vez) ---
 
-def test_post_con_tipo_de_ropa_crea_detalle_ropa(client, usuario, sede, area):
+def test_post_con_un_tipo_de_ropa_crea_detalle_ropa(client, usuario, sede, area):
+    import json
+
     from ropa.models import DetalleRopa, Prenda
 
-    prenda = Prenda.objects.filter(activo=True, controla_unidades=True).first()
+    prenda = Prenda.objects.filter(activo=True).first()
     datos = _datos(sede, usuario)
-    datos["prenda"] = prenda.pk
-    datos["cantidad_unidades"] = "12"
+    datos["detalles_ropa"] = json.dumps([{"prenda": prenda.pk, "cantidad_unidades": 12}])
     client.force_login(usuario)
     resp = client.post(reverse("ropa:recepcion_limpia"), datos)
     assert resp.status_code == 302
@@ -149,6 +150,25 @@ def test_post_con_tipo_de_ropa_crea_detalle_ropa(client, usuario, sede, area):
     detalle = DetalleRopa.objects.get()
     assert detalle.prenda == prenda
     assert detalle.cantidad_unidades == 12
+
+
+def test_post_con_varios_tipos_de_ropa_crea_un_detalle_por_cada_uno(client, usuario, sede, area):
+    import json
+
+    from ropa.models import DetalleRopa, Prenda
+
+    prendas = list(Prenda.objects.filter(activo=True).order_by("nombre")[:2])
+    datos = _datos(sede, usuario)
+    datos["detalles_ropa"] = json.dumps([
+        {"prenda": prendas[0].pk, "cantidad_unidades": 4},
+        {"prenda": prendas[1].pk, "cantidad_unidades": 9},
+    ])
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:recepcion_limpia"), datos)
+    assert resp.status_code == 302
+
+    detalles = {d.prenda_id: d.cantidad_unidades for d in DetalleRopa.objects.all()}
+    assert detalles == {prendas[0].pk: 4, prendas[1].pk: 9}
 
 
 def test_sin_tipo_de_ropa_no_crea_detalle(client, usuario, sede, area):
@@ -160,11 +180,32 @@ def test_sin_tipo_de_ropa_no_crea_detalle(client, usuario, sede, area):
     assert DetalleRopa.objects.count() == 0
 
 
-def test_cantidad_de_prendas_sin_tipo_no_valida(client, usuario, sede, area):
+def test_recibe_por_no_se_puede_suplantar(client, usuario, sede, area):
+    from core.models import Usuario
+
+    otro = Usuario.objects.create_user(username="suplantado4", password="x", rol=Usuario.Rol.USUARIO)
     datos = _datos(sede, usuario)
-    datos["cantidad_unidades"] = "4"
+    datos["recibe_por"] = otro.pk  # el campo ya no existe en el Form: se ignora
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:recepcion_limpia"), datos)
+    assert resp.status_code == 302
+    mov = Movimiento.objects.get(tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION)
+    assert mov.recibe_por == usuario
+
+
+def test_tipo_de_ropa_repetido_no_valida(client, usuario, sede, area):
+    import json
+
+    from ropa.models import Prenda
+
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos = _datos(sede, usuario)
+    datos["detalles_ropa"] = json.dumps([
+        {"prenda": prenda.pk, "cantidad_unidades": 4},
+        {"prenda": prenda.pk, "cantidad_unidades": 1},
+    ])
     client.force_login(usuario)
     resp = client.post(reverse("ropa:recepcion_limpia"), datos)
     assert resp.status_code == 200
-    assert "Selecciona el tipo de ropa" in resp.content.decode()
+    assert "No repitas la misma prenda" in resp.content.decode()
     assert Movimiento.objects.filter(tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION).count() == 0

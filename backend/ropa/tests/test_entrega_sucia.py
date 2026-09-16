@@ -58,6 +58,7 @@ def test_post_valido_crea_movimiento_y_pesaje(client, usuario, datos_validos):
     assert mov.tipo_movimiento == TipoMovimiento.ROPA_SUCIA_ENTREGA
     assert mov.estado == EstadoMovimiento.CERRADO
     assert mov.creado_por == usuario
+    assert mov.entrega_por == usuario  # quien entrega es siempre quien inició sesión
     assert mov.fecha == timezone.localdate()
     assert mov.jornada in (Jornada.MANANA, Jornada.TARDE)  # la calcula el sistema
 
@@ -66,6 +67,17 @@ def test_post_valido_crea_movimiento_y_pesaje(client, usuario, datos_validos):
     assert pesaje.tara == Decimal("1.20")
     assert pesaje.peso_neto == Decimal("11.20")
     assert pesaje.pesado_por == usuario
+
+
+def test_entrega_por_no_se_puede_suplantar(client, usuario, datos_validos):
+    from core.models import Usuario
+
+    otro = Usuario.objects.create_user(username="suplantado", password="x", rol=Usuario.Rol.USUARIO)
+    datos_validos["entrega_por"] = otro.pk  # el campo ya no existe en el Form: se ignora
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+    assert Movimiento.objects.get().entrega_por == usuario
 
 
 def test_confirmacion_resume_lo_guardado(client, usuario, datos_validos):
@@ -107,12 +119,13 @@ def test_post_con_cantidad_bolsas_se_guarda(client, usuario, datos_validos):
     assert Movimiento.objects.get().pesajes.get().cantidad_bolsas == 3
 
 
-def test_post_con_prenda_crea_detalle_ropa(client, usuario, datos_validos):
+def test_post_con_una_prenda_crea_detalle_ropa(client, usuario, datos_validos):
+    import json
+
     from ropa.models import DetalleRopa, Prenda
 
-    prenda = Prenda.objects.filter(activo=True, controla_unidades=True).first()
-    datos_validos["prenda"] = prenda.pk
-    datos_validos["cantidad_unidades"] = "5"
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos_validos["detalles_ropa"] = json.dumps([{"prenda": prenda.pk, "cantidad_unidades": 5}])
     client.force_login(usuario)
     resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
     assert resp.status_code == 302
@@ -123,7 +136,26 @@ def test_post_con_prenda_crea_detalle_ropa(client, usuario, datos_validos):
     assert detalle.cantidad_unidades == 5
 
 
-def test_sin_prenda_no_crea_detalle_ropa(client, usuario, datos_validos):
+def test_post_con_varias_prendas_crea_un_detalle_por_cada_una(client, usuario, datos_validos):
+    import json
+
+    from ropa.models import DetalleRopa, Prenda
+
+    prendas = list(Prenda.objects.filter(activo=True).order_by("nombre")[:3])
+    datos_validos["detalles_ropa"] = json.dumps([
+        {"prenda": prendas[0].pk, "cantidad_unidades": 5},
+        {"prenda": prendas[1].pk, "cantidad_unidades": 3},
+        {"prenda": prendas[2].pk, "cantidad_unidades": 7},
+    ])
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+
+    detalles = {d.prenda_id: d.cantidad_unidades for d in DetalleRopa.objects.all()}
+    assert detalles == {prendas[0].pk: 5, prendas[1].pk: 3, prendas[2].pk: 7}
+
+
+def test_sin_prendas_no_crea_detalle_ropa(client, usuario, datos_validos):
     from ropa.models import DetalleRopa
 
     client.force_login(usuario)
@@ -132,22 +164,41 @@ def test_sin_prenda_no_crea_detalle_ropa(client, usuario, datos_validos):
     assert DetalleRopa.objects.count() == 0
 
 
-def test_cantidad_unidades_sin_prenda_no_valida(client, usuario, datos_validos):
-    datos_validos["cantidad_unidades"] = "5"
+def test_prenda_repetida_no_valida(client, usuario, datos_validos):
+    import json
+
+    from ropa.models import Prenda
+
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos_validos["detalles_ropa"] = json.dumps([
+        {"prenda": prenda.pk, "cantidad_unidades": 5},
+        {"prenda": prenda.pk, "cantidad_unidades": 2},
+    ])
     client.force_login(usuario)
     resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
     assert resp.status_code == 200
-    assert "Selecciona la prenda" in resp.content.decode()
+    assert "No repitas la misma prenda" in resp.content.decode()
     assert Movimiento.objects.count() == 0
 
 
-def test_prenda_que_controla_unidades_exige_cantidad(client, usuario, datos_validos):
+def test_cantidad_cero_no_valida(client, usuario, datos_validos):
+    import json
+
     from ropa.models import Prenda
 
-    prenda = Prenda.objects.filter(activo=True, controla_unidades=True).first()
-    datos_validos["prenda"] = prenda.pk
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos_validos["detalles_ropa"] = json.dumps([{"prenda": prenda.pk, "cantidad_unidades": 0}])
     client.force_login(usuario)
     resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
     assert resp.status_code == 200
-    assert "registra la cantidad" in resp.content.decode()
+    assert "debe ser mayor a 0" in resp.content.decode()
+    assert Movimiento.objects.count() == 0
+
+
+def test_detalles_ropa_con_json_invalido_no_valida(client, usuario, datos_validos):
+    datos_validos["detalles_ropa"] = "esto no es json"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 200
+    assert "no tiene un formato válido" in resp.content.decode()
     assert Movimiento.objects.count() == 0

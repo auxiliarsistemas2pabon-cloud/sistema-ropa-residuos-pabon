@@ -46,13 +46,9 @@
     <dl class="calculado">
       <div><dt>Fecha y hora</dt><dd>las pone el sistema al guardar</dd></div>
       <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
+      <div><dt>Entrega</dt><dd>{{ form.usuario|default:"—" }}</dd></div>
     </dl>
-    {% include "componentes/_campo.html" with campo=form.prenda %}
-    {% include "componentes/_campo.html" with campo=form.cantidad_unidades %}
-    <p class="campo__ayuda">
-      Solo si necesitas control por unidades de una prenda específica en esta entrega.
-    </p>
-    {% include "componentes/_campo.html" with campo=form.entrega_por %}
+    {% include "componentes/_detalle_prendas.html" with prendas=prendas campo=form.detalles_ropa etiqueta="Prenda" %}
     {% include "componentes/_campo.html" with campo=form.recibe_por %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}
     {% include "componentes/_carga_diferida.html" %}

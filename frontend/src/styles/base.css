@@ -212,6 +212,18 @@ a:focus-visible {
 
 .dato-fijo { margin: 0; padding: var(--espacio-3); background: var(--acento-suave); border-radius: var(--radio); }
 
+/* --- Detalle por prenda con selección múltiple (RF-011/012) --- */
+.detalle-prendas { border: 1px solid var(--linea); border-radius: var(--radio); padding: var(--espacio-3); margin-bottom: var(--espacio-4); }
+.detalle-prendas__fila { display: flex; gap: var(--espacio-2); flex-wrap: wrap; align-items: flex-end; }
+.detalle-prendas__fila .campo { flex: 1 1 160px; margin: 0; }
+.detalle-prendas__lista { list-style: none; margin: var(--espacio-3) 0 0; padding: 0; }
+.detalle-prendas__item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-2);
+  padding: var(--espacio-2) 0; border-top: 1px solid var(--linea);
+}
+.detalle-prendas__item .boton--texto { margin: 0; padding: 0; min-height: auto; }
+.detalle-prendas__vacio { margin: var(--espacio-2) 0 0; font-size: var(--texto-sm); color: var(--tinta-suave); }
+
 /* --- Avisos --- */
 .avisos { list-style: none; margin: var(--espacio-3) 0 0; padding: 0; }
 .aviso {

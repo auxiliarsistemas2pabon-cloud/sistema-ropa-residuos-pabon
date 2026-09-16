@@ -14,9 +14,8 @@ interface DatosResiduoBase {
   hora?: string;
 }
 
-export interface DatosGeneracionResiduo extends DatosResiduoBase {
-  responsable: number;
-}
+// "Responsable"/"Entrega" los fija el backend al usuario logueado — no se envían.
+export type DatosGeneracionResiduo = DatosResiduoBase;
 
 export async function crearGeneracionResiduo(datos: DatosGeneracionResiduo): Promise<MovimientoDetalle> {
   const { data } = await api.post<MovimientoDetalle>("/movimientos/generacion-residuo/", datos);
@@ -25,7 +24,6 @@ export async function crearGeneracionResiduo(datos: DatosGeneracionResiduo): Pro
 
 export interface DatosRecoleccionResiduo extends DatosResiduoBase {
   cantidad_bolsas?: number;
-  entrega_por: number;
   recibe_por: number;
 }
 

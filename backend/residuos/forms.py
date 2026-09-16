@@ -112,7 +112,7 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
         cleaned["categoria_final"] = tipo or categoria
         return cleaned
 
-    def _responsables(self):
+    def _responsables(self, creado_por):
         raise NotImplementedError
 
     def guardar(self, *, creado_por):
@@ -128,7 +128,7 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
             observaciones=self.cleaned_data.get("observaciones", ""),
             estado=estado,
             creado_por=creado_por,
-            **self._responsables(),
+            **self._responsables(creado_por),
         )
         pesaje = Pesaje.objects.create(
             movimiento=movimiento,
@@ -148,15 +148,8 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
 class GeneracionResiduoForm(_ResiduoBaseForm):
     tipo_movimiento = TipoMovimiento.RESIDUO_GENERACION
 
-    responsable = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Responsable")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not self.is_bound and self.usuario is not None:
-            self.fields["responsable"].initial = self.usuario
-
-    def _responsables(self):
-        return {"entrega_por": self.cleaned_data["responsable"], "recibe_por": None}
+    def _responsables(self, creado_por):
+        return {"entrega_por": creado_por, "recibe_por": None}
 
 
 class RecoleccionResiduoForm(_ResiduoBaseForm):
@@ -165,17 +158,11 @@ class RecoleccionResiduoForm(_ResiduoBaseForm):
     cantidad_bolsas = forms.IntegerField(
         label="Cantidad de bolsas o recipientes", min_value=0, required=False,
     )
-    entrega_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Entrega")
     recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe en almacenamiento")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not self.is_bound and self.usuario is not None:
-            self.fields["entrega_por"].initial = self.usuario
-
-    def _responsables(self):
+    def _responsables(self, creado_por):
         return {
-            "entrega_por": self.cleaned_data["entrega_por"],
+            "entrega_por": creado_por,
             "recibe_por": self.cleaned_data["recibe_por"],
         }
 

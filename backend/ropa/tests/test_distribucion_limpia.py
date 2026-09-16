@@ -97,6 +97,17 @@ def test_carga_diferida_queda_pendiente(client, usuario, sede, area, sabana):
     assert mov.fecha == ayer
 
 
+def test_entrega_por_no_se_puede_suplantar(client, usuario, sede, area, sabana):
+    otro = Usuario.objects.create_user(username="suplantado2", password="x", rol=Usuario.Rol.USUARIO)
+    datos = _datos(sede, area, usuario, sabana)
+    datos["entrega_por"] = otro.pk  # el campo ya no existe en el Form: se ignora
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:distribucion_limpia"), datos)
+    assert resp.status_code == 302
+    mov = Movimiento.objects.get(tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_DISTRIBUCION)
+    assert mov.entrega_por == usuario
+
+
 def test_administradora_no_puede_distribuir(client, administradora):
     client.force_login(administradora)
     assert client.get(reverse("ropa:distribucion_limpia")).status_code == 403

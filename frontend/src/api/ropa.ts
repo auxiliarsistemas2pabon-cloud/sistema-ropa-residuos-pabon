@@ -8,10 +8,10 @@ export interface DatosEntregaRopaSucia {
   tara?: string;
   /** RF-009: cuántas bolsas o tulas, cuando se controle este dato. */
   cantidad_bolsas?: number;
-  /** RF-011: detalle por prenda, opcional — cuando se realiza control por unidades. */
-  prenda?: number;
-  cantidad_unidades?: number;
-  entrega_por: number;
+  /** RF-011: detalle por prenda, opcional — varias prendas con su cantidad
+   * cada una, codificadas como JSON: '[{"prenda": id, "cantidad_unidades": n}, ...]'. */
+  detalles_ropa?: string;
+  /** "Entrega" la fija el backend al usuario logueado — no se envía. */
   recibe_por: number;
   observaciones?: string;
   /** Carga diferida (6.9): ambos o ninguno, nunca fecha futura. */
@@ -28,11 +28,11 @@ export interface DatosRecepcionRopaLimpia {
   sede: number;
   peso_total: string;
   tara?: string;
-  /** RF-012: tipo de ropa y cantidad de prendas, opcional. */
-  prenda?: number;
-  cantidad_unidades?: number;
+  /** RF-012: tipo de ropa y cantidad de prendas, opcional — varias a la vez,
+   * codificadas como JSON: '[{"prenda": id, "cantidad_unidades": n}, ...]'. */
+  detalles_ropa?: string;
   entrega_por: number;
-  recibe_por: number;
+  /** "Recibe" la fija el backend al usuario logueado — no se envía. */
   observaciones?: string;
   observacion_diferencia?: string;
   fecha?: string;
@@ -60,7 +60,7 @@ export interface DatosDistribucionRopaLimpia {
   area_receptora: number;
   prenda: number;
   cantidad_unidades: number;
-  entrega_por: number;
+  /** "Entrega" la fija el backend al usuario logueado — no se envía. */
   recibe_por: number;
   observaciones?: string;
   fecha?: string;

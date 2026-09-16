@@ -66,18 +66,24 @@ def test_entrega_ropa_sucia_carga_diferida_queda_pendiente(api_client, usuario, 
     assert resp.data["fecha"] == ayer.isoformat()
 
 
-def test_entrega_ropa_sucia_con_bolsas_y_prenda(api_client, usuario, sede, area):
-    prenda = ropa_models.Prenda.objects.filter(activo=True, controla_unidades=True).first()
+def test_entrega_ropa_sucia_con_bolsas_y_varias_prendas(api_client, usuario, sede, area):
+    import json
+
+    prendas = list(ropa_models.Prenda.objects.filter(activo=True).order_by("nombre")[:2])
     api_client.force_authenticate(user=usuario)
     resp = api_client.post(reverse("api-entrega-ropa-sucia"), {
         "sede": sede.pk, "area_origen": area.pk, "peso_total": "12.40", "tara": "1.20",
-        "cantidad_bolsas": 3, "prenda": prenda.pk, "cantidad_unidades": 7,
-        "entrega_por": usuario.pk, "recibe_por": usuario.pk,
+        "cantidad_bolsas": 3,
+        "detalles_ropa": json.dumps([
+            {"prenda": prendas[0].pk, "cantidad_unidades": 7},
+            {"prenda": prendas[1].pk, "cantidad_unidades": 2},
+        ]),
+        "recibe_por": usuario.pk,
     })
     assert resp.status_code == 201
     assert resp.data["pesajes"][0]["cantidad_bolsas"] == 3
-    assert len(resp.data["detalles_ropa"]) == 1
-    assert resp.data["detalles_ropa"][0]["cantidad_unidades"] == 7
+    cantidades = {d["cantidad_unidades"] for d in resp.data["detalles_ropa"]}
+    assert cantidades == {7, 2}
 
 
 def test_entrega_ropa_sucia_tara_mayor_al_total_da_400(api_client, usuario, sede, area):
@@ -145,18 +151,23 @@ def test_corte_control_ropa_sucia(api_client, usuario, sede, area, crear_movimie
     assert resp.data["entregas"][0]["id"] == mov.id
 
 
-def test_recepcion_ropa_limpia_con_tipo_de_ropa(api_client, usuario, sede, area, crear_movimiento):
-    prenda = ropa_models.Prenda.objects.filter(activo=True, controla_unidades=True).first()
+def test_recepcion_ropa_limpia_con_varios_tipos_de_ropa(api_client, usuario, sede, area, crear_movimiento):
+    import json
+
+    prendas = list(ropa_models.Prenda.objects.filter(activo=True).order_by("nombre")[:2])
     _crear_entrega_de_origen(crear_movimiento, usuario, sede, "20.00")
     api_client.force_authenticate(user=usuario)
     resp = api_client.post(reverse("api-recepcion-ropa-limpia"), {
         "sede": sede.pk, "peso_total": "20.00",
-        "prenda": prenda.pk, "cantidad_unidades": 15,
-        "entrega_por": usuario.pk, "recibe_por": usuario.pk,
+        "detalles_ropa": json.dumps([
+            {"prenda": prendas[0].pk, "cantidad_unidades": 15},
+            {"prenda": prendas[1].pk, "cantidad_unidades": 6},
+        ]),
+        "entrega_por": usuario.pk,
     })
     assert resp.status_code == 201
-    assert len(resp.data["movimiento"]["detalles_ropa"]) == 1
-    assert resp.data["movimiento"]["detalles_ropa"][0]["cantidad_unidades"] == 15
+    cantidades = {d["cantidad_unidades"] for d in resp.data["movimiento"]["detalles_ropa"]}
+    assert cantidades == {15, 6}
 
 
 def test_recepcion_ropa_limpia_se_enlaza_y_genera_novedad_por_diferencia(

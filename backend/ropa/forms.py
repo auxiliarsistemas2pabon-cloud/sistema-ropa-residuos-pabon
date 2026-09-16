@@ -1,3 +1,5 @@
+import json
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -30,6 +32,44 @@ def _usuarios_activos():
     return Usuario.objects.filter(activo=True).order_by("first_name", "username")
 
 
+def _parsear_detalles_ropa(crudo):
+    """Valida el JSON del detalle por prenda de un formulario con selección
+    múltiple (RF-011/012): '[{"prenda": id, "cantidad_unidades": n}, ...]'.
+    Devuelve (detalles, errores) — detalles trae instancias de Prenda ya
+    resueltas, listas para DetalleRopa.objects.create()."""
+    try:
+        datos = json.loads(crudo or "[]")
+    except (ValueError, TypeError):
+        return [], ["El detalle de prendas no tiene un formato válido."]
+    if not isinstance(datos, list):
+        return [], ["El detalle de prendas no tiene un formato válido."]
+
+    resultado, errores, vistos = [], [], set()
+    for item in datos:
+        if not isinstance(item, dict):
+            errores.append("El detalle de prendas no tiene un formato válido.")
+            continue
+        try:
+            prenda_id = int(item.get("prenda"))
+            cantidad = int(item.get("cantidad_unidades"))
+        except (TypeError, ValueError):
+            errores.append("Cada prenda agregada necesita una cantidad válida.")
+            continue
+        if prenda_id in vistos:
+            errores.append("No repitas la misma prenda dos veces en el mismo registro.")
+            continue
+        prenda = Prenda.objects.filter(pk=prenda_id, activo=True).first()
+        if prenda is None:
+            errores.append("Una de las prendas agregadas ya no existe o está inactiva.")
+            continue
+        if cantidad < 1:
+            errores.append(f"La cantidad de «{prenda.nombre}» debe ser mayor a 0.")
+            continue
+        vistos.add(prenda_id)
+        resultado.append({"prenda": prenda, "cantidad_unidades": cantidad})
+    return resultado, list(dict.fromkeys(errores))
+
+
 class EntregaRopaSuciaForm(RegistroDiferidoMixin):
     """Captura de una entrega de ropa sucia (pantalla 3). Un movimiento por
     servicio de origen, con un pesaje. Fecha, hora y jornada las pone el
@@ -53,10 +93,6 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
         required=False, initial=0, localize=False,
         widget=forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.01", "min": "0"}),
     )
-    entrega_por = forms.ModelChoiceField(
-        queryset=Usuario.objects.filter(activo=True).order_by("first_name", "username"),
-        label="Entrega",
-    )
     recibe_por = forms.ModelChoiceField(
         queryset=Usuario.objects.filter(activo=True).order_by("first_name", "username"),
         label="Recibe",
@@ -65,13 +101,8 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
         label="Cantidad de bolsas (opcional)", required=False, min_value=1,
         widget=forms.NumberInput(attrs={"inputmode": "numeric", "step": "1", "min": "1"}),
     )
-    prenda = forms.ModelChoiceField(
-        queryset=Prenda.objects.filter(activo=True).order_by("nombre"),
-        label="Prenda (opcional, si se controla por unidades)", required=False,
-    )
-    cantidad_unidades = forms.IntegerField(
-        label="Cantidad de unidades", required=False, min_value=1,
-        widget=forms.NumberInput(attrs={"inputmode": "numeric", "step": "1", "min": "1"}),
+    detalles_ropa = forms.CharField(
+        required=False, widget=forms.HiddenInput(attrs={"data-detalle-prenda-oculto": ""}),
     )
     observaciones = forms.CharField(
         label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
@@ -79,17 +110,15 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
 
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.usuario = usuario
         sede = self._sede_seleccionada()
         self.fields["area_origen"].queryset = (
             AreaServicio.objects.filter(activo=True, genera_ropa=True, sede=sede).order_by("nombre")
             if sede
             else AreaServicio.objects.filter(activo=True, genera_ropa=True).order_by("nombre")
         )
-        if not self.is_bound:
-            if sede:
-                self.fields["sede"].initial = sede
-            if usuario is not None:
-                self.fields["entrega_por"].initial = usuario
+        if not self.is_bound and sede:
+            self.fields["sede"].initial = sede
 
     def _sede_seleccionada(self):
         if self.is_bound:
@@ -109,12 +138,10 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
                 "La tara no puede ser mayor al peso total. Revisa el valor del recipiente.",
             )
 
-        prenda = cleaned.get("prenda")
-        cantidad_unidades = cleaned.get("cantidad_unidades")
-        if cantidad_unidades and not prenda:
-            self.add_error("prenda", "Selecciona la prenda para registrar la cantidad de unidades.")
-        if prenda and prenda.controla_unidades and not cantidad_unidades:
-            self.add_error("cantidad_unidades", "Esta prenda controla unidades: registra la cantidad.")
+        detalles, errores = _parsear_detalles_ropa(cleaned.get("detalles_ropa"))
+        for error in errores:
+            self.add_error("detalles_ropa", error)
+        cleaned["detalles"] = detalles
         return cleaned
 
     def guardar(self, *, creado_por):
@@ -125,7 +152,7 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
             hora=hora,
             sede=self.cleaned_data["sede"],
             area_origen=self.cleaned_data["area_origen"],
-            entrega_por=self.cleaned_data["entrega_por"],
+            entrega_por=creado_por,
             recibe_por=self.cleaned_data["recibe_por"],
             observaciones=self.cleaned_data.get("observaciones", ""),
             estado=estado,
@@ -138,11 +165,9 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
             cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"),
             pesado_por=creado_por,
         )
-        prenda = self.cleaned_data.get("prenda")
-        if prenda:
+        for item in self.cleaned_data.get("detalles", []):
             DetalleRopa.objects.create(
-                movimiento=movimiento, prenda=prenda,
-                cantidad_unidades=self.cleaned_data.get("cantidad_unidades"),
+                movimiento=movimiento, prenda=item["prenda"], cantidad_unidades=item["cantidad_unidades"],
             )
         return movimiento
 
@@ -165,16 +190,10 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
         required=False, initial=0, localize=False,
         widget=forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.01", "min": "0"}),
     )
-    prenda = forms.ModelChoiceField(
-        queryset=Prenda.objects.filter(activo=True).order_by("nombre"),
-        label="Tipo de ropa (opcional, si se controla por unidades)", required=False,
-    )
-    cantidad_unidades = forms.IntegerField(
-        label="Cantidad de prendas", required=False, min_value=1,
-        widget=forms.NumberInput(attrs={"inputmode": "numeric", "step": "1", "min": "1"}),
+    detalles_ropa = forms.CharField(
+        required=False, widget=forms.HiddenInput(attrs={"data-detalle-prenda-oculto": ""}),
     )
     entrega_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Entrega")
-    recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe")
     observaciones = forms.CharField(
         label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
     )
@@ -185,6 +204,7 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
 
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.usuario = usuario
         sede = self._sede_seleccionada()
         ahora = timezone.localtime()
         self.jornada_actual = (
@@ -195,11 +215,8 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
             if sede
             else None
         )
-        if not self.is_bound:
-            if sede:
-                self.fields["sede"].initial = sede
-            if usuario is not None:
-                self.fields["recibe_por"].initial = usuario
+        if not self.is_bound and sede:
+            self.fields["sede"].initial = sede
 
     def _sede_seleccionada(self):
         if self.is_bound:
@@ -219,12 +236,10 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
                 "La tara no puede ser mayor al peso total. Revisa el valor del recipiente.",
             )
 
-        prenda = cleaned.get("prenda")
-        cantidad_unidades = cleaned.get("cantidad_unidades")
-        if cantidad_unidades and not prenda:
-            self.add_error("prenda", "Selecciona el tipo de ropa para registrar la cantidad de prendas.")
-        if prenda and prenda.controla_unidades and not cantidad_unidades:
-            self.add_error("cantidad_unidades", "Esta prenda controla unidades: registra la cantidad.")
+        detalles, errores = _parsear_detalles_ropa(cleaned.get("detalles_ropa"))
+        for error in errores:
+            self.add_error("detalles_ropa", error)
+        cleaned["detalles"] = detalles
         return cleaned
 
     def guardar(self, *, creado_por):
@@ -236,7 +251,7 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
             sede=self.cleaned_data["sede"],
             area_origen=None,
             entrega_por=self.cleaned_data["entrega_por"],
-            recibe_por=self.cleaned_data["recibe_por"],
+            recibe_por=creado_por,
             observaciones=self.cleaned_data.get("observaciones", ""),
             estado=estado,
             creado_por=creado_por,
@@ -247,11 +262,9 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
             tara=self.cleaned_data.get("tara") or 0,
             pesado_por=creado_por,
         )
-        prenda = self.cleaned_data.get("prenda")
-        if prenda:
+        for item in self.cleaned_data.get("detalles", []):
             DetalleRopa.objects.create(
-                movimiento=movimiento, prenda=prenda,
-                cantidad_unidades=self.cleaned_data.get("cantidad_unidades"),
+                movimiento=movimiento, prenda=item["prenda"], cantidad_unidades=item["cantidad_unidades"],
             )
         enlazar_ciclo_ropa(movimiento)
 
@@ -356,7 +369,6 @@ class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
         queryset=Prenda.objects.filter(activo=True).order_by("nombre"), label="Prenda",
     )
     cantidad_unidades = forms.IntegerField(label="Cantidad entregada", min_value=1)
-    entrega_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Entrega")
     recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe")
     observaciones = forms.CharField(
         label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
@@ -364,17 +376,15 @@ class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
 
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.usuario = usuario
         sede = self._sede_seleccionada()
         self.fields["area_receptora"].queryset = (
             AreaServicio.objects.filter(activo=True, genera_ropa=True, sede=sede).order_by("nombre")
             if sede
             else AreaServicio.objects.filter(activo=True, genera_ropa=True).order_by("nombre")
         )
-        if not self.is_bound:
-            if sede:
-                self.fields["sede"].initial = sede
-            if usuario is not None:
-                self.fields["entrega_por"].initial = usuario
+        if not self.is_bound and sede:
+            self.fields["sede"].initial = sede
 
     def _sede_seleccionada(self):
         if self.is_bound:
@@ -392,7 +402,7 @@ class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
             hora=hora,
             sede=self.cleaned_data["sede"],
             area_origen=self.cleaned_data["area_receptora"],
-            entrega_por=self.cleaned_data["entrega_por"],
+            entrega_por=creado_por,
             recibe_por=self.cleaned_data["recibe_por"],
             observaciones=self.cleaned_data.get("observaciones", ""),
             estado=estado,

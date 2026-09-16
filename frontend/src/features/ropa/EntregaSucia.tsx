@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
+import { DetallePrendas, type DetallePrendaItem } from "../../components/DetallePrendas";
+import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearEntregaRopaSucia } from "../../api/ropa";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
@@ -14,9 +16,6 @@ interface DatosFormulario {
   peso_total: string;
   tara: string;
   cantidad_bolsas: string;
-  prenda: string;
-  cantidad_unidades: string;
-  entrega_por: string;
   recibe_por: string;
   observaciones: string;
   cargaDiferida: boolean;
@@ -32,8 +31,10 @@ const PASOS = [
 
 export function EntregaSucia() {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
+  const [detalles, setDetalles] = useState<DetallePrendaItem[]>([]);
 
   const {
     register,
@@ -92,8 +93,7 @@ export function EntregaSucia() {
       peso_total: datos.peso_total,
       tara: datos.tara || "0",
       ...(datos.cantidad_bolsas ? { cantidad_bolsas: Number(datos.cantidad_bolsas) } : {}),
-      ...(datos.prenda ? { prenda: Number(datos.prenda), cantidad_unidades: Number(datos.cantidad_unidades) } : {}),
-      entrega_por: Number(datos.entrega_por),
+      ...(detalles.length > 0 ? { detalles_ropa: JSON.stringify(detalles) } : {}),
       recibe_por: Number(datos.recibe_por),
       observaciones: datos.observaciones,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
@@ -202,43 +202,17 @@ export function EntregaSucia() {
               <dt>Jornada</dt>
               <dd>la calcula el sistema</dd>
             </div>
+            <div>
+              <dt>Entrega</dt>
+              <dd>{usuario?.first_name || usuario?.username}</dd>
+            </div>
           </dl>
-          <div className="campo">
-            <label htmlFor="prenda">Prenda (opcional, si se controla por unidades)</label>
-            <select id="prenda" {...register("prenda")}>
-              <option value="">Seleccionar…</option>
-              {prendas?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="campo">
-            <label htmlFor="cantidad_unidades">Cantidad de unidades</label>
-            <input
-              id="cantidad_unidades"
-              type="number"
-              min="1"
-              step="1"
-              inputMode="numeric"
-              {...register("cantidad_unidades")}
-            />
-          </div>
-          <p className="campo__ayuda">
-            Solo si necesitas control por unidades de una prenda específica en esta entrega.
-          </p>
-          <div className="campo">
-            <label htmlFor="entrega_por">Entrega</label>
-            <select id="entrega_por" {...register("entrega_por", { required: true })}>
-              <option value="">Seleccionar…</option>
-              {usuarios?.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre_completo}
-                </option>
-              ))}
-            </select>
-          </div>
+          <DetallePrendas
+            etiqueta="Prenda (opcional, si se controla por unidades)"
+            prendas={prendas}
+            valor={detalles}
+            onCambiar={setDetalles}
+          />
           <div className="campo">
             <label htmlFor="recibe_por">Recibe</label>
             <select id="recibe_por" {...register("recibe_por", { required: true })}>

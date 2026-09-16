@@ -39,8 +39,8 @@
     <dl class="calculado">
       <div><dt>Fecha y hora</dt><dd>las pone el sistema al guardar</dd></div>
       <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
+      <div><dt>Responsable</dt><dd>{{ form.usuario|default:"—" }}</dd></div>
     </dl>
-    {% include "componentes/_campo.html" with campo=form.responsable %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}
     {% include "componentes/_carga_diferida.html" %}
     <button type="submit" class="boton" data-requiere-peso-valido>Guardar generación</button>

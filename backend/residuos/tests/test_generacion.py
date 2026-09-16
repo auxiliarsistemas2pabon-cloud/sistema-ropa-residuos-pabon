@@ -96,6 +96,20 @@ def test_tipo_que_no_es_hijo_de_la_categoria_no_valida(client, usuario, sede, ar
     assert "no pertenece a la categoría elegida" in resp.content.decode()
 
 
+def test_responsable_no_se_puede_suplantar(client, usuario, sede, area, biosanitarios):
+    from core.models import Usuario
+
+    otro = Usuario.objects.create_user(username="suplantado3", password="x", rol=Usuario.Rol.USUARIO)
+    client.force_login(usuario)
+    resp = client.post(
+        reverse("residuos:generacion"),
+        _datos(sede, area, usuario, categoria=biosanitarios.pk, responsable=otro.pk),
+    )
+    assert resp.status_code == 302
+    mov = Movimiento.objects.get(tipo_movimiento=TipoMovimiento.RESIDUO_GENERACION)
+    assert mov.entrega_por == usuario
+
+
 def test_confirmacion_resume_lo_guardado(client, usuario, sede, area, biosanitarios):
     client.force_login(usuario)
     resp = client.post(

@@ -1,5 +1,7 @@
-{# Cascada grupo → categoría → tipo específico (10.4). Cada nivel carga el
-   siguiente con HTMX, sin recargar. #}
+{% comment %}
+  Cascada grupo → categoría → tipo específico (10.4). Cada nivel carga el
+  siguiente con HTMX, sin recargar.
+{% endcomment %}
 <div class="campo{% if form.grupo.errors %} campo--error{% endif %}">
   <label for="id_grupo">Grupo</label>
   <select name="grupo" id="id_grupo" required

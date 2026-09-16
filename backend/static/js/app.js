@@ -55,6 +55,78 @@
     recalcular();
   }
 
+  // --- Detalle por prenda con selección múltiple (RF-011/012) ---
+  function iniciarDetallePrendas() {
+    var contenedores = document.querySelectorAll("[data-detalle-prendas]");
+    contenedores.forEach(function (contenedor) {
+      var select = contenedor.querySelector("[data-detalle-prenda-select]");
+      var cantidad = contenedor.querySelector("[data-detalle-prenda-cantidad]");
+      var boton = contenedor.querySelector("[data-detalle-prenda-agregar]");
+      var lista = contenedor.querySelector("[data-detalle-prenda-lista]");
+      var oculto = contenedor.querySelector("[data-detalle-prenda-oculto]");
+      var error = contenedor.querySelector("[data-detalle-prenda-error]");
+      if (!select || !cantidad || !boton || !lista || !oculto) return;
+
+      var items = [];
+
+      function mostrarError(mensaje) {
+        if (!error) return;
+        error.textContent = mensaje || "";
+        error.hidden = !mensaje;
+      }
+
+      function renderizar() {
+        lista.innerHTML = "";
+        items.forEach(function (item, indice) {
+          var li = document.createElement("li");
+          li.className = "detalle-prendas__item";
+
+          var texto = document.createElement("span");
+          texto.textContent = item.nombre + " · " + item.cantidad_unidades + " uds";
+
+          var quitar = document.createElement("button");
+          quitar.type = "button";
+          quitar.className = "boton boton--texto";
+          quitar.textContent = "Quitar";
+          quitar.addEventListener("click", function () {
+            items.splice(indice, 1);
+            renderizar();
+          });
+
+          li.appendChild(texto);
+          li.appendChild(quitar);
+          lista.appendChild(li);
+        });
+        oculto.value = JSON.stringify(items.map(function (i) {
+          return { prenda: i.prenda, cantidad_unidades: i.cantidad_unidades };
+        }));
+      }
+
+      boton.addEventListener("click", function () {
+        var prendaId = select.value;
+        var cantidadVal = parseInt(cantidad.value, 10);
+        if (!prendaId) { mostrarError("Selecciona una prenda."); return; }
+        if (!cantidadVal || cantidadVal < 1) { mostrarError("Escribe una cantidad válida."); return; }
+        if (items.some(function (i) { return i.prenda === prendaId; })) {
+          mostrarError("Esa prenda ya está en la lista.");
+          return;
+        }
+        mostrarError("");
+        items.push({
+          prenda: prendaId,
+          nombre: select.options[select.selectedIndex].text,
+          cantidad_unidades: cantidadVal,
+        });
+        select.value = "";
+        cantidad.value = "";
+        select.focus();
+        renderizar();
+      });
+
+      renderizar();
+    });
+  }
+
   // --- Navegación por pasos (10.5: máximo 3 pantallas) ---
   function iniciarPasos() {
     var form = document.querySelector("[data-formulario-pasos]");
@@ -102,6 +174,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     iniciarPesoNeto();
+    iniciarDetallePrendas();
     iniciarPasos();
   });
 })();

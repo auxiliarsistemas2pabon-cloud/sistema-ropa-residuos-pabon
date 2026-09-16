@@ -16,7 +16,7 @@ from .forms import (
     RotuloForm,
     ValidacionEntregaForm,
 )
-from .models import Rotulo
+from .models import Prenda, Rotulo
 
 
 @login_required
@@ -41,7 +41,8 @@ def entrega_ropa_sucia(request):
     else:
         form = EntregaRopaSuciaForm(usuario=request.user)
 
-    return render(request, "ropa/entrega_sucia.html", {"form": form})
+    prendas = Prenda.objects.filter(activo=True).order_by("nombre")
+    return render(request, "ropa/entrega_sucia.html", {"form": form, "prendas": prendas})
 
 
 @login_required
@@ -68,7 +69,8 @@ def recepcion_ropa_limpia(request):
     else:
         form = RecepcionRopaLimpiaForm(usuario=request.user)
 
-    return render(request, "ropa/recepcion_limpia.html", {"form": form})
+    prendas = Prenda.objects.filter(activo=True).order_by("nombre")
+    return render(request, "ropa/recepcion_limpia.html", {"form": form, "prendas": prendas})
 
 
 @login_required

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
+import { useAuth } from "../../auth/AuthContext";
 import { listarCategoriasResiduo, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearRecoleccionResiduo } from "../../api/residuos";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
@@ -24,7 +25,6 @@ interface DatosFormulario {
   peso_total: string;
   tara: string;
   cantidad_bolsas: string;
-  entrega_por: string;
   recibe_por: string;
   observaciones: string;
   cargaDiferida: boolean;
@@ -40,6 +40,7 @@ const PASOS = [
 
 export function Recoleccion() {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
 
@@ -108,7 +109,6 @@ export function Recoleccion() {
       peso_total: datos.peso_total,
       tara: datos.tara || "0",
       cantidad_bolsas: datos.cantidad_bolsas ? Number(datos.cantidad_bolsas) : undefined,
-      entrega_por: Number(datos.entrega_por),
       recibe_por: Number(datos.recibe_por),
       observaciones: datos.observaciones,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
@@ -239,18 +239,11 @@ export function Recoleccion() {
               <dt>Jornada</dt>
               <dd>la calcula el sistema</dd>
             </div>
+            <div>
+              <dt>Entrega</dt>
+              <dd>{usuario?.first_name || usuario?.username}</dd>
+            </div>
           </dl>
-          <div className="campo">
-            <label htmlFor="entrega_por">Entrega</label>
-            <select id="entrega_por" {...register("entrega_por", { required: true })}>
-              <option value="">Seleccionar…</option>
-              {usuarios?.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre_completo}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="campo">
             <label htmlFor="recibe_por">Recibe en almacenamiento</label>
             <select id="recibe_por" {...register("recibe_por", { required: true })}>

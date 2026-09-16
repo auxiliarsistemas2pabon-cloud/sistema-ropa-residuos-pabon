@@ -40,8 +40,8 @@
     <dl class="calculado">
       <div><dt>Fecha y hora</dt><dd>las pone el sistema al guardar</dd></div>
       <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
+      <div><dt>Entrega</dt><dd>{{ form.usuario|default:"—" }}</dd></div>
     </dl>
-    {% include "componentes/_campo.html" with campo=form.entrega_por %}
     {% include "componentes/_campo.html" with campo=form.recibe_por %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}
     {% include "componentes/_carga_diferida.html" %}

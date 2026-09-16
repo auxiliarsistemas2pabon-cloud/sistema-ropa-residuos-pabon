@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
-import { listarCategoriasResiduo, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
+import { useAuth } from "../../auth/AuthContext";
+import { listarCategoriasResiduo, listarSedes, listarServicios } from "../../api/catalogos";
 import { crearGeneracionResiduo } from "../../api/residuos";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
 
@@ -23,7 +24,6 @@ interface DatosFormulario {
   tipo_especifico: string;
   peso_total: string;
   tara: string;
-  responsable: string;
   observaciones: string;
   cargaDiferida: boolean;
   fecha: string;
@@ -38,6 +38,7 @@ const PASOS = [
 
 export function Generacion() {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
 
@@ -63,7 +64,6 @@ export function Generacion() {
     enabled: Boolean(sedeId),
   });
   const { data: categorias } = useQuery({ queryKey: ["categorias-residuo"], queryFn: listarCategoriasResiduo });
-  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: listarUsuariosActivos });
 
   const categoriasDelGrupo = categorias?.filter((c) => c.categoria_padre === null && c.grupo === grupo) ?? [];
   const tiposDeLaCategoria = categorias?.filter((c) => c.categoria_padre === Number(categoriaId)) ?? [];
@@ -105,7 +105,6 @@ export function Generacion() {
       tipo_especifico: datos.tipo_especifico ? Number(datos.tipo_especifico) : undefined,
       peso_total: datos.peso_total,
       tara: datos.tara || "0",
-      responsable: Number(datos.responsable),
       observaciones: datos.observaciones,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
     });
@@ -231,18 +230,11 @@ export function Generacion() {
               <dt>Jornada</dt>
               <dd>la calcula el sistema</dd>
             </div>
+            <div>
+              <dt>Responsable</dt>
+              <dd>{usuario?.first_name || usuario?.username}</dd>
+            </div>
           </dl>
-          <div className="campo">
-            <label htmlFor="responsable">Responsable</label>
-            <select id="responsable" {...register("responsable", { required: true })}>
-              <option value="">Seleccionar…</option>
-              {usuarios?.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre_completo}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="campo">
             <label htmlFor="observaciones">Observaciones (opcional)</label>
             <textarea id="observaciones" {...register("observaciones")} />
