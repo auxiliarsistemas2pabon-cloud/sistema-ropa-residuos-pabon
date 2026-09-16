@@ -214,15 +214,21 @@ a:focus-visible {
 
 /* --- Detalle por prenda con selección múltiple (RF-011/012) --- */
 .detalle-prendas { border: 1px solid var(--linea); border-radius: var(--radio); padding: var(--espacio-3); margin-bottom: var(--espacio-4); }
-.detalle-prendas__fila { display: flex; gap: var(--espacio-2); flex-wrap: wrap; align-items: flex-end; }
-.detalle-prendas__fila .campo { flex: 1 1 160px; margin: 0; }
-.detalle-prendas__lista { list-style: none; margin: var(--espacio-3) 0 0; padding: 0; }
-.detalle-prendas__item {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-2);
-  padding: var(--espacio-2) 0; border-top: 1px solid var(--linea);
+.detalle-prendas__etiqueta { margin: 0 0 var(--espacio-2); font-weight: 600; }
+.detalle-prendas__checklist {
+  list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto;
+  border: 1px solid var(--linea); border-radius: var(--radio);
 }
-.detalle-prendas__item .boton--texto { margin: 0; padding: 0; min-height: auto; }
-.detalle-prendas__vacio { margin: var(--espacio-2) 0 0; font-size: var(--texto-sm); color: var(--tinta-suave); }
+.detalle-prendas__fila-check {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-2);
+  padding: var(--espacio-2) var(--espacio-3); border-bottom: 1px solid var(--linea);
+}
+.detalle-prendas__fila-check:last-child { border-bottom: none; }
+.detalle-prendas__fila-check:has(input[type="checkbox"]:checked) { background: var(--acento-suave); }
+.detalle-prendas__check { display: flex; align-items: center; gap: var(--espacio-2); flex: 1; cursor: pointer; min-height: auto; }
+.detalle-prendas__check input[type="checkbox"] { width: 22px; height: 22px; min-height: auto; padding: 0; accent-color: var(--acento); }
+.detalle-prendas__cantidad-inline { width: 5.5rem; flex-shrink: 0; min-height: auto; padding: var(--espacio-1) var(--espacio-2); }
+.detalle-prendas__cantidad-inline:disabled { opacity: 0.35; }
 
 /* --- Avisos --- */
 .avisos { list-style: none; margin: var(--espacio-3) 0 0; padding: 0; }

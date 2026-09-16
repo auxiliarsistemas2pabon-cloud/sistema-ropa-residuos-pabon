@@ -1,31 +1,28 @@
 {% comment %}
   Requiere las variables prendas, campo (form.detalles_ropa) y etiqueta.
-  Selección múltiple de prendas con cantidad cada una (RF-011/012): se
-  arma una lista en el navegador y se manda como JSON en el campo oculto
-  detalles_ropa — ver iniciarDetallePrendas en static/js/app.js.
+  Selección múltiple de prendas con cantidad cada una (RF-011/012): checklist
+  donde cada prenda es una fila con casilla + cantidad en la misma fila,
+  y todo se manda como JSON en el campo oculto detalles_ropa — ver
+  iniciarDetallePrendas en static/js/app.js.
 {% endcomment %}
 <div class="detalle-prendas" data-detalle-prendas>
-  <div class="detalle-prendas__fila">
-    <div class="campo">
-      <label for="id_{{ campo.html_name }}_select">{{ etiqueta }}</label>
-      <select id="id_{{ campo.html_name }}_select" data-detalle-prenda-select>
-        <option value="">Seleccionar…</option>
-        {% for p in prendas %}<option value="{{ p.pk }}">{{ p.nombre }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="campo">
-      <label for="id_{{ campo.html_name }}_cantidad">Cantidad</label>
-      <input
-        type="number" min="1" step="1" inputmode="numeric"
-        id="id_{{ campo.html_name }}_cantidad" data-detalle-prenda-cantidad
-      >
-    </div>
-    <button type="button" class="boton boton--texto" data-detalle-prenda-agregar>+ Agregar</button>
-  </div>
-  <p class="campo__error" data-detalle-prenda-error hidden></p>
-  <ul class="detalle-prendas__lista" data-detalle-prenda-lista></ul>
+  <p class="detalle-prendas__etiqueta">{{ etiqueta }}</p>
+  <ul class="detalle-prendas__checklist">
+    {% for p in prendas %}
+    <li class="detalle-prendas__fila-check" data-detalle-prenda-fila>
+      <label class="detalle-prendas__check" for="id_{{ campo.html_name }}_check_{{ p.pk }}">
+        <input type="checkbox" id="id_{{ campo.html_name }}_check_{{ p.pk }}"
+               value="{{ p.pk }}" data-detalle-prenda-check>
+        {{ p.nombre }}
+      </label>
+      <input type="number" min="1" step="1" inputmode="numeric" disabled
+             class="detalle-prendas__cantidad-inline" placeholder="Cantidad"
+             aria-label="Cantidad de {{ p.nombre }}" data-detalle-prenda-cantidad-inline>
+    </li>
+    {% endfor %}
+  </ul>
   <p class="campo__ayuda">
-    Agrega tantas prendas como necesites, cada una con su cantidad. Es opcional —
+    Marca las prendas que necesites y escribe la cantidad de cada una. Es opcional —
     solo si necesitas control por unidades en este registro.
   </p>
   {% for error in campo.errors %}<p class="campo__error">{{ error }}</p>{% endfor %}

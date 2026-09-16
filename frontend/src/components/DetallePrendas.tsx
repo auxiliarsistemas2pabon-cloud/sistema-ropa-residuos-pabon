@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { Prenda } from "../api/catalogos";
 
 export interface DetallePrendaItem {
@@ -13,88 +12,74 @@ interface Props {
   onCambiar: (siguiente: DetallePrendaItem[]) => void;
 }
 
-/** Selección múltiple de prendas con cantidad cada una (RF-011/012): se
- * arma una lista en el cliente y se manda como JSON en `detalles_ropa` —
- * espejo del widget vanilla JS de las plantillas Django
+/** Selección múltiple de prendas con cantidad cada una (RF-011/012):
+ * checklist donde cada prenda es una fila con casilla + cantidad en la
+ * misma fila — espejo del widget vanilla JS de las plantillas Django
  * (iniciarDetallePrendas en static/js/app.js). */
 export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
-  const [prendaId, setPrendaId] = useState("");
-  const [cantidad, setCantidad] = useState("");
-  const [error, setError] = useState("");
-
-  function agregar() {
-    const cantidadNum = parseInt(cantidad, 10);
-    if (!prendaId) {
-      setError("Selecciona una prenda.");
-      return;
-    }
-    if (!cantidadNum || cantidadNum < 1) {
-      setError("Escribe una cantidad válida.");
-      return;
-    }
-    if (valor.some((item) => item.prenda === Number(prendaId))) {
-      setError("Esa prenda ya está en la lista.");
-      return;
-    }
-    setError("");
-    onCambiar([...valor, { prenda: Number(prendaId), cantidad_unidades: cantidadNum }]);
-    setPrendaId("");
-    setCantidad("");
+  function cantidadDe(prendaId: number): string {
+    const item = valor.find((i) => i.prenda === prendaId);
+    return item ? String(item.cantidad_unidades) : "";
   }
 
-  function quitar(indice: number) {
-    onCambiar(valor.filter((_, i) => i !== indice));
+  function estaMarcada(prendaId: number): boolean {
+    return valor.some((i) => i.prenda === prendaId);
   }
 
-  function nombreDe(prendaId: number): string {
-    return prendas?.find((p) => p.id === prendaId)?.nombre ?? `#${prendaId}`;
+  function alMarcar(prendaId: number, marcada: boolean, fila: HTMLElement | null) {
+    if (marcada) {
+      onCambiar([...valor, { prenda: prendaId, cantidad_unidades: 1 }]);
+      requestAnimationFrame(() => {
+        const input = fila?.querySelector<HTMLInputElement>(".detalle-prendas__cantidad-inline");
+        input?.focus();
+        input?.select();
+      });
+    } else {
+      onCambiar(valor.filter((i) => i.prenda !== prendaId));
+    }
+  }
+
+  function alCambiarCantidad(prendaId: number, texto: string) {
+    const cantidad = parseInt(texto, 10);
+    onCambiar(
+      valor.map((i) => (i.prenda === prendaId ? { ...i, cantidad_unidades: cantidad >= 1 ? cantidad : 0 } : i)),
+    );
   }
 
   return (
     <div className="detalle-prendas">
-      <div className="detalle-prendas__fila">
-        <div className="campo">
-          <label htmlFor="detalle-prenda-select">{etiqueta}</label>
-          <select id="detalle-prenda-select" value={prendaId} onChange={(e) => setPrendaId(e.target.value)}>
-            <option value="">Seleccionar…</option>
-            {prendas?.map((p) => (
-              <option key={p.id} value={p.id}>
+      <p className="detalle-prendas__etiqueta">{etiqueta}</p>
+      <ul className="detalle-prendas__checklist">
+        {prendas?.map((p) => {
+          const marcada = estaMarcada(p.id);
+          return (
+            <li className="detalle-prendas__fila-check" key={p.id}>
+              <label className="detalle-prendas__check">
+                <input
+                  type="checkbox"
+                  checked={marcada}
+                  onChange={(e) => alMarcar(p.id, e.target.checked, e.target.closest("li"))}
+                />
                 {p.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="campo">
-          <label htmlFor="detalle-prenda-cantidad">Cantidad</label>
-          <input
-            id="detalle-prenda-cantidad"
-            type="number"
-            min="1"
-            step="1"
-            inputMode="numeric"
-            value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
-          />
-        </div>
-        <button type="button" className="boton boton--texto" onClick={agregar}>
-          + Agregar
-        </button>
-      </div>
-      {error && <p className="campo__error">{error}</p>}
-      <ul className="detalle-prendas__lista">
-        {valor.map((item, indice) => (
-          <li className="detalle-prendas__item" key={`${item.prenda}-${indice}`}>
-            <span>
-              {nombreDe(item.prenda)} · {item.cantidad_unidades} uds
-            </span>
-            <button type="button" className="boton boton--texto" onClick={() => quitar(indice)}>
-              Quitar
-            </button>
-          </li>
-        ))}
+              </label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                className="detalle-prendas__cantidad-inline"
+                placeholder="Cantidad"
+                aria-label={`Cantidad de ${p.nombre}`}
+                disabled={!marcada}
+                value={marcada ? cantidadDe(p.id) : ""}
+                onChange={(e) => alCambiarCantidad(p.id, e.target.value)}
+              />
+            </li>
+          );
+        })}
       </ul>
       <p className="campo__ayuda">
-        Agrega tantas prendas como necesites, cada una con su cantidad. Es opcional — solo si
+        Marca las prendas que necesites y escribe la cantidad de cada una. Es opcional — solo si
         necesitas control por unidades en este registro.
       </p>
     </div>

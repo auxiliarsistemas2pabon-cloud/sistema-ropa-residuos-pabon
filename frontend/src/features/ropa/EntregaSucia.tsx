@@ -87,13 +87,14 @@ export function EntregaSucia() {
 
   function onSubmit(datos: DatosFormulario) {
     setErroresServidor({});
+    const detallesValidos = detalles.filter((d) => d.cantidad_unidades >= 1);
     mutacion.mutate({
       sede: Number(datos.sede),
       area_origen: Number(datos.area_origen),
       peso_total: datos.peso_total,
       tara: datos.tara || "0",
       ...(datos.cantidad_bolsas ? { cantidad_bolsas: Number(datos.cantidad_bolsas) } : {}),
-      ...(detalles.length > 0 ? { detalles_ropa: JSON.stringify(detalles) } : {}),
+      ...(detallesValidos.length > 0 ? { detalles_ropa: JSON.stringify(detallesValidos) } : {}),
       recibe_por: Number(datos.recibe_por),
       observaciones: datos.observaciones,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),

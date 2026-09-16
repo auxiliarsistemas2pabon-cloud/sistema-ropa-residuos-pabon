@@ -80,11 +80,12 @@ export function RecepcionLimpia() {
 
   function onSubmit(datos: DatosFormulario) {
     setErroresServidor({});
+    const detallesValidos = detalles.filter((d) => d.cantidad_unidades >= 1);
     mutacion.mutate({
       sede: Number(datos.sede),
       peso_total: datos.peso_total,
       tara: datos.tara || "0",
-      ...(detalles.length > 0 ? { detalles_ropa: JSON.stringify(detalles) } : {}),
+      ...(detallesValidos.length > 0 ? { detalles_ropa: JSON.stringify(detallesValidos) } : {}),
       entrega_por: Number(datos.entrega_por),
       observaciones: datos.observaciones,
       observacion_diferencia: datos.observacion_diferencia,
