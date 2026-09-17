@@ -45,6 +45,19 @@ def test_lista_y_filtra_por_tipo_y_fecha(api_client, usuario, crear_movimiento):
     assert resp.data["results"][0]["tipo_movimiento"] == TipoMovimiento.RESIDUO_GENERACION
 
 
+def test_lista_incluye_detalles_ropa_para_verificar_cantidades(api_client, usuario, crear_movimiento):
+    from ropa.models import DetalleRopa, Prenda
+
+    mov = crear_movimiento(tipo=TipoMovimiento.ROPA_SUCIA_ENTREGA, fecha=date(2026, 3, 10), hora=time(9, 0))
+    prenda = Prenda.objects.filter(activo=True).first()
+    DetalleRopa.objects.create(movimiento=mov, prenda=prenda, cantidad_unidades=9)
+    api_client.force_authenticate(user=usuario)
+
+    resp = api_client.get(reverse("api-movimiento-list"), {"tipo": TipoMovimiento.ROPA_SUCIA_ENTREGA})
+    assert resp.status_code == 200
+    assert resp.data["results"][0]["detalles_ropa"][0]["cantidad_unidades"] == 9
+
+
 def test_detalle_incluye_pesajes_novedades_y_puede_editar(api_client, usuario, crear_movimiento):
     mov = _movimiento_con_pesaje(crear_movimiento, usuario, creado_por=usuario)
     api_client.force_authenticate(user=usuario)

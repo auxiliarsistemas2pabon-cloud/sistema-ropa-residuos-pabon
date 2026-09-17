@@ -7,6 +7,11 @@ from .models import Usuario
 GRUPO_POR_ROL = {
     Usuario.Rol.ADMIN: "Administradora",
     Usuario.Rol.USUARIO: "Usuario",
+    # Personal de servicio hace exactamente lo mismo que Usuario (Entregar
+    # ropa sucia, Recepción de ropa limpia, con el conteo de prendas por
+    # tipo) — mismo grupo, mismos permisos; solo queda identificado con su
+    # propio rol en los registros y reportes.
+    Usuario.Rol.SERVICIO: "Usuario",
 }
 
 

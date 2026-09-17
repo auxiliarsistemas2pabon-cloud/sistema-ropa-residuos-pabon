@@ -50,6 +50,7 @@
     </dl>
     {% include "componentes/_detalle_prendas.html" with prendas=prendas campo=form.detalles_ropa etiqueta="Prenda" %}
     {% include "componentes/_campo.html" with campo=form.recibe_por %}
+    {% include "componentes/_firma.html" with campo=form.firma_recibe etiqueta="Firma de quien recibe" %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}
     {% include "componentes/_carga_diferida.html" %}
     <button type="submit" class="boton" data-requiere-peso-valido>Guardar entrega</button>

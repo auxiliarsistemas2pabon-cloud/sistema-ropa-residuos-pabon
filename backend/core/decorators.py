@@ -21,15 +21,22 @@ def solo_administradora(view):
 
 def solo_usuario(view):
     """Espejo de solo_administradora: pantallas de captura/operación
-    exclusivas del perfil Usuario, que la Administradora no ve ni usa
-    (7. del prompt) — el superusuario técnico sigue pasando, igual que ya
-    pasa con @permission_required en las pantallas de captura."""
+    exclusivas del personal de piso (Usuario y Personal de servicio, que
+    hacen exactamente lo mismo) — la Administradora no las ve ni las usa
+    (7. del prompt). Compara el rol exacto, no "no es Administradora",
+    porque un futuro rol distinto tampoco debería colarse aquí — el
+    superusuario técnico sigue pasando, igual que ya pasa con
+    @permission_required en las pantallas de captura."""
 
     @wraps(view)
     def _envuelta(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
-        if not request.user.is_superuser and getattr(request.user, "es_administradora", False):
+        Usuario = request.user.__class__
+        if not (
+            request.user.is_superuser
+            or request.user.rol in (Usuario.Rol.USUARIO, Usuario.Rol.SERVICIO)
+        ):
             raise PermissionDenied
         return view(request, *args, **kwargs)
 

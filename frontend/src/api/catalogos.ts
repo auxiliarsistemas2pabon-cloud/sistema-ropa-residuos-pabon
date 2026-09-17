@@ -23,7 +23,7 @@ export interface GestorExterno {
   activo: boolean;
 }
 
-export type Rol = "ADMIN" | "USUARIO";
+export type Rol = "ADMIN" | "USUARIO" | "SERVICIO";
 
 export interface Usuario {
   id: number;

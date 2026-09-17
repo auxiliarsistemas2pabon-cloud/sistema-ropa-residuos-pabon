@@ -15,7 +15,7 @@
     <table class="tabla tabla-kg">
       <thead>
         <tr>
-          <th>Fecha</th><th>Servicio</th><th>Entregó</th>
+          <th>Fecha</th><th>Servicio</th><th>Entregó</th><th>Prendas</th>
           <th class="num">kg netos</th><th class="num">Bolsas</th><th class="num">Novedades</th>
         </tr>
       </thead>
@@ -26,6 +26,11 @@
               <td><a href="{% url 'movimientos:detalle_movimiento' m.pk %}">{{ m.fecha|date:"d M" }} {{ m.hora|time:"H:i" }}</a></td>
               <td>{{ m.area_origen.nombre|default:"—" }}</td>
               <td>{{ m.entrega_por|default:"—" }}</td>
+              <td>
+                {% if m.detalles_ropa.all %}
+                  {% for d in m.detalles_ropa.all %}{{ d.prenda.nombre }} × {{ d.cantidad_unidades|default:"—" }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                {% else %}—{% endif %}
+              </td>
               <td class="num cifra-kg">{{ p.peso_neto|default:"—" }}</td>
               <td class="num">{{ p.cantidad_bolsas|default:"—" }}</td>
               <td class="num">{{ m.novedades.all|length }}</td>

@@ -56,7 +56,7 @@ def test_pantalla_exige_iniciar_sesion(client):
 def test_get_muestra_kg_enviados_del_ciclo(client, usuario, sede, area, crear_movimiento):
     _crear_entrega_de_origen(crear_movimiento, usuario, sede, "20.00")
     client.force_login(usuario)
-    resp = client.get(reverse("ropa:recepcion_limpia"))
+    resp = client.get(reverse("ropa:recepcion_limpia"), {"sede": sede.pk})
     cuerpo = resp.content.decode()
     assert resp.status_code == 200
     assert "kg enviados" in cuerpo
@@ -150,6 +150,16 @@ def test_post_con_un_tipo_de_ropa_crea_detalle_ropa(client, usuario, sede, area)
     detalle = DetalleRopa.objects.get()
     assert detalle.prenda == prenda
     assert detalle.cantidad_unidades == 12
+
+
+def test_post_con_firma_de_quien_entrega_se_guarda(client, usuario, sede, area):
+    datos = _datos(sede, usuario)
+    datos["firma_entrega"] = "data:image/png;base64,iVBORw0KGgoAAAANSU"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:recepcion_limpia"), datos)
+    assert resp.status_code == 302
+    mov = Movimiento.objects.get(tipo_movimiento=TipoMovimiento.ROPA_LIMPIA_RECEPCION)
+    assert mov.firma_entrega == "data:image/png;base64,iVBORw0KGgoAAAANSU"
 
 
 def test_post_con_peso_kg_guarda_el_peso(client, usuario, sede, area):

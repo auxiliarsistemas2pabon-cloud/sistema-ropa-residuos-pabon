@@ -110,6 +110,14 @@ class Movimiento(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
         related_name="movimientos_recibidos",
     )
+    firma_entrega = models.TextField(
+        blank=True,
+        help_text="Firma dibujada en pantalla de quien entrega, cuando no es quien inició sesión (imagen PNG en base64).",
+    )
+    firma_recibe = models.TextField(
+        blank=True,
+        help_text="Firma dibujada en pantalla de quien recibe, cuando no es quien inició sesión (imagen PNG en base64).",
+    )
 
     mov_origen = models.ForeignKey(
         "self", on_delete=models.PROTECT, null=True, blank=True,

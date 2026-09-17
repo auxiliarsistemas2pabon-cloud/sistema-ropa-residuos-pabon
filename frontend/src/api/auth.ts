@@ -1,6 +1,6 @@
 import { api, primeCsrf } from "./client";
 
-export type Rol = "ADMIN" | "USUARIO";
+export type Rol = "ADMIN" | "USUARIO" | "SERVICIO";
 
 export interface Usuario {
   id: number;

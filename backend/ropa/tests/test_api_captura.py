@@ -88,6 +88,16 @@ def test_entrega_ropa_sucia_con_bolsas_y_varias_prendas(api_client, usuario, sed
     assert pesos == {"4.50", None}
 
 
+def test_entrega_ropa_sucia_con_firma_de_quien_recibe(api_client, usuario, sede, area):
+    api_client.force_authenticate(user=usuario)
+    resp = api_client.post(reverse("api-entrega-ropa-sucia"), {
+        "sede": sede.pk, "area_origen": area.pk, "peso_total": "5.00",
+        "recibe_por": usuario.pk, "firma_recibe": "data:image/png;base64,iVBORw0KGgoAAAANSU",
+    })
+    assert resp.status_code == 201
+    assert resp.data["firma_recibe"] == "data:image/png;base64,iVBORw0KGgoAAAANSU"
+
+
 def test_entrega_ropa_sucia_tara_mayor_al_total_da_400(api_client, usuario, sede, area):
     api_client.force_authenticate(user=usuario)
     resp = api_client.post(reverse("api-entrega-ropa-sucia"), {

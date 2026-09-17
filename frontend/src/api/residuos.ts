@@ -25,6 +25,8 @@ export async function crearGeneracionResiduo(datos: DatosGeneracionResiduo): Pro
 export interface DatosRecoleccionResiduo extends DatosResiduoBase {
   cantidad_bolsas?: number;
   recibe_por: number;
+  /** Firma en pantalla de quien recibe (FR-SIG-86), imagen PNG en base64. */
+  firma_recibe?: string;
 }
 
 export async function crearRecoleccionResiduo(datos: DatosRecoleccionResiduo): Promise<MovimientoDetalle> {

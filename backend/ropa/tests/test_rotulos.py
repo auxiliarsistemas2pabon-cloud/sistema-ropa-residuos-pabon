@@ -39,7 +39,7 @@ def test_sin_entregas_hoy_avisa(client, usuario, sede, area):
 
 def test_muestra_la_entrega_de_hoy(client, usuario, entrega_hoy):
     client.force_login(usuario)
-    cuerpo = client.get(reverse("ropa:rotulos")).content.decode()
+    cuerpo = client.get(reverse("ropa:rotulos"), {"sede": entrega_hoy.sede_id}).content.decode()
     assert "Hemodinamia" in cuerpo
     assert "11.20 kg" in cuerpo
 

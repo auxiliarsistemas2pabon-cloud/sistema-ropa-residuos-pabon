@@ -40,7 +40,8 @@ def entrega_ropa_sucia(request):
             )
             return redirect("ropa:entrega_sucia")
     else:
-        form = EntregaRopaSuciaForm(usuario=request.user)
+        inicial = {"sede": request.GET["sede"]} if request.GET.get("sede") else {}
+        form = EntregaRopaSuciaForm(initial=inicial, usuario=request.user)
 
     prendas = Prenda.objects.filter(activo=True).order_by("nombre")
     return render(request, "ropa/entrega_sucia.html", {"form": form, "prendas": prendas})
@@ -68,7 +69,8 @@ def recepcion_ropa_limpia(request):
             )
             return redirect("ropa:recepcion_limpia")
     else:
-        form = RecepcionRopaLimpiaForm(usuario=request.user)
+        inicial = {"sede": request.GET["sede"]} if request.GET.get("sede") else {}
+        form = RecepcionRopaLimpiaForm(initial=inicial, usuario=request.user)
 
     prendas = Prenda.objects.filter(activo=True).order_by("nombre")
     return render(request, "ropa/recepcion_limpia.html", {"form": form, "prendas": prendas})
@@ -88,7 +90,8 @@ def distribucion_ropa_limpia(request):
             )
             return redirect("ropa:distribucion_limpia")
     else:
-        form = DistribucionRopaLimpiaForm(usuario=request.user)
+        inicial = {"sede": request.GET["sede"]} if request.GET.get("sede") else {}
+        form = DistribucionRopaLimpiaForm(initial=inicial, usuario=request.user)
 
     return render(request, "ropa/distribucion_limpia.html", {"form": form})
 
@@ -137,7 +140,7 @@ def entregas_recibidas(request):
             tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA, recibe_por=request.user,
         )
         .select_related("sede", "area_origen", "entrega_por")
-        .prefetch_related("pesajes", "novedades")
+        .prefetch_related("pesajes", "novedades", "detalles_ropa__prenda")
         .order_by("-fecha", "-hora")[:50]
     )
     return render(request, "ropa/entregas_recibidas.html", {"entregas": entregas})

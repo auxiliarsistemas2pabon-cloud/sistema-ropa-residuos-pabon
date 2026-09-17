@@ -43,7 +43,7 @@ def test_solo_muestra_servicios_que_generan_ropa(client, usuario, sede, area):
         sede=sede, nombre="Administración", genera_ropa=False, genera_residuos=True,
     )
     client.force_login(usuario)
-    resp = client.get(reverse("ropa:entrega_sucia"))
+    resp = client.get(reverse("ropa:entrega_sucia"), {"sede": sede.pk})
     cuerpo = resp.content.decode()
     assert area.nombre in cuerpo
     assert sin_ropa.nombre not in cuerpo
@@ -117,6 +117,21 @@ def test_post_con_cantidad_bolsas_se_guarda(client, usuario, datos_validos):
     resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
     assert resp.status_code == 302
     assert Movimiento.objects.get().pesajes.get().cantidad_bolsas == 3
+
+
+def test_post_con_firma_de_quien_recibe_se_guarda(client, usuario, datos_validos):
+    datos_validos["firma_recibe"] = "data:image/png;base64,iVBORw0KGgoAAAANSU"
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+    assert Movimiento.objects.get().firma_recibe == "data:image/png;base64,iVBORw0KGgoAAAANSU"
+
+
+def test_post_sin_firma_queda_vacia(client, usuario, datos_validos):
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+    assert Movimiento.objects.get().firma_recibe == ""
 
 
 def test_post_con_una_prenda_crea_detalle_ropa(client, usuario, datos_validos):

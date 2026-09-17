@@ -15,9 +15,9 @@ export function EntregasRecibidas() {
     <>
       <h1>Ropa sucia que me entregaron</h1>
       <p className="tinta-suave">
-        Entregas de ropa sucia donde quedaste como quien recibe. Abre el detalle para ver el
-        peso, las bolsas y las prendas registradas — si algo no coincide con lo que te
-        entregaron, repórtalo ahí con «Reportar novedad».
+        Entregas de ropa sucia donde quedaste como quien recibe — verifica que la cantidad de
+        cada prenda coincida con lo que te entregaron. Abre el detalle para ver el peso y las
+        bolsas — si algo no coincide, repórtalo ahí con «Reportar novedad».
       </p>
 
       {isLoading ? (
@@ -30,6 +30,7 @@ export function EntregasRecibidas() {
                 <th>Fecha</th>
                 <th>Servicio</th>
                 <th>Entregó</th>
+                <th>Prendas</th>
                 <th className="num">kg netos</th>
               </tr>
             </thead>
@@ -43,6 +44,13 @@ export function EntregasRecibidas() {
                   </td>
                   <td>{m.servicio_nombre ?? "—"}</td>
                   <td>{m.entrega_por?.nombre_completo ?? "—"}</td>
+                  <td>
+                    {m.detalles_ropa.length > 0
+                      ? m.detalles_ropa
+                          .map((d) => `${d.prenda_nombre} × ${d.cantidad_unidades ?? "—"}`)
+                          .join(", ")
+                      : "—"}
+                  </td>
                   <td className="num cifra-kg">{m.peso_neto ?? "—"}</td>
                 </tr>
               ))}

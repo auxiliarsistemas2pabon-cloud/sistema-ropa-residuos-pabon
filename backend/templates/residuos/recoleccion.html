@@ -43,6 +43,7 @@
       <div><dt>Entrega</dt><dd>{{ form.usuario|default:"—" }}</dd></div>
     </dl>
     {% include "componentes/_campo.html" with campo=form.recibe_por %}
+    {% include "componentes/_firma.html" with campo=form.firma_recibe etiqueta="Firma de quien recibe" %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}
     {% include "componentes/_carga_diferida.html" %}
     <button type="submit" class="boton" data-requiere-peso-valido>Guardar recolección</button>

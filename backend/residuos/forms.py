@@ -159,11 +159,16 @@ class RecoleccionResiduoForm(_ResiduoBaseForm):
         label="Cantidad de bolsas o recipientes", min_value=0, required=False,
     )
     recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe en almacenamiento")
+    firma_recibe = forms.CharField(
+        label="Firma de quien recibe", required=False,
+        widget=forms.HiddenInput(attrs={"data-firma-oculta": ""}),
+    )
 
     def _responsables(self, creado_por):
         return {
             "entrega_por": creado_por,
             "recibe_por": self.cleaned_data["recibe_por"],
+            "firma_recibe": self.cleaned_data.get("firma_recibe", ""),
         }
 
 

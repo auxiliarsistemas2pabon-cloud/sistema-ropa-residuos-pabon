@@ -118,6 +118,10 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
     detalles_ropa = forms.CharField(
         required=False, widget=forms.HiddenInput(attrs={"data-detalle-prenda-oculto": ""}),
     )
+    firma_recibe = forms.CharField(
+        label="Firma de quien recibe", required=False,
+        widget=forms.HiddenInput(attrs={"data-firma-oculta": ""}),
+    )
     observaciones = forms.CharField(
         label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
     )
@@ -136,10 +140,16 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
 
     def _sede_seleccionada(self):
         if self.is_bound:
+            candidato = self.data.get("sede")
+        else:
+            candidato = self.initial.get("sede")
+        if candidato:
             try:
-                return Sede.objects.get(pk=self.data.get("sede"))
+                return Sede.objects.get(pk=candidato)
             except (Sede.DoesNotExist, ValueError, TypeError):
-                return None
+                pass
+        if self.is_bound:
+            return None
         return Sede.objects.filter(activo=True).order_by("nombre").first()
 
     def clean(self):
@@ -168,6 +178,7 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
             area_origen=self.cleaned_data["area_origen"],
             entrega_por=creado_por,
             recibe_por=self.cleaned_data["recibe_por"],
+            firma_recibe=self.cleaned_data.get("firma_recibe", ""),
             observaciones=self.cleaned_data.get("observaciones", ""),
             estado=estado,
             creado_por=creado_por,
@@ -209,6 +220,10 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
         required=False, widget=forms.HiddenInput(attrs={"data-detalle-prenda-oculto": ""}),
     )
     entrega_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Entrega")
+    firma_entrega = forms.CharField(
+        label="Firma de quien entrega", required=False,
+        widget=forms.HiddenInput(attrs={"data-firma-oculta": ""}),
+    )
     observaciones = forms.CharField(
         label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
     )
@@ -235,10 +250,16 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
 
     def _sede_seleccionada(self):
         if self.is_bound:
+            candidato = self.data.get("sede")
+        else:
+            candidato = self.initial.get("sede")
+        if candidato:
             try:
-                return Sede.objects.get(pk=self.data.get("sede"))
+                return Sede.objects.get(pk=candidato)
             except (Sede.DoesNotExist, ValueError, TypeError):
-                return None
+                pass
+        if self.is_bound:
+            return None
         return Sede.objects.filter(activo=True).order_by("nombre").first()
 
     def clean(self):
@@ -266,6 +287,7 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
             sede=self.cleaned_data["sede"],
             area_origen=None,
             entrega_por=self.cleaned_data["entrega_por"],
+            firma_entrega=self.cleaned_data.get("firma_entrega", ""),
             recibe_por=creado_por,
             observaciones=self.cleaned_data.get("observaciones", ""),
             estado=estado,
@@ -386,6 +408,10 @@ class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
     )
     cantidad_unidades = forms.IntegerField(label="Cantidad entregada", min_value=1)
     recibe_por = forms.ModelChoiceField(queryset=_usuarios_activos(), label="Recibe")
+    firma_recibe = forms.CharField(
+        label="Firma de quien recibe", required=False,
+        widget=forms.HiddenInput(attrs={"data-firma-oculta": ""}),
+    )
     observaciones = forms.CharField(
         label="Observaciones (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}),
     )
@@ -404,10 +430,16 @@ class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
 
     def _sede_seleccionada(self):
         if self.is_bound:
+            candidato = self.data.get("sede")
+        else:
+            candidato = self.initial.get("sede")
+        if candidato:
             try:
-                return Sede.objects.get(pk=self.data.get("sede"))
+                return Sede.objects.get(pk=candidato)
             except (Sede.DoesNotExist, ValueError, TypeError):
-                return None
+                pass
+        if self.is_bound:
+            return None
         return Sede.objects.filter(activo=True).order_by("nombre").first()
 
     def guardar(self, *, creado_por):
@@ -420,6 +452,7 @@ class DistribucionRopaLimpiaForm(RegistroDiferidoMixin):
             area_origen=self.cleaned_data["area_receptora"],
             entrega_por=creado_por,
             recibe_por=self.cleaned_data["recibe_por"],
+            firma_recibe=self.cleaned_data.get("firma_recibe", ""),
             observaciones=self.cleaned_data.get("observaciones", ""),
             estado=estado,
             creado_por=creado_por,

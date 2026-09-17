@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
 import { DetallePrendas, type DetallePrendaItem } from "../../components/DetallePrendas";
+import { Firma } from "../../components/Firma";
 import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearEntregaRopaSucia } from "../../api/ropa";
@@ -35,6 +36,7 @@ export function EntregaSucia() {
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
   const [detalles, setDetalles] = useState<DetallePrendaItem[]>([]);
+  const [firmaRecibe, setFirmaRecibe] = useState("");
 
   const {
     register,
@@ -96,6 +98,7 @@ export function EntregaSucia() {
       ...(datos.cantidad_bolsas ? { cantidad_bolsas: Number(datos.cantidad_bolsas) } : {}),
       ...(detallesValidos.length > 0 ? { detalles_ropa: JSON.stringify(detallesValidos) } : {}),
       recibe_por: Number(datos.recibe_por),
+      ...(firmaRecibe ? { firma_recibe: firmaRecibe } : {}),
       observaciones: datos.observaciones,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
     });
@@ -225,6 +228,7 @@ export function EntregaSucia() {
               ))}
             </select>
           </div>
+          <Firma etiqueta="Firma de quien recibe" onCambiar={setFirmaRecibe} />
           <div className="campo">
             <label htmlFor="observaciones">Observaciones (opcional)</label>
             <textarea id="observaciones" {...register("observaciones")} />

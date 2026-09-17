@@ -39,6 +39,25 @@ def test_solo_lista_las_entregas_asignadas_a_mi(client, crear_movimiento, usuari
     assert "4.00" not in cuerpo
 
 
+def test_muestra_la_cantidad_de_cada_prenda_para_verificar(client, crear_movimiento, usuario, sede):
+    from ropa.models import DetalleRopa, Prenda
+
+    otro = Usuario.objects.create_user(username="servicio_test", password="x", rol=Usuario.Rol.SERVICIO)
+    prenda = Prenda.objects.filter(activo=True).first()
+
+    mov = crear_movimiento(
+        tipo=TipoMovimiento.ROPA_SUCIA_ENTREGA, fecha=timezone.localdate(), hora=time(9, 0),
+        entrega_por=otro, recibe_por=usuario,
+    )
+    Pesaje.objects.create(movimiento=mov, peso_total=Decimal("6.00"), tara=0, pesado_por=otro)
+    DetalleRopa.objects.create(movimiento=mov, prenda=prenda, cantidad_unidades=7)
+
+    client.force_login(usuario)
+    cuerpo = client.get(reverse("ropa:entregas_recibidas")).content.decode()
+    assert prenda.nombre in cuerpo
+    assert "7" in cuerpo
+
+
 def test_solo_muestra_entregas_de_ropa_sucia_no_otros_tipos(client, crear_movimiento, usuario, sede):
     from movimientos.models import Movimiento
 

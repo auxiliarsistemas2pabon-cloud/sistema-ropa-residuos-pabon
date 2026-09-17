@@ -167,6 +167,23 @@ export function DetalleMovimiento() {
         </p>
       )}
 
+      {(movimiento.firma_entrega || movimiento.firma_recibe) && (
+        <div className="firmas-guardadas">
+          {movimiento.firma_entrega && (
+            <div>
+              <p className="tinta-suave">Firma de quien entrega</p>
+              <img src={movimiento.firma_entrega} alt="Firma de quien entrega" className="firma-guardada" />
+            </div>
+          )}
+          {movimiento.firma_recibe && (
+            <div>
+              <p className="tinta-suave">Firma de quien recibe</p>
+              <img src={movimiento.firma_recibe} alt="Firma de quien recibe" className="firma-guardada" />
+            </div>
+          )}
+        </div>
+      )}
+
       {movimiento.pesajes.length > 0 && (
         <>
           <h2>Pesaje{movimiento.pesajes.length > 1 ? "s" : ""}</h2>

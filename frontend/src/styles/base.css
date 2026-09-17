@@ -230,6 +230,14 @@ a:focus-visible {
 .detalle-prendas__cantidad-inline, .detalle-prendas__peso-inline { width: 6.5rem; flex-shrink: 0; min-height: auto; padding: var(--espacio-1) var(--espacio-2); }
 .detalle-prendas__cantidad-inline:disabled, .detalle-prendas__peso-inline:disabled { opacity: 0.35; }
 
+/* --- Firma dibujada en pantalla (FR-SIG-86) --- */
+.firma { border: 1px solid var(--linea); border-radius: var(--radio); padding: var(--espacio-3); margin-bottom: var(--espacio-4); }
+.firma__lienzo { display: block; width: 100%; max-width: 480px; height: 180px; border: 1px dashed var(--linea); border-radius: var(--radio); background: #fff; touch-action: none; cursor: crosshair; }
+.firma__acciones { margin-top: var(--espacio-2); }
+.firma__acciones .boton--texto { margin: 0; }
+.firmas-guardadas { display: flex; gap: var(--espacio-4); flex-wrap: wrap; margin: var(--espacio-3) 0; }
+.firma-guardada { max-width: 280px; width: 100%; border: 1px solid var(--linea); border-radius: var(--radio); background: #fff; }
+
 /* --- Avisos --- */
 .avisos { list-style: none; margin: var(--espacio-3) 0 0; padding: 0; }
 .aviso {

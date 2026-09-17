@@ -1,0 +1,16 @@
+{% comment %}
+  Requiere las variables campo (el CharField oculto, ej. form.firma_recibe)
+  y etiqueta. Firma dibujada en pantalla con el dedo o el mouse — se guarda
+  como imagen PNG en base64 en el campo oculto — ver iniciarFirma en
+  static/js/app.js.
+{% endcomment %}
+<div class="firma" data-firma>
+  <label>{{ etiqueta }}</label>
+  <canvas class="firma__lienzo" data-firma-lienzo width="480" height="180"></canvas>
+  <div class="firma__acciones">
+    <button type="button" class="boton boton--texto" data-firma-limpiar>Limpiar firma</button>
+  </div>
+  <p class="campo__ayuda">Firma aquí con el dedo o el mouse. Es opcional.</p>
+  {% for error in campo.errors %}<p class="campo__error">{{ error }}</p>{% endfor %}
+  {{ campo }}
+</div>

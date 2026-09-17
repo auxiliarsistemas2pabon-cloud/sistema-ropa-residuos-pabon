@@ -31,6 +31,7 @@ export interface MovimientoResumen {
   entrega_por: UsuarioMinimo | null;
   creado_por: UsuarioMinimo;
   creado_en: string;
+  detalles_ropa: DetalleRopa[];
 }
 
 export interface Paginado<T> {
@@ -129,6 +130,9 @@ export interface MovimientoDetalle extends MovimientoResumen {
   periodo_facturacion: string;
   entrega_por: UsuarioMinimo | null;
   recibe_por: UsuarioMinimo | null;
+  /** Firma en pantalla de quien no inició sesión (FR-SIG-86), PNG en base64. */
+  firma_entrega: string;
+  firma_recibe: string;
   mov_origen: MovimientoResumen | null;
   pesajes: Pesaje[];
   novedades: Novedad[];

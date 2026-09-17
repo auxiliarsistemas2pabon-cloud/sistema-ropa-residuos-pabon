@@ -79,6 +79,7 @@ class Usuario(AbstractUser):
     class Rol(models.TextChoices):
         ADMIN = "ADMIN", "Administradora"
         USUARIO = "USUARIO", "Usuario"
+        SERVICIO = "SERVICIO", "Personal de servicio"
 
     documento = models.CharField(
         max_length=20, unique=True, blank=True, null=True,

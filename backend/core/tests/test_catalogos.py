@@ -10,7 +10,7 @@ pytestmark = pytest.mark.django_db
 
 
 def test_sedes():
-    assert set(Sede.objects.values_list("nombre", flat=True)) == {"Clínica", "Especialidades"}
+    assert set(Sede.objects.values_list("nombre", flat=True)) == {"Clínica", "Especialidades", "Centro"}
 
 
 def test_colores():

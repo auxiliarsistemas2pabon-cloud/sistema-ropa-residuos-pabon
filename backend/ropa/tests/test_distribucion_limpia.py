@@ -120,6 +120,6 @@ def test_solo_muestra_servicios_que_generan_ropa(client, usuario, sede, area):
         sede=sede, nombre="Facturación", genera_ropa=False, genera_residuos=True,
     )
     client.force_login(usuario)
-    cuerpo = client.get(reverse("ropa:distribucion_limpia")).content.decode()
+    cuerpo = client.get(reverse("ropa:distribucion_limpia"), {"sede": sede.pk}).content.decode()
     assert area.nombre in cuerpo
     assert sin_ropa.nombre not in cuerpo

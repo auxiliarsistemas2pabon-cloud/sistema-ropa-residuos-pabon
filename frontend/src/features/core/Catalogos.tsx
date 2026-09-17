@@ -223,7 +223,11 @@ function GestoresSeccion() {
   );
 }
 
-const ROLES: [Rol, string][] = [["USUARIO", "Usuario"], ["ADMIN", "Administradora"]];
+const ROLES: [Rol, string][] = [
+  ["USUARIO", "Usuario"],
+  ["SERVICIO", "Personal de servicio"],
+  ["ADMIN", "Administradora"],
+];
 
 function UsuariosSeccion() {
   const qc = useQueryClient();

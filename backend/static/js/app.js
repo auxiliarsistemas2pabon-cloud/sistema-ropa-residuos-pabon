@@ -110,6 +110,76 @@
     });
   }
 
+  // --- Firma dibujada en pantalla (FR-SIG-86) ---
+  // Quien no inició sesión (la otra persona del movimiento) firma con el
+  // dedo o el mouse; se guarda como PNG en base64 en el campo oculto.
+  function iniciarFirma() {
+    var contenedores = document.querySelectorAll("[data-firma]");
+    contenedores.forEach(function (contenedor) {
+      var canvas = contenedor.querySelector("[data-firma-lienzo]");
+      var limpiar = contenedor.querySelector("[data-firma-limpiar]");
+      var oculto = contenedor.querySelector("[data-firma-oculta]");
+      if (!canvas || !oculto) return;
+
+      var ctx = canvas.getContext("2d");
+      var dibujando = false;
+      var tieneTrazo = false;
+
+      function fondoBlanco() {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#1a1a1a";
+      }
+      fondoBlanco();
+
+      function posicion(e) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: (e.clientX - rect.left) * (canvas.width / rect.width),
+          y: (e.clientY - rect.top) * (canvas.height / rect.height),
+        };
+      }
+
+      function empezar(e) {
+        e.preventDefault();
+        dibujando = true;
+        var p = posicion(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+      }
+
+      function trazar(e) {
+        if (!dibujando) return;
+        e.preventDefault();
+        var p = posicion(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        tieneTrazo = true;
+      }
+
+      function terminar() {
+        if (!dibujando) return;
+        dibujando = false;
+        oculto.value = tieneTrazo ? canvas.toDataURL("image/png") : "";
+      }
+
+      canvas.addEventListener("pointerdown", empezar);
+      canvas.addEventListener("pointermove", trazar);
+      canvas.addEventListener("pointerup", terminar);
+      canvas.addEventListener("pointerleave", terminar);
+
+      if (limpiar) {
+        limpiar.addEventListener("click", function () {
+          fondoBlanco();
+          tieneTrazo = false;
+          oculto.value = "";
+        });
+      }
+    });
+  }
+
   // --- Navegación por pasos (10.5: máximo 3 pantallas) ---
   function iniciarPasos() {
     var form = document.querySelector("[data-formulario-pasos]");
@@ -155,9 +225,28 @@
     mostrar(pasoConError >= 0 ? pasoConError : 0);
   }
 
+  // --- Recarga la página al cambiar de sede (RF de servicios por sede) ---
+  // El servicio/área depende de la sede y se filtra en el servidor; como no
+  // hay recarga parcial para estos formularios (HTMX se reserva para la
+  // cascada de residuos), al cambiar de sede se navega de nuevo con
+  // ?sede=<id> para traer las opciones correctas — ver _sede_seleccionada()
+  // en ropa/forms.py.
+  function iniciarRecargaPorSede() {
+    var sede = document.getElementById("id_sede");
+    if (!sede) return;
+    sede.addEventListener("change", function () {
+      if (!sede.value) return;
+      var params = new URLSearchParams(window.location.search);
+      params.set("sede", sede.value);
+      window.location.search = params.toString();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     iniciarPesoNeto();
     iniciarDetallePrendas();
+    iniciarFirma();
     iniciarPasos();
+    iniciarRecargaPorSede();
   });
 })();

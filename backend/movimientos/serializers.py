@@ -54,13 +54,14 @@ class MovimientoResumenSerializer(serializers.ModelSerializer):
     peso_neto = serializers.SerializerMethodField()
     entrega_por = UsuarioMinimoSerializer(read_only=True)
     creado_por = UsuarioMinimoSerializer(read_only=True)
+    detalles_ropa = DetalleRopaSerializer(many=True, read_only=True)
 
     class Meta:
         model = Movimiento
         fields = [
             "id", "tipo_movimiento", "tipo_movimiento_display", "fecha", "hora", "jornada",
             "sede", "sede_nombre", "area_origen", "servicio_nombre", "estado", "peso_neto",
-            "entrega_por", "creado_por", "creado_en",
+            "entrega_por", "creado_por", "creado_en", "detalles_ropa",
         ]
 
     def get_peso_neto(self, obj):
@@ -101,7 +102,7 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
         fields = [
             "id", "tipo_movimiento", "tipo_movimiento_display", "fecha", "hora", "jornada",
             "sede", "sede_nombre", "area_origen", "servicio_nombre",
-            "entrega_por", "recibe_por", "mov_origen",
+            "entrega_por", "recibe_por", "firma_entrega", "firma_recibe", "mov_origen",
             "estado", "estado_display", "observaciones", "periodo_facturacion",
             "creado_por", "creado_en",
             "pesajes", "novedades", "detalles_ropa", "detalles_residuo", "rotulos",

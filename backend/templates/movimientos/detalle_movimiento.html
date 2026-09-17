@@ -26,6 +26,17 @@
   <p><strong>Observaciones:</strong> {{ movimiento.observaciones }}</p>
 {% endif %}
 
+{% if movimiento.firma_entrega or movimiento.firma_recibe %}
+  <div class="firmas-guardadas">
+    {% if movimiento.firma_entrega %}
+      <div><p class="tinta-suave">Firma de quien entrega</p><img src="{{ movimiento.firma_entrega }}" alt="Firma de quien entrega" class="firma-guardada"></div>
+    {% endif %}
+    {% if movimiento.firma_recibe %}
+      <div><p class="tinta-suave">Firma de quien recibe</p><img src="{{ movimiento.firma_recibe }}" alt="Firma de quien recibe" class="firma-guardada"></div>
+    {% endif %}
+  </div>
+{% endif %}
+
 {% if movimiento.mov_origen %}
   <p class="tinta-suave">
     Viene de:

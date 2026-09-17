@@ -18,7 +18,7 @@ def test_usuario_lee_catalogo_pero_no_escribe(api_client, usuario, sede):
 
 def test_administradora_crea_y_corrige_catalogo_sin_eliminar(api_client, administradora):
     api_client.force_authenticate(user=administradora)
-    resp = api_client.post(reverse("api-sede-list"), {"nombre": "Centro"})
+    resp = api_client.post(reverse("api-sede-list"), {"nombre": "Sede de prueba"})
     assert resp.status_code == 201
     sede_id = resp.data["id"]
 

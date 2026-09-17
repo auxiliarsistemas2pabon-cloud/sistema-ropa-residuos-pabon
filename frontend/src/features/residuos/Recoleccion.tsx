@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
+import { Firma } from "../../components/Firma";
 import { useAuth } from "../../auth/AuthContext";
 import { listarCategoriasResiduo, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearRecoleccionResiduo } from "../../api/residuos";
@@ -43,6 +44,7 @@ export function Recoleccion() {
   const { usuario } = useAuth();
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
+  const [firmaRecibe, setFirmaRecibe] = useState("");
 
   const {
     register,
@@ -110,6 +112,7 @@ export function Recoleccion() {
       tara: datos.tara || "0",
       cantidad_bolsas: datos.cantidad_bolsas ? Number(datos.cantidad_bolsas) : undefined,
       recibe_por: Number(datos.recibe_por),
+      ...(firmaRecibe ? { firma_recibe: firmaRecibe } : {}),
       observaciones: datos.observaciones,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
     });
@@ -255,6 +258,7 @@ export function Recoleccion() {
               ))}
             </select>
           </div>
+          <Firma etiqueta="Firma de quien recibe" onCambiar={setFirmaRecibe} />
           <div className="campo">
             <label htmlFor="observaciones">Observaciones (opcional)</label>
             <textarea id="observaciones" {...register("observaciones")} />

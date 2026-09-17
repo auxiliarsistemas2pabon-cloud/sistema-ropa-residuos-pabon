@@ -14,6 +14,8 @@ export interface DatosEntregaRopaSucia {
   detalles_ropa?: string;
   /** "Entrega" la fija el backend al usuario logueado — no se envía. */
   recibe_por: number;
+  /** Firma en pantalla de quien recibe (FR-SIG-86), imagen PNG en base64. */
+  firma_recibe?: string;
   observaciones?: string;
   /** Carga diferida (6.9): ambos o ninguno, nunca fecha futura. */
   fecha?: string;
@@ -34,6 +36,8 @@ export interface DatosRecepcionRopaLimpia {
    * '[{"prenda": id, "cantidad_unidades": n, "peso_kg": "1.50"}, ...]'. */
   detalles_ropa?: string;
   entrega_por: number;
+  /** Firma en pantalla de quien entrega (FR-SIG-86), imagen PNG en base64. */
+  firma_entrega?: string;
   /** "Recibe" la fija el backend al usuario logueado — no se envía. */
   observaciones?: string;
   observacion_diferencia?: string;
@@ -64,6 +68,8 @@ export interface DatosDistribucionRopaLimpia {
   cantidad_unidades: number;
   /** "Entrega" la fija el backend al usuario logueado — no se envía. */
   recibe_por: number;
+  /** Firma en pantalla de quien recibe (FR-SIG-86), imagen PNG en base64. */
+  firma_recibe?: string;
   observaciones?: string;
   fecha?: string;
   hora?: string;

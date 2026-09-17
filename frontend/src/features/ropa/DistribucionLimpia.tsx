@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
+import { Firma } from "../../components/Firma";
 import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearDistribucionRopaLimpia } from "../../api/ropa";
@@ -32,6 +33,7 @@ export function DistribucionLimpia() {
   const { usuario } = useAuth();
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
+  const [firmaRecibe, setFirmaRecibe] = useState("");
 
   const {
     register,
@@ -82,6 +84,7 @@ export function DistribucionLimpia() {
       prenda: Number(datos.prenda),
       cantidad_unidades: Number(datos.cantidad_unidades),
       recibe_por: Number(datos.recibe_por),
+      ...(firmaRecibe ? { firma_recibe: firmaRecibe } : {}),
       observaciones: datos.observaciones,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
     });
@@ -196,6 +199,7 @@ export function DistribucionLimpia() {
               ))}
             </select>
           </div>
+          <Firma etiqueta="Firma de quien recibe" onCambiar={setFirmaRecibe} />
           <div className="campo">
             <label htmlFor="observaciones">Observaciones (opcional)</label>
             <textarea id="observaciones" {...register("observaciones")} />

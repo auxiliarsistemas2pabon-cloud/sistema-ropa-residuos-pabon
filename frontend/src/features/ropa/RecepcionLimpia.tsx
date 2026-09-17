@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
 import { DetallePrendas, type DetallePrendaItem } from "../../components/DetallePrendas";
+import { Firma } from "../../components/Firma";
 import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarUsuariosActivos } from "../../api/catalogos";
 import { crearRecepcionRopaLimpia } from "../../api/ropa";
@@ -34,6 +35,7 @@ export function RecepcionLimpia() {
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
   const [detalles, setDetalles] = useState<DetallePrendaItem[]>([]);
+  const [firmaEntrega, setFirmaEntrega] = useState("");
 
   const {
     register,
@@ -87,6 +89,7 @@ export function RecepcionLimpia() {
       tara: datos.tara || "0",
       ...(detallesValidos.length > 0 ? { detalles_ropa: JSON.stringify(detallesValidos) } : {}),
       entrega_por: Number(datos.entrega_por),
+      ...(firmaEntrega ? { firma_entrega: firmaEntrega } : {}),
       observaciones: datos.observaciones,
       observacion_diferencia: datos.observacion_diferencia,
       ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
@@ -195,6 +198,7 @@ export function RecepcionLimpia() {
               ))}
             </select>
           </div>
+          <Firma etiqueta="Firma de quien entrega" onCambiar={setFirmaEntrega} />
           <div className="campo">
             <label htmlFor="observaciones">Observaciones (opcional)</label>
             <textarea id="observaciones" {...register("observaciones")} />

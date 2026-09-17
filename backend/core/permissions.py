@@ -17,13 +17,17 @@ class IsAdministradora(BasePermission):
 
 class IsUsuario(BasePermission):
     """Espejo de core.decorators.solo_usuario para la API: pantallas de
-    captura/operación exclusivas del perfil Usuario."""
+    captura/operación exclusivas del personal de piso (Usuario y Personal
+    de servicio, que hacen exactamente lo mismo) — comparar el rol exacto,
+    no "no es Administradora", para que un futuro rol distinto no se cuele
+    aquí sin querer."""
 
     message = "Esta acción es exclusiva del perfil Usuario."
 
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and (request.user.is_superuser or not request.user.es_administradora)
-        )
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_superuser:
+            return True
+        Rol = request.user.__class__.Rol
+        return request.user.rol in (Rol.USUARIO, Rol.SERVICIO)
