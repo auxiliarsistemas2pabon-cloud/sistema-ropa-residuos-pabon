@@ -185,3 +185,13 @@ def puede_editar(usuario, movimiento):
     la ventana configurable (60 min por defecto); la Administradora edita sin
     límite de ventana (7. del prompt)."""
     return motivo_no_editable(usuario, movimiento) is None
+
+
+def puede_reportar_novedad(usuario, movimiento):
+    """Quien entregó o recibió el movimiento puede reportar una novedad
+    sobre él (por ejemplo, si lo que le llegó no coincide con lo
+    registrado); la Administradora, siempre, igual que con las
+    correcciones (motivo_no_editable)."""
+    if getattr(usuario, "es_administradora", False) or usuario.is_superuser:
+        return True
+    return usuario.pk in (movimiento.entrega_por_id, movimiento.recibe_por_id)

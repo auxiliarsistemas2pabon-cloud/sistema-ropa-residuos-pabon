@@ -138,6 +138,70 @@ def test_administradora_no_puede_capturar_por_api(api_client, administradora):
     assert resp.status_code == 403
 
 
+def _entrega_con_recibe(crear_movimiento, usuario, otro_usuario, **extra):
+    extra.setdefault("fecha", date(2026, 3, 10))
+    extra.setdefault("hora", time(9, 0))
+    mov = crear_movimiento(
+        tipo=TipoMovimiento.ROPA_SUCIA_ENTREGA, entrega_por=usuario, recibe_por=otro_usuario, **extra,
+    )
+    Pesaje.objects.create(movimiento=mov, peso_total=Decimal("8.00"), tara=0, pesado_por=usuario)
+    return mov
+
+
+def test_quien_recibe_reporta_novedad_por_api(api_client, usuario, otro_usuario, crear_movimiento):
+    mov = _entrega_con_recibe(crear_movimiento, usuario, otro_usuario)
+    api_client.force_authenticate(user=otro_usuario)
+
+    resp = api_client.post(
+        reverse("api-movimiento-novedad", args=[mov.pk]),
+        {"tipo_novedad": "FALTANTE", "cantidad_afectada": "1.00", "observacion": "faltó una prenda"},
+    )
+    assert resp.status_code == 201
+    assert len(resp.data["novedades"]) == 1
+    assert resp.data["novedades"][0]["tipo_novedad"] == "FALTANTE"
+    assert resp.data["novedades"][0]["registrado_por"]["id"] == otro_usuario.pk
+
+
+def test_un_tercero_no_puede_reportar_novedad_por_api(api_client, usuario, otro_usuario, crear_movimiento):
+    from core.models import Usuario
+
+    mov = _entrega_con_recibe(crear_movimiento, usuario, otro_usuario)
+    ajeno = Usuario.objects.create_user(username="ajeno_api", password="x", rol=Usuario.Rol.USUARIO)
+    api_client.force_authenticate(user=ajeno)
+
+    resp = api_client.post(
+        reverse("api-movimiento-novedad", args=[mov.pk]), {"tipo_novedad": "OTRA", "observacion": "no debería"},
+    )
+    assert resp.status_code == 403
+    assert not Movimiento.objects.get(pk=mov.pk).novedades.exists()
+
+
+def test_lista_filtra_por_recibe_por(api_client, usuario, otro_usuario, crear_movimiento):
+    mia = _entrega_con_recibe(crear_movimiento, usuario, otro_usuario)
+    _entrega_con_recibe(crear_movimiento, otro_usuario, usuario, fecha=date(2026, 3, 11), hora=time(11, 0))
+    api_client.force_authenticate(user=otro_usuario)
+
+    resp = api_client.get(reverse("api-movimiento-list"), {
+        "tipo": TipoMovimiento.ROPA_SUCIA_ENTREGA, "recibe_por": otro_usuario.pk,
+    })
+    assert resp.status_code == 200
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["id"] == mia.pk
+
+
+def test_administradora_reporta_novedad_por_api_aunque_no_capture(
+    api_client, administradora, usuario, otro_usuario, crear_movimiento,
+):
+    mov = _entrega_con_recibe(crear_movimiento, usuario, otro_usuario)
+    api_client.force_authenticate(user=administradora)
+
+    resp = api_client.post(
+        reverse("api-movimiento-novedad", args=[mov.pk]),
+        {"tipo_novedad": "SOBRANTE", "observacion": "revisado"},
+    )
+    assert resp.status_code == 201
+
+
 def test_movimientoviewset_no_expone_create(api_client, usuario):
     """Con un rol que sí tiene add_movimiento (Usuario), la petición pasa el
     chequeo de permisos y llega a que el método simplemente no existe:

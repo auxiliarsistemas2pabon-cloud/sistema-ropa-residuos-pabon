@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal, InvalidOperation
 
 from django import forms
 from django.contrib.auth import get_user_model
@@ -34,9 +35,11 @@ def _usuarios_activos():
 
 def _parsear_detalles_ropa(crudo):
     """Valida el JSON del detalle por prenda de un formulario con selección
-    múltiple (RF-011/012): '[{"prenda": id, "cantidad_unidades": n}, ...]'.
-    Devuelve (detalles, errores) — detalles trae instancias de Prenda ya
-    resueltas, listas para DetalleRopa.objects.create()."""
+    múltiple (RF-011/012): '[{"prenda": id, "cantidad_unidades": n,
+    "peso_kg": "1.50"}, ...]' — peso_kg es opcional, el peso en kg de esa
+    prenda dentro de la entrega/recepción. Devuelve (detalles, errores) —
+    detalles trae instancias de Prenda ya resueltas, listas para
+    DetalleRopa.objects.create()."""
     try:
         datos = json.loads(crudo or "[]")
     except (ValueError, TypeError):
@@ -65,8 +68,19 @@ def _parsear_detalles_ropa(crudo):
         if cantidad < 1:
             errores.append(f"La cantidad de «{prenda.nombre}» debe ser mayor a 0.")
             continue
+        peso_crudo = item.get("peso_kg")
+        peso_kg = None
+        if peso_crudo not in (None, ""):
+            try:
+                peso_kg = Decimal(str(peso_crudo))
+            except InvalidOperation:
+                errores.append(f"El peso de «{prenda.nombre}» no es válido.")
+                continue
+            if peso_kg < 0:
+                errores.append(f"El peso de «{prenda.nombre}» no puede ser negativo.")
+                continue
         vistos.add(prenda_id)
-        resultado.append({"prenda": prenda, "cantidad_unidades": cantidad})
+        resultado.append({"prenda": prenda, "cantidad_unidades": cantidad, "peso_kg": peso_kg})
     return resultado, list(dict.fromkeys(errores))
 
 
@@ -168,6 +182,7 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
         for item in self.cleaned_data.get("detalles", []):
             DetalleRopa.objects.create(
                 movimiento=movimiento, prenda=item["prenda"], cantidad_unidades=item["cantidad_unidades"],
+                peso_kg=item.get("peso_kg"),
             )
         return movimiento
 
@@ -265,6 +280,7 @@ class RecepcionRopaLimpiaForm(RegistroDiferidoMixin):
         for item in self.cleaned_data.get("detalles", []):
             DetalleRopa.objects.create(
                 movimiento=movimiento, prenda=item["prenda"], cantidad_unidades=item["cantidad_unidades"],
+                peso_kg=item.get("peso_kg"),
             )
         enlazar_ciclo_ropa(movimiento)
 

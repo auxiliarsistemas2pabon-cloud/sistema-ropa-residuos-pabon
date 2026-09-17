@@ -6,7 +6,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from movimientos.models import Proceso
+from core.decorators import solo_usuario
+from movimientos.models import Movimiento, Proceso, TipoMovimiento
 from movimientos.services import calcular_jornada, corte_ropa_sucia
 
 from .forms import (
@@ -126,6 +127,24 @@ def registro_rotulos(request):
 
 @login_required
 @permission_required("movimientos.view_movimiento", raise_exception=True)
+def entregas_recibidas(request):
+    """Entregas de ropa sucia que otras personas registraron asignándote
+    como quien recibe: para que veas qué te entregaron y, si algo no
+    coincide con lo registrado, lo reportes desde el detalle del
+    movimiento (Reportar novedad)."""
+    entregas = (
+        Movimiento.objects.filter(
+            tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA, recibe_por=request.user,
+        )
+        .select_related("sede", "area_origen", "entrega_por")
+        .prefetch_related("pesajes", "novedades")
+        .order_by("-fecha", "-hora")[:50]
+    )
+    return render(request, "ropa/entregas_recibidas.html", {"entregas": entregas})
+
+
+@login_required
+@permission_required("movimientos.view_movimiento", raise_exception=True)
 def corte_control(request):
     hoy = timezone.localdate()
     corte = corte_ropa_sucia(hoy)
@@ -136,8 +155,7 @@ def corte_control(request):
     )
 
 
-@login_required
-@permission_required("movimientos.view_movimiento", raise_exception=True)
+@solo_usuario
 def validacion_entrega(request):
     if request.method == "POST":
         form = ValidacionEntregaForm(request.POST, usuario=request.user)

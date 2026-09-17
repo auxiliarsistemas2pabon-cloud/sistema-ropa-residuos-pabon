@@ -28,6 +28,7 @@ export interface MovimientoResumen {
   servicio_nombre: string | null;
   estado: EstadoMovimiento;
   peso_neto: string | null;
+  entrega_por: UsuarioMinimo | null;
   creado_por: UsuarioMinimo;
   creado_en: string;
 }
@@ -137,10 +138,34 @@ export interface MovimientoDetalle extends MovimientoResumen {
   entrega_gestor: unknown | null;
   recepciones_enlazadas: MovimientoResumen[];
   puede_editar: boolean | null;
+  puede_reportar_novedad: boolean | null;
 }
 
 export async function obtenerMovimiento(id: number): Promise<MovimientoDetalle> {
   const { data } = await api.get<MovimientoDetalle>(`/movimientos/${id}/`);
+  return data;
+}
+
+/** Entregas de ropa sucia donde el usuario dado quedó como quien recibe
+ * (recibe_por) — para que vea qué le entregaron y, si algo no coincide,
+ * lo reporte desde el detalle del movimiento. */
+export async function listarEntregasRecibidas(usuarioId: number): Promise<MovimientoResumen[]> {
+  const { data } = await api.get<Paginado<MovimientoResumen>>("/movimientos/", {
+    params: { tipo: "ROPA_SUCIA_ENTREGA", recibe_por: usuarioId },
+  });
+  return data.results;
+}
+
+export interface DatosNovedad {
+  tipo_novedad: string;
+  cantidad_afectada?: number;
+  observacion?: string;
+}
+
+/** Solo quien entregó o recibió el movimiento (o la Administradora) puede
+ * reportarla — ver movimientos.services.puede_reportar_novedad. */
+export async function reportarNovedad(movimientoId: number, datos: DatosNovedad): Promise<MovimientoDetalle> {
+  const { data } = await api.post<MovimientoDetalle>(`/movimientos/${movimientoId}/novedad/`, datos);
   return data;
 }
 

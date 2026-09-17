@@ -49,6 +49,14 @@ def test_conformidad_con_umbral_activo():
     assert ev["bloquea"] is True
 
 
+def test_validacion_es_exclusiva_del_usuario(client, administradora, sede):
+    """Validar entrega a lavandería (7. del prompt) es exclusivo del perfil
+    Usuario — la Administradora ya no captura ni valida, solo consulta."""
+    client.force_login(administradora)
+    resp = client.get(reverse("ropa:validacion"))
+    assert resp.status_code == 403
+
+
 def test_guardar_validacion_via_vista(client, usuario, sede):
     client.force_login(usuario)
     resp = client.post(

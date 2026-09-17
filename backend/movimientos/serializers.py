@@ -7,7 +7,7 @@ from residuos.serializers import DetalleResiduoSerializer, EntregaGestorSerializ
 from ropa.serializers import DetalleRopaSerializer, RotuloSerializer
 
 from .models import Movimiento, Novedad, Pesaje
-from .services import puede_editar
+from .services import puede_editar, puede_reportar_novedad
 
 Usuario = get_user_model()
 
@@ -52,6 +52,7 @@ class MovimientoResumenSerializer(serializers.ModelSerializer):
     sede_nombre = serializers.CharField(source="sede.nombre", read_only=True)
     servicio_nombre = serializers.CharField(source="area_origen.nombre", read_only=True, default=None)
     peso_neto = serializers.SerializerMethodField()
+    entrega_por = UsuarioMinimoSerializer(read_only=True)
     creado_por = UsuarioMinimoSerializer(read_only=True)
 
     class Meta:
@@ -59,7 +60,7 @@ class MovimientoResumenSerializer(serializers.ModelSerializer):
         fields = [
             "id", "tipo_movimiento", "tipo_movimiento_display", "fecha", "hora", "jornada",
             "sede", "sede_nombre", "area_origen", "servicio_nombre", "estado", "peso_neto",
-            "creado_por", "creado_en",
+            "entrega_por", "creado_por", "creado_en",
         ]
 
     def get_peso_neto(self, obj):
@@ -93,6 +94,7 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
     entrega_gestor = EntregaGestorSerializer(read_only=True)
     recepciones_enlazadas = MovimientoResumenSerializer(many=True, read_only=True, source="movimientos_resultantes")
     puede_editar = serializers.SerializerMethodField()
+    puede_reportar_novedad = serializers.SerializerMethodField()
 
     class Meta:
         model = Movimiento
@@ -103,7 +105,7 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
             "estado", "estado_display", "observaciones", "periodo_facturacion",
             "creado_por", "creado_en",
             "pesajes", "novedades", "detalles_ropa", "detalles_residuo", "rotulos",
-            "entrega_gestor", "recepciones_enlazadas", "puede_editar",
+            "entrega_gestor", "recepciones_enlazadas", "puede_editar", "puede_reportar_novedad",
         ]
 
     def get_puede_editar(self, obj):
@@ -111,3 +113,9 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
         if request is None:
             return None
         return puede_editar(request.user, obj)
+
+    def get_puede_reportar_novedad(self, obj):
+        request = self.context.get("request")
+        if request is None:
+            return None
+        return puede_reportar_novedad(request.user, obj)

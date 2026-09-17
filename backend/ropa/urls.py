@@ -12,4 +12,5 @@ urlpatterns = [
     path("ropa/rotulos/", views.registro_rotulos, name="rotulos"),
     path("ropa/corte-control/", views.corte_control, name="corte_control"),
     path("ropa/validacion/", views.validacion_entrega, name="validacion"),
+    path("ropa/entregas-recibidas/", views.entregas_recibidas, name="entregas_recibidas"),
 ]

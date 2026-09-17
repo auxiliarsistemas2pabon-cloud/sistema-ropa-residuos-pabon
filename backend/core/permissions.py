@@ -13,3 +13,17 @@ class IsAdministradora(BasePermission):
             and request.user.is_authenticated
             and (request.user.is_superuser or request.user.es_administradora)
         )
+
+
+class IsUsuario(BasePermission):
+    """Espejo de core.decorators.solo_usuario para la API: pantallas de
+    captura/operación exclusivas del perfil Usuario."""
+
+    message = "Esta acción es exclusiva del perfil Usuario."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and (request.user.is_superuser or not request.user.es_administradora)
+        )

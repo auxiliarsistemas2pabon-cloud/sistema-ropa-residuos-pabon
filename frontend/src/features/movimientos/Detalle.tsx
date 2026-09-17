@@ -1,9 +1,109 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { obtenerMovimiento } from "../../api/movimientos";
+import { useForm } from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Aviso } from "../../components/Aviso";
+import { obtenerMovimiento, reportarNovedad } from "../../api/movimientos";
+import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+
+const NOVEDADES_ROPA: [string, string][] = [
+  ["FALTANTE", "Faltante de prendas"],
+  ["SOBRANTE", "Sobrante"],
+  ["ROPA_ROTA", "Ropa rota"],
+  ["ROPA_MANCHADA", "Ropa manchada"],
+  ["ROPA_DETERIORADA", "Ropa deteriorada"],
+  ["ROPA_PENDIENTE_DEVOLUCION", "Ropa pendiente de devolución"],
+  ["PERDIDA_PRENDAS", "Pérdida de prendas"],
+  ["ROPA_SIN_ROTULAR", "Ropa sin rotular"],
+];
+const NOVEDADES_RESIDUOS: [string, string][] = [
+  ["BOLSA_INADECUADA", "Bolsa o recipiente inadecuado"],
+  ["DERRAME", "Derrame"],
+  ["RESIDUO_SIN_IDENTIFICAR", "Residuo sin identificar"],
+  ["REGISTRO_PENDIENTE", "Registro pendiente"],
+  ["DANO_RECIPIENTE", "Daño del recipiente"],
+];
+const NOVEDADES_COMUNES: [string, string][] = [
+  ["DIFERENCIA_PESO", "Diferencia de peso"],
+  ["OTRA", "Otra"],
+];
+
+interface DatosFormularioNovedad {
+  tipo_novedad: string;
+  cantidad_afectada: string;
+  observacion: string;
+}
+
+function FormularioNovedad({ movimientoId, esRopa, onCancelar }: {
+  movimientoId: number;
+  esRopa: boolean;
+  onCancelar: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
+  const { register, handleSubmit, formState: { isSubmitting } } = useForm<DatosFormularioNovedad>();
+
+  const mutacion = useMutation({
+    mutationFn: (datos: DatosFormularioNovedad) =>
+      reportarNovedad(movimientoId, {
+        tipo_novedad: datos.tipo_novedad,
+        ...(datos.cantidad_afectada ? { cantidad_afectada: Number(datos.cantidad_afectada) } : {}),
+        observacion: datos.observacion,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["movimiento", String(movimientoId)] });
+      onCancelar();
+    },
+    onError: (error) => setErroresServidor(erroresDeCampo(error)),
+  });
+
+  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
+
+  return (
+    <form className="seccion" onSubmit={(e) => void handleSubmit((d) => mutacion.mutate(d))(e)} noValidate>
+      {erroresServidor.non_field_errors?.map((mensaje) => (
+        <Aviso error key={mensaje}>
+          {mensaje}
+        </Aviso>
+      ))}
+      <div className="campo">
+        <label htmlFor="tipo_novedad">Tipo de novedad</label>
+        <select id="tipo_novedad" {...register("tipo_novedad", { required: true })}>
+          {[...(esRopa ? NOVEDADES_ROPA : NOVEDADES_RESIDUOS), ...NOVEDADES_COMUNES].map(([valor, etiqueta]) => (
+            <option key={valor} value={valor}>
+              {etiqueta}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="campo">
+        <label htmlFor="cantidad_afectada">Cantidad afectada (kg o unidades, opcional)</label>
+        <input id="cantidad_afectada" type="number" min="0" step="0.01" inputMode="decimal" {...register("cantidad_afectada")} />
+      </div>
+      <div className="campo">
+        <label htmlFor="observacion">Observación (opcional)</label>
+        <textarea id="observacion" {...register("observacion")} />
+      </div>
+
+      {erroresCampo.map(([campo, mensajes]) => (
+        <p className="campo__error" key={campo}>
+          {campo}: {mensajes.join(" ")}
+        </p>
+      ))}
+
+      <button type="submit" className="boton" disabled={isSubmitting || mutacion.isPending}>
+        {mutacion.isPending ? "Guardando…" : "Guardar novedad"}
+      </button>
+      <button type="button" className="boton boton--texto" onClick={onCancelar}>
+        Cancelar
+      </button>
+    </form>
+  );
+}
 
 export function DetalleMovimiento() {
   const { id } = useParams();
+  const [mostrarFormNovedad, setMostrarFormNovedad] = useState(false);
   const { data: movimiento, isLoading } = useQuery({
     queryKey: ["movimiento", id],
     queryFn: () => obtenerMovimiento(Number(id)),
@@ -101,6 +201,7 @@ export function DetalleMovimiento() {
               <tr>
                 <th>Prenda</th>
                 <th className="num">Cantidad</th>
+                <th className="num">Peso (kg)</th>
               </tr>
             </thead>
             <tbody>
@@ -108,6 +209,7 @@ export function DetalleMovimiento() {
                 <tr key={d.id}>
                   <td>{d.prenda_nombre}</td>
                   <td className="num">{d.cantidad_unidades ?? "—"}</td>
+                  <td className="num">{d.peso_kg ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -153,7 +255,14 @@ export function DetalleMovimiento() {
         </>
       )}
 
-      <h2>Novedades</h2>
+      <div className="titulo-reporte">
+        <h2>Novedades</h2>
+        {movimiento.puede_reportar_novedad && !mostrarFormNovedad && (
+          <button type="button" className="boton boton--texto" onClick={() => setMostrarFormNovedad(true)}>
+            Reportar novedad
+          </button>
+        )}
+      </div>
       {movimiento.novedades.length > 0 ? (
         <ul className="lista-novedades">
           {movimiento.novedades.map((n) => (
@@ -166,6 +275,13 @@ export function DetalleMovimiento() {
         </ul>
       ) : (
         <p className="vacio">Sin novedades.</p>
+      )}
+      {mostrarFormNovedad && (
+        <FormularioNovedad
+          movimientoId={movimiento.id}
+          esRopa={movimiento.tipo_movimiento.startsWith("ROPA")}
+          onCancelar={() => setMostrarFormNovedad(false)}
+        />
       )}
     </>
   );

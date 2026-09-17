@@ -3,6 +3,7 @@ from datetime import timedelta
 from constance import config
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -11,9 +12,9 @@ from core.decorators import solo_administradora
 from reportes.exportadores import libro_de_tabla
 
 from .filters import NovedadFilter
-from .forms import EdicionMovimientoForm
+from .forms import EdicionMovimientoForm, NovedadForm
 from .models import EstadoMovimiento, Movimiento, Novedad
-from .services import motivo_no_editable, puede_editar
+from .services import motivo_no_editable, puede_editar, puede_reportar_novedad
 
 
 def _novedades_filtradas(request):
@@ -26,8 +27,7 @@ def _novedades_filtradas(request):
     return NovedadFilter(request.GET, queryset=novedades)
 
 
-@login_required
-@permission_required("movimientos.view_movimiento", raise_exception=True)
+@solo_administradora
 def lista_novedades(request):
     filtro = _novedades_filtradas(request)
     return render(request, "movimientos/novedades.html", {"filtro": filtro})
@@ -135,6 +135,7 @@ def detalle_movimiento(request, pk):
         "entrega_gestor": getattr(movimiento, "entrega_gestor", None),
         "recepciones_enlazadas": movimiento.movimientos_resultantes.select_related("sede").all(),
         "puede_editar": puede_editar(request.user, movimiento),
+        "puede_reportar_novedad": puede_reportar_novedad(request.user, movimiento),
     }
     if request.user.es_administradora or request.user.is_superuser:
         contexto["historial"] = _historial_con_cambios(movimiento)
@@ -173,4 +174,30 @@ def editar_movimiento(request, pk):
         request,
         "movimientos/editar_movimiento.html",
         {"form": form, "movimiento": movimiento, "limite_edicion": limite_edicion},
+    )
+
+
+@login_required
+def registrar_novedad(request, pk):
+    """Reporta una novedad sobre un movimiento ya registrado: por ejemplo,
+    lo que le llegó a quien recibió una entrega de ropa sucia no coincide
+    con lo que se registró. Solo quien entregó o recibió el movimiento —o
+    la Administradora— puede hacerlo (puede_reportar_novedad)."""
+    movimiento = get_object_or_404(
+        Movimiento.objects.select_related("sede", "area_origen", "entrega_por", "recibe_por"), pk=pk,
+    )
+    if not puede_reportar_novedad(request.user, movimiento):
+        raise PermissionDenied("Solo quien entregó o recibió este movimiento puede reportar una novedad.")
+
+    if request.method == "POST":
+        form = NovedadForm(request.POST, movimiento=movimiento)
+        if form.is_valid():
+            form.guardar(registrado_por=request.user)
+            messages.success(request, "Novedad registrada.")
+            return redirect("movimientos:detalle_movimiento", pk=movimiento.pk)
+    else:
+        form = NovedadForm(movimiento=movimiento)
+
+    return render(
+        request, "movimientos/registrar_novedad.html", {"form": form, "movimiento": movimiento},
     )

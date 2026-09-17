@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block titulo %}Reportar novedad · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Reportar novedad</h1>
+<p class="tinta-suave">
+  {{ movimiento.get_tipo_movimiento_display }} · {{ movimiento.fecha|date:"d M" }} {{ movimiento.hora|time:"H:i" }}
+  · {{ movimiento.area_origen.nombre|default:"—" }}
+</p>
+<dl class="calculado">
+  <div><dt>Entrega</dt><dd>{{ movimiento.entrega_por|default:"—" }}</dd></div>
+  <div><dt>Recibe</dt><dd>{{ movimiento.recibe_por|default:"—" }}</dd></div>
+</dl>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% include "componentes/_campo.html" with campo=form.tipo_novedad %}
+  {% include "componentes/_campo.html" with campo=form.cantidad_afectada %}
+  {% include "componentes/_campo.html" with campo=form.observacion %}
+
+  <button type="submit" class="boton">Guardar novedad</button>
+  <a class="boton boton--texto" href="{% url 'movimientos:detalle_movimiento' movimiento.pk %}">Cancelar</a>
+</form>
+{% endblock %}

@@ -85,3 +85,11 @@ def test_validacion_entrega_desglose_y_creacion(api_client, usuario, sede, area)
     })
     assert resp.status_code == 201
     assert resp.data["evaluacion"]["conforme"] is True
+
+
+def test_validacion_entrega_es_exclusiva_del_usuario(api_client, administradora, sede):
+    api_client.force_authenticate(user=administradora)
+    resp = api_client.post(reverse("api-validacion-entrega-list"), {
+        "sede": sede.pk, "fecha": "2026-03-10", "jornada": "MANANA", "peso_declarado": "10.00",
+    })
+    assert resp.status_code == 403

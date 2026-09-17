@@ -15,6 +15,7 @@ class MovimientoFilter(django_filters.FilterSet):
         field_name="area_origen", queryset=AreaServicio.objects.order_by("nombre"),
     )
     tipo = django_filters.ChoiceFilter(field_name="tipo_movimiento", choices=TipoMovimiento.choices)
+    recibe_por = django_filters.NumberFilter(field_name="recibe_por")
 
     class Meta:
         model = Movimiento

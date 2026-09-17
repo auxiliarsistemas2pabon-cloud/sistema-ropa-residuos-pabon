@@ -9,7 +9,8 @@ export interface DatosEntregaRopaSucia {
   /** RF-009: cuántas bolsas o tulas, cuando se controle este dato. */
   cantidad_bolsas?: number;
   /** RF-011: detalle por prenda, opcional — varias prendas con su cantidad
-   * cada una, codificadas como JSON: '[{"prenda": id, "cantidad_unidades": n}, ...]'. */
+   * y peso en kg cada una, codificadas como JSON:
+   * '[{"prenda": id, "cantidad_unidades": n, "peso_kg": "1.50"}, ...]'. */
   detalles_ropa?: string;
   /** "Entrega" la fija el backend al usuario logueado — no se envía. */
   recibe_por: number;
@@ -28,8 +29,9 @@ export interface DatosRecepcionRopaLimpia {
   sede: number;
   peso_total: string;
   tara?: string;
-  /** RF-012: tipo de ropa y cantidad de prendas, opcional — varias a la vez,
-   * codificadas como JSON: '[{"prenda": id, "cantidad_unidades": n}, ...]'. */
+  /** RF-012: tipo de ropa, cantidad y peso en kg de prendas, opcional —
+   * varias a la vez, codificadas como JSON:
+   * '[{"prenda": id, "cantidad_unidades": n, "peso_kg": "1.50"}, ...]'. */
   detalles_ropa?: string;
   entrega_por: number;
   /** "Recibe" la fija el backend al usuario logueado — no se envía. */

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { listarMovimientosDeHoy } from "../api/movimientos";
 import {
+  IconoBandejaEntrada,
   IconoCalendario,
   IconoCampana,
   IconoCesto,
@@ -92,9 +93,6 @@ export function Panel() {
               <Link to="/dia-anterior">
                 <IconoCalendario size={16} /> Ver día anterior
               </Link>
-              <Link to="/validacion">
-                <IconoCheckCirculo size={16} /> Validar entrega a lavandería
-              </Link>
               <Link to="/ropa/corte-control">
                 <IconoTijeras size={16} /> Corte de control de ropa sucia
               </Link>
@@ -133,14 +131,14 @@ export function Panel() {
               </Link>
             </div>
             <p className="enlaces-secundarios">
-              <Link to="/novedades">
-                <IconoCampana size={16} /> Novedades
-              </Link>
               <Link to="/validacion">
                 <IconoCheckCirculo size={16} /> Validar entrega a lavandería
               </Link>
               <Link to="/ropa/corte-control">
                 <IconoTijeras size={16} /> Corte de control de ropa sucia
+              </Link>
+              <Link to="/ropa/entregas-recibidas">
+                <IconoBandejaEntrada size={16} /> Ropa sucia que me entregaron
               </Link>
               <Link to="/ropa/rotulos">Registrar rótulos</Link>
             </p>

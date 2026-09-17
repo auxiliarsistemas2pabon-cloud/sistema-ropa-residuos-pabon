@@ -152,6 +152,22 @@ def test_post_con_un_tipo_de_ropa_crea_detalle_ropa(client, usuario, sede, area)
     assert detalle.cantidad_unidades == 12
 
 
+def test_post_con_peso_kg_guarda_el_peso(client, usuario, sede, area):
+    import json
+
+    from ropa.models import DetalleRopa, Prenda
+
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos = _datos(sede, usuario)
+    datos["detalles_ropa"] = json.dumps(
+        [{"prenda": prenda.pk, "cantidad_unidades": 12, "peso_kg": "3.25"}]
+    )
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:recepcion_limpia"), datos)
+    assert resp.status_code == 302
+    assert DetalleRopa.objects.get().peso_kg == Decimal("3.25")
+
+
 def test_post_con_varios_tipos_de_ropa_crea_un_detalle_por_cada_uno(client, usuario, sede, area):
     import json
 

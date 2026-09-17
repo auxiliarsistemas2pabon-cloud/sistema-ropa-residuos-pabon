@@ -75,7 +75,7 @@ def test_entrega_ropa_sucia_con_bolsas_y_varias_prendas(api_client, usuario, sed
         "sede": sede.pk, "area_origen": area.pk, "peso_total": "12.40", "tara": "1.20",
         "cantidad_bolsas": 3,
         "detalles_ropa": json.dumps([
-            {"prenda": prendas[0].pk, "cantidad_unidades": 7},
+            {"prenda": prendas[0].pk, "cantidad_unidades": 7, "peso_kg": "4.50"},
             {"prenda": prendas[1].pk, "cantidad_unidades": 2},
         ]),
         "recibe_por": usuario.pk,
@@ -84,6 +84,8 @@ def test_entrega_ropa_sucia_con_bolsas_y_varias_prendas(api_client, usuario, sed
     assert resp.data["pesajes"][0]["cantidad_bolsas"] == 3
     cantidades = {d["cantidad_unidades"] for d in resp.data["detalles_ropa"]}
     assert cantidades == {7, 2}
+    pesos = {d["peso_kg"] for d in resp.data["detalles_ropa"]}
+    assert pesos == {"4.50", None}
 
 
 def test_entrega_ropa_sucia_tara_mayor_al_total_da_400(api_client, usuario, sede, area):

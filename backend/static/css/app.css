@@ -217,14 +217,14 @@ a:focus-visible {
 }
 .detalle-prendas__fila-check {
   display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-2);
-  padding: var(--espacio-2) var(--espacio-3); border-bottom: 1px solid var(--linea);
+  flex-wrap: wrap; padding: var(--espacio-2) var(--espacio-3); border-bottom: 1px solid var(--linea);
 }
 .detalle-prendas__fila-check:last-child { border-bottom: none; }
 .detalle-prendas__fila-check:has(input[type="checkbox"]:checked) { background: var(--acento-suave); }
-.detalle-prendas__check { display: flex; align-items: center; gap: var(--espacio-2); flex: 1; cursor: pointer; min-height: auto; }
+.detalle-prendas__check { display: flex; align-items: center; gap: var(--espacio-2); flex: 1 1 160px; cursor: pointer; min-height: auto; }
 .detalle-prendas__check input[type="checkbox"] { width: 22px; height: 22px; min-height: auto; padding: 0; accent-color: var(--acento); }
-.detalle-prendas__cantidad-inline { width: 5.5rem; flex-shrink: 0; min-height: auto; padding: var(--espacio-1) var(--espacio-2); }
-.detalle-prendas__cantidad-inline:disabled { opacity: 0.35; }
+.detalle-prendas__cantidad-inline, .detalle-prendas__peso-inline { width: 6.5rem; flex-shrink: 0; min-height: auto; padding: var(--espacio-1) var(--espacio-2); }
+.detalle-prendas__cantidad-inline:disabled, .detalle-prendas__peso-inline:disabled { opacity: 0.35; }
 
 /* --- Avisos / confirmación (10.4) --- */
 .avisos {

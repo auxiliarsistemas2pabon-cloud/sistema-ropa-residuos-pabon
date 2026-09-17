@@ -136,6 +136,52 @@ def test_post_con_una_prenda_crea_detalle_ropa(client, usuario, datos_validos):
     assert detalle.cantidad_unidades == 5
 
 
+def test_post_con_prenda_y_peso_kg_guarda_el_peso(client, usuario, datos_validos):
+    import json
+
+    from ropa.models import DetalleRopa, Prenda
+
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos_validos["detalles_ropa"] = json.dumps(
+        [{"prenda": prenda.pk, "cantidad_unidades": 5, "peso_kg": "1.50"}]
+    )
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+
+    detalle = DetalleRopa.objects.get()
+    assert detalle.peso_kg == Decimal("1.50")
+
+
+def test_post_sin_peso_kg_lo_deja_vacio(client, usuario, datos_validos):
+    import json
+
+    from ropa.models import DetalleRopa, Prenda
+
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos_validos["detalles_ropa"] = json.dumps([{"prenda": prenda.pk, "cantidad_unidades": 5}])
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 302
+    assert DetalleRopa.objects.get().peso_kg is None
+
+
+def test_peso_kg_negativo_no_valida(client, usuario, datos_validos):
+    import json
+
+    from ropa.models import Prenda
+
+    prenda = Prenda.objects.filter(activo=True).first()
+    datos_validos["detalles_ropa"] = json.dumps(
+        [{"prenda": prenda.pk, "cantidad_unidades": 5, "peso_kg": "-1"}]
+    )
+    client.force_login(usuario)
+    resp = client.post(reverse("ropa:entrega_sucia"), datos_validos)
+    assert resp.status_code == 200
+    assert "no puede ser negativo" in resp.content.decode()
+    assert Movimiento.objects.count() == 0
+
+
 def test_post_con_varias_prendas_crea_un_detalle_por_cada_una(client, usuario, datos_validos):
     import json
 

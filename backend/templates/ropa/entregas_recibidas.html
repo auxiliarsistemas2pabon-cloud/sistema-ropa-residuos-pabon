@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block titulo %}Ropa sucia que me entregaron · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Ropa sucia que me entregaron</h1>
+<p class="tinta-suave">
+  Entregas de ropa sucia donde quedaste como quien recibe. Abre el detalle
+  para ver el peso, las bolsas y las prendas registradas — si algo no
+  coincide con lo que te entregaron, repórtalo ahí con «Reportar novedad».
+</p>
+
+{% if entregas %}
+  <div class="tabla-envoltura">
+    <table class="tabla tabla-kg">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Servicio</th><th>Entregó</th>
+          <th class="num">kg netos</th><th class="num">Bolsas</th><th class="num">Novedades</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in entregas %}
+          {% with p=m.pesajes.all|first %}
+            <tr>
+              <td><a href="{% url 'movimientos:detalle_movimiento' m.pk %}">{{ m.fecha|date:"d M" }} {{ m.hora|time:"H:i" }}</a></td>
+              <td>{{ m.area_origen.nombre|default:"—" }}</td>
+              <td>{{ m.entrega_por|default:"—" }}</td>
+              <td class="num cifra-kg">{{ p.peso_neto|default:"—" }}</td>
+              <td class="num">{{ p.cantidad_bolsas|default:"—" }}</td>
+              <td class="num">{{ m.novedades.all|length }}</td>
+            </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="vacio">Todavía no te han asignado ninguna entrega de ropa sucia.</p>
+{% endif %}
+{% endblock %}

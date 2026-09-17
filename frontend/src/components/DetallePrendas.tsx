@@ -3,6 +3,8 @@ import type { Prenda } from "../api/catalogos";
 export interface DetallePrendaItem {
   prenda: number;
   cantidad_unidades: number;
+  /** Peso en kg de esta prenda dentro de la entrega/recepción, opcional. */
+  peso_kg?: number;
 }
 
 interface Props {
@@ -12,18 +14,13 @@ interface Props {
   onCambiar: (siguiente: DetallePrendaItem[]) => void;
 }
 
-/** Selección múltiple de prendas con cantidad cada una (RF-011/012):
- * checklist donde cada prenda es una fila con casilla + cantidad en la
- * misma fila — espejo del widget vanilla JS de las plantillas Django
- * (iniciarDetallePrendas en static/js/app.js). */
+/** Selección múltiple de prendas con cantidad y peso cada una (RF-011/012):
+ * checklist donde cada prenda es una fila con casilla + cantidad + peso en
+ * kg en la misma fila — espejo del widget vanilla JS de las plantillas
+ * Django (iniciarDetallePrendas en static/js/app.js). */
 export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
-  function cantidadDe(prendaId: number): string {
-    const item = valor.find((i) => i.prenda === prendaId);
-    return item ? String(item.cantidad_unidades) : "";
-  }
-
-  function estaMarcada(prendaId: number): boolean {
-    return valor.some((i) => i.prenda === prendaId);
+  function itemDe(prendaId: number): DetallePrendaItem | undefined {
+    return valor.find((i) => i.prenda === prendaId);
   }
 
   function alMarcar(prendaId: number, marcada: boolean, fila: HTMLElement | null) {
@@ -46,12 +43,20 @@ export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
     );
   }
 
+  function alCambiarPeso(prendaId: number, texto: string) {
+    const peso = texto === "" ? undefined : parseFloat(texto);
+    onCambiar(
+      valor.map((i) => (i.prenda === prendaId ? { ...i, peso_kg: peso !== undefined && peso >= 0 ? peso : undefined } : i)),
+    );
+  }
+
   return (
     <div className="detalle-prendas">
       <p className="detalle-prendas__etiqueta">{etiqueta}</p>
       <ul className="detalle-prendas__checklist">
         {prendas?.map((p) => {
-          const marcada = estaMarcada(p.id);
+          const item = itemDe(p.id);
+          const marcada = Boolean(item);
           return (
             <li className="detalle-prendas__fila-check" key={p.id}>
               <label className="detalle-prendas__check">
@@ -71,16 +76,29 @@ export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
                 placeholder="Cantidad"
                 aria-label={`Cantidad de ${p.nombre}`}
                 disabled={!marcada}
-                value={marcada ? cantidadDe(p.id) : ""}
+                value={marcada ? String(item?.cantidad_unidades ?? "") : ""}
                 onChange={(e) => alCambiarCantidad(p.id, e.target.value)}
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                className="detalle-prendas__peso-inline"
+                placeholder="Peso (kg)"
+                aria-label={`Peso en kg de ${p.nombre}`}
+                disabled={!marcada}
+                value={marcada && item?.peso_kg !== undefined ? String(item.peso_kg) : ""}
+                onChange={(e) => alCambiarPeso(p.id, e.target.value)}
               />
             </li>
           );
         })}
       </ul>
       <p className="campo__ayuda">
-        Marca las prendas que necesites y escribe la cantidad de cada una. Es opcional — solo si
-        necesitas control por unidades en este registro.
+        Marca las prendas que necesites y escribe la cantidad y, si la pesas por separado, el
+        peso en kg de cada una. Es opcional — solo si necesitas control por unidades o por peso
+        en este registro.
       </p>
     </div>
   );

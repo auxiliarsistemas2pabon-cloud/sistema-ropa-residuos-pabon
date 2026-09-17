@@ -8,11 +8,12 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from core.api_errors import form_errors_response
+from core.permissions import IsAdministradora
 
 from .filters import MovimientoFilter, NovedadFilter
-from .forms import EdicionMovimientoForm
+from .forms import EdicionMovimientoForm, NovedadForm
 from .models import EstadoMovimiento, Movimiento, Novedad
-from .permissions import PuedeEditarMovimiento
+from .permissions import PuedeEditarMovimiento, PuedeReportarNovedad
 from .serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer, NovedadSerializer
 from .services import motivo_no_editable
 
@@ -63,6 +64,20 @@ class MovimientoViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, Generi
         serializer = MovimientoDetalleSerializer(movimiento, context={"request": request})
         return Response(serializer.data)
 
+    @action(
+        detail=True, methods=["post"],
+        permission_classes=[IsAuthenticated, PuedeReportarNovedad],
+    )
+    def novedad(self, request, pk=None):
+        movimiento = self.get_object()
+        form = NovedadForm(data=request.data, movimiento=movimiento)
+        if not form.is_valid():
+            return form_errors_response(form)
+        form.guardar(registrado_por=request.user)
+        movimiento.refresh_from_db()
+        serializer = MovimientoDetalleSerializer(movimiento, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     @action(detail=False, url_path="dia-anterior")
     def dia_anterior(self, request):
         ayer = timezone.localdate() - timedelta(days=1)
@@ -86,10 +101,15 @@ class MovimientoViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, Generi
 
 
 class NovedadViewSet(mixins.ListModelMixin, GenericViewSet):
+    """Lista/filtra el reporte de novedades — exclusivo de la Administradora
+    (7. del prompt), igual que su pantalla HTML y la exportación a Excel.
+    No confundir con reportar una novedad puntual sobre un movimiento propio
+    (MovimientoViewSet.novedad), que sigue abierto a quien participó en él."""
+
     queryset = Novedad.objects.select_related(
         "movimiento", "movimiento__sede", "movimiento__area_origen", "registrado_por",
     ).order_by("-registrado_en")
     serializer_class = NovedadSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsAdministradora]
     filterset_class = NovedadFilter
     http_method_names = ["get", "head", "options"]

@@ -104,7 +104,12 @@
   </dl>
 {% endif %}
 
-<h2>Novedades</h2>
+<div class="titulo-reporte">
+  <h2>Novedades</h2>
+  {% if puede_reportar_novedad %}
+    <a class="boton boton--texto" href="{% url 'movimientos:registrar_novedad' movimiento.pk %}">Reportar novedad</a>
+  {% endif %}
+</div>
 {% if novedades %}
   <ul class="lista-novedades">
     {% for n in novedades %}

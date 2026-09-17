@@ -56,8 +56,8 @@
   }
 
   // --- Detalle por prenda con selección múltiple (RF-011/012) ---
-  // Checklist: cada prenda es una fila con casilla + cantidad en la misma
-  // fila (sin select+botón "Agregar" aparte).
+  // Checklist: cada prenda es una fila con casilla + cantidad + peso (kg)
+  // en la misma fila (sin select+botón "Agregar" aparte).
   function iniciarDetallePrendas() {
     var contenedores = document.querySelectorAll("[data-detalle-prendas]");
     contenedores.forEach(function (contenedor) {
@@ -70,14 +70,19 @@
         filas.forEach(function (fila) {
           var check = fila.querySelector("[data-detalle-prenda-check]");
           var cantidad = fila.querySelector("[data-detalle-prenda-cantidad-inline]");
+          var peso = fila.querySelector("[data-detalle-prenda-peso-inline]");
           cantidad.disabled = !check.checked;
+          peso.disabled = !check.checked;
           if (!check.checked) {
             cantidad.value = "";
+            peso.value = "";
             return;
           }
           var cantidadVal = parseInt(cantidad.value, 10);
           if (cantidadVal >= 1) {
-            detalles.push({ prenda: check.value, cantidad_unidades: cantidadVal });
+            var detalle = { prenda: check.value, cantidad_unidades: cantidadVal };
+            if (peso.value !== "") detalle.peso_kg = peso.value;
+            detalles.push(detalle);
           }
         });
         oculto.value = JSON.stringify(detalles);
@@ -86,6 +91,7 @@
       filas.forEach(function (fila) {
         var check = fila.querySelector("[data-detalle-prenda-check]");
         var cantidad = fila.querySelector("[data-detalle-prenda-cantidad-inline]");
+        var peso = fila.querySelector("[data-detalle-prenda-peso-inline]");
         check.addEventListener("change", function () {
           if (check.checked) {
             if (!cantidad.value) cantidad.value = "1";
@@ -97,6 +103,7 @@
           }
         });
         cantidad.addEventListener("input", actualizar);
+        peso.addEventListener("input", actualizar);
       });
 
       actualizar();

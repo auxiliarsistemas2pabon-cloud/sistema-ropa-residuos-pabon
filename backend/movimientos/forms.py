@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 
-from .models import EstadoMovimiento
+from .models import EstadoMovimiento, Novedad, Proceso, TipoNovedad
 
 
 class RegistroDiferidoMixin(forms.Form):
@@ -117,3 +117,50 @@ class EdicionMovimientoForm(forms.Form):
         self.movimiento.observaciones = self.cleaned_data.get("observaciones", "")
         self.movimiento.save()
         return self.movimiento
+
+
+_NOVEDADES_ROPA = [
+    TipoNovedad.FALTANTE, TipoNovedad.SOBRANTE, TipoNovedad.ROPA_ROTA,
+    TipoNovedad.ROPA_MANCHADA, TipoNovedad.ROPA_DETERIORADA,
+    TipoNovedad.ROPA_PENDIENTE_DEVOLUCION, TipoNovedad.PERDIDA_PRENDAS,
+    TipoNovedad.ROPA_SIN_ROTULAR,
+]
+_NOVEDADES_RESIDUOS = [
+    TipoNovedad.BOLSA_INADECUADA, TipoNovedad.DERRAME,
+    TipoNovedad.RESIDUO_SIN_IDENTIFICAR, TipoNovedad.REGISTRO_PENDIENTE,
+    TipoNovedad.DANO_RECIPIENTE,
+]
+_NOVEDADES_COMUNES = [TipoNovedad.DIFERENCIA_PESO, TipoNovedad.OTRA]
+
+
+class NovedadForm(forms.Form):
+    """Reporta una novedad sobre un movimiento ya registrado: quien lo
+    entregó o lo recibió puede anotar que algo no coincide con lo esperado
+    (faltante, ropa rota, derrame, etc.). Las opciones de tipo dependen del
+    proceso (ropa o residuos) del movimiento."""
+
+    tipo_novedad = forms.ChoiceField(label="Tipo de novedad")
+    cantidad_afectada = forms.DecimalField(
+        label="Cantidad afectada (kg o unidades, opcional)", max_digits=8, decimal_places=2,
+        min_value=0, required=False, localize=False, widget=_peso_widget(),
+    )
+    observacion = forms.CharField(
+        label="Observación (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    def __init__(self, *args, movimiento, **kwargs):
+        self.movimiento = movimiento
+        super().__init__(*args, **kwargs)
+        especificas = _NOVEDADES_ROPA if movimiento.proceso == Proceso.ROPA else _NOVEDADES_RESIDUOS
+        self.fields["tipo_novedad"].choices = [
+            (t.value, t.label) for t in [*especificas, *_NOVEDADES_COMUNES]
+        ]
+
+    def guardar(self, *, registrado_por):
+        return Novedad.objects.create(
+            movimiento=self.movimiento,
+            tipo_novedad=self.cleaned_data["tipo_novedad"],
+            cantidad_afectada=self.cleaned_data.get("cantidad_afectada"),
+            observacion=self.cleaned_data.get("observacion", "").strip(),
+            registrado_por=registrado_por,
+        )

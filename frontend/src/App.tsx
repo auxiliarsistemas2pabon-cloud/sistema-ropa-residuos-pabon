@@ -12,6 +12,7 @@ import { RecepcionLimpia } from "./features/ropa/RecepcionLimpia";
 import { DistribucionLimpia } from "./features/ropa/DistribucionLimpia";
 import { Rotulos } from "./features/ropa/Rotulos";
 import { CorteControl } from "./features/ropa/CorteControl";
+import { EntregasRecibidas } from "./features/ropa/EntregasRecibidas";
 import { Validacion } from "./features/ropa/Validacion";
 import { ResiduosMenu } from "./features/residuos/ResiduosMenu";
 import { Generacion } from "./features/residuos/Generacion";
@@ -44,8 +45,6 @@ export default function App() {
                 <Route path="/" element={<Panel />} />
                 <Route path="/movimiento/:id" element={<DetalleMovimiento />} />
                 <Route path="/dia-anterior" element={<DiaAnterior />} />
-                <Route path="/novedades" element={<Novedades />} />
-                <Route path="/validacion" element={<Validacion />} />
                 <Route path="/ropa/corte-control" element={<CorteControl />} />
               </Route>
 
@@ -55,6 +54,8 @@ export default function App() {
                 <Route path="/ropa/limpia/recepcion" element={<RecepcionLimpia />} />
                 <Route path="/ropa/limpia/distribucion" element={<DistribucionLimpia />} />
                 <Route path="/ropa/rotulos" element={<Rotulos />} />
+                <Route path="/ropa/entregas-recibidas" element={<EntregasRecibidas />} />
+                <Route path="/validacion" element={<Validacion />} />
                 <Route path="/residuos" element={<ResiduosMenu />} />
                 <Route path="/residuos/generacion" element={<Generacion />} />
                 <Route path="/residuos/recoleccion" element={<Recoleccion />} />
@@ -66,6 +67,7 @@ export default function App() {
                 <Route path="/rh1-facturacion" element={<RH1Facturacion />} />
                 <Route path="/residuos/entrega-gestor" element={<EntregaGestor />} />
                 <Route path="/catalogos" element={<Catalogos />} />
+                <Route path="/novedades" element={<Novedades />} />
               </Route>
             </Route>
           </Routes>

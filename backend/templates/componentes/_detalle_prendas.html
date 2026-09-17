@@ -1,9 +1,9 @@
 {% comment %}
   Requiere las variables prendas, campo (form.detalles_ropa) y etiqueta.
-  Selección múltiple de prendas con cantidad cada una (RF-011/012): checklist
-  donde cada prenda es una fila con casilla + cantidad en la misma fila,
-  y todo se manda como JSON en el campo oculto detalles_ropa — ver
-  iniciarDetallePrendas en static/js/app.js.
+  Selección múltiple de prendas con cantidad y peso cada una (RF-011/012):
+  checklist donde cada prenda es una fila con casilla + cantidad + peso en
+  kg en la misma fila, y todo se manda como JSON en el campo oculto
+  detalles_ropa — ver iniciarDetallePrendas en static/js/app.js.
 {% endcomment %}
 <div class="detalle-prendas" data-detalle-prendas>
   <p class="detalle-prendas__etiqueta">{{ etiqueta }}</p>
@@ -18,12 +18,16 @@
       <input type="number" min="1" step="1" inputmode="numeric" disabled
              class="detalle-prendas__cantidad-inline" placeholder="Cantidad"
              aria-label="Cantidad de {{ p.nombre }}" data-detalle-prenda-cantidad-inline>
+      <input type="number" min="0" step="0.01" inputmode="decimal" disabled
+             class="detalle-prendas__peso-inline" placeholder="Peso (kg)"
+             aria-label="Peso en kg de {{ p.nombre }}" data-detalle-prenda-peso-inline>
     </li>
     {% endfor %}
   </ul>
   <p class="campo__ayuda">
-    Marca las prendas que necesites y escribe la cantidad de cada una. Es opcional —
-    solo si necesitas control por unidades en este registro.
+    Marca las prendas que necesites y escribe la cantidad y, si la pesas por
+    separado, el peso en kg de cada una. Es opcional — solo si necesitas
+    control por unidades o por peso en este registro.
   </p>
   {% for error in campo.errors %}<p class="campo__error">{{ error }}</p>{% endfor %}
   {{ campo }}

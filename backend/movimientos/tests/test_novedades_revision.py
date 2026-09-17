@@ -29,8 +29,16 @@ def test_novedades_exige_permiso(client):
     assert client.get(reverse("movimientos:novedades")).status_code == 403
 
 
-def test_novedades_lista_y_filtra(client, usuario, novedad):
+def test_novedades_es_exclusiva_de_la_administradora(client, usuario):
+    """La lista/reporte de novedades (7. del prompt) es exclusiva de la
+    Administradora — el Usuario ya no la ve, aunque sí puede reportar una
+    novedad puntual sobre su propio movimiento (registrar_novedad)."""
     client.force_login(usuario)
+    assert client.get(reverse("movimientos:novedades")).status_code == 403
+
+
+def test_novedades_lista_y_filtra(client, administradora, novedad):
+    client.force_login(administradora)
 
     resp = client.get(reverse("movimientos:novedades"))
     assert "Sábana con rotura" in resp.content.decode()
