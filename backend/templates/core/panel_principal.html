@@ -120,21 +120,6 @@
     </a>
   </div>
   <p class="enlaces-secundarios">
-    <a href="{% url 'ropa:validacion' %}">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="9"></circle>
-        <path d="M8 12.5l2.5 2.5L16 9"></path>
-      </svg>
-      Validar entrega a lavandería
-    </a>
-    <a href="{% url 'ropa:corte_control' %}">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="6" cy="6" r="3"></circle>
-        <circle cx="6" cy="18" r="3"></circle>
-        <path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"></path>
-      </svg>
-      Corte de control de ropa sucia
-    </a>
     <a href="{% url 'ropa:entregas_recibidas' %}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6"></path>
@@ -143,7 +128,6 @@
       </svg>
       Ropa sucia que me entregaron
     </a>
-    <a href="{% url 'ropa:rotulos' %}">Registrar rótulos</a>
   </p>
 {% endif %}
   </section>

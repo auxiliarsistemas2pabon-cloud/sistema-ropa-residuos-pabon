@@ -7,7 +7,6 @@ import {
   IconoCalendario,
   IconoCampana,
   IconoCesto,
-  IconoCheckCirculo,
   IconoDocumento,
   IconoGrafico,
   IconoParametros,
@@ -131,16 +130,9 @@ export function Panel() {
               </Link>
             </div>
             <p className="enlaces-secundarios">
-              <Link to="/validacion">
-                <IconoCheckCirculo size={16} /> Validar entrega a lavandería
-              </Link>
-              <Link to="/ropa/corte-control">
-                <IconoTijeras size={16} /> Corte de control de ropa sucia
-              </Link>
               <Link to="/ropa/entregas-recibidas">
                 <IconoBandejaEntrada size={16} /> Ropa sucia que me entregaron
               </Link>
-              <Link to="/ropa/rotulos">Registrar rótulos</Link>
             </p>
           </>
         )}
