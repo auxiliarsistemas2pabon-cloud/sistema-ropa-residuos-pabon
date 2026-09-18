@@ -1,9 +1,17 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+
+const ETIQUETA_ROL: Record<string, string> = {
+  USUARIO: "Usuario",
+  SERVICIO: "Personal de servicio",
+};
 
 /** Layout de todas las pantallas autenticadas — el login usa LayoutLogin. */
 export function Layout() {
   const { usuario, esAdministradora, cerrarSesion } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const esPanel = location.pathname === "/";
 
   return (
     <>
@@ -22,7 +30,7 @@ export function Layout() {
             <span className="barra-superior__usuario">
               <span className="barra-superior__nombre">{usuario.first_name || usuario.username}</span>
               <span className={`insignia-rol ${esAdministradora ? "insignia-rol--admin" : ""}`}>
-                {esAdministradora ? "Administradora" : "Usuario"}
+                {esAdministradora ? "Administradora" : ETIQUETA_ROL[usuario.rol] ?? "Usuario"}
               </span>
             </span>
             <button type="button" className="boton boton--texto" onClick={() => void cerrarSesion()}>
@@ -32,6 +40,11 @@ export function Layout() {
         )}
       </header>
       <main className="contenido">
+        {!esPanel && (
+          <button type="button" className="boton-volver" onClick={() => navigate(-1)}>
+            ← Volver
+          </button>
+        )}
         <Outlet />
       </main>
     </>

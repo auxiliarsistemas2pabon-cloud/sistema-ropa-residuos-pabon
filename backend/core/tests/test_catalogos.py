@@ -29,10 +29,21 @@ def test_areas_con_sus_colores():
     assert Color.objects.get(nombre="Beige").areas.count() == 2
 
 
+def test_servicios_de_centro_completos_segun_fr_sig_86():
+    # El FR-SIG-86 (0009) agrega UCI 5, Imágenes diagnósticas y Ambulancia
+    # a los 10 servicios del comunicado de clasificación por sede (0007).
+    centro = Sede.objects.get(nombre="Centro")
+    nombres = set(AreaServicio.objects.filter(sede=centro, activo=True).values_list("nombre", flat=True))
+    assert {"UCI Adultos – 5.º piso", "Imágenes diagnósticas", "Ambulancia"} <= nombres
+    assert len(nombres) == 13
+
+
 def test_prendas():
-    assert Prenda.objects.count() == 38
+    # 38 de la siembra original (0002) + 5 de "Imágenes diagnósticas,
+    # Ambulancia" (0004), la página del FR-SIG-86 que faltaba por sembrar.
+    assert Prenda.objects.count() == 43
     assert Prenda.objects.filter(disposicion=Disposicion.CANECA_ROJA).count() == 3
-    assert Prenda.objects.filter(disposicion=Disposicion.TULA_ROJA).count() == 35
+    assert Prenda.objects.filter(disposicion=Disposicion.TULA_ROJA).count() == 40
 
 
 def test_categorias_de_residuos_arbol():

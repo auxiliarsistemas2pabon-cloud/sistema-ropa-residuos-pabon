@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 from simple_history.models import HistoricalRecords
@@ -45,7 +47,7 @@ class CategoriaResiduo(models.Model):
 class DetalleResiduo(models.Model):
     movimiento = models.ForeignKey("movimientos.Movimiento", on_delete=models.PROTECT, related_name="detalles_residuo")
     categoria_residuo = models.ForeignKey(CategoriaResiduo, on_delete=models.PROTECT, related_name="detalles")
-    peso_kg = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
+    peso_kg = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
     cantidad_bolsas = models.PositiveIntegerField(null=True, blank=True)
 
     history = HistoricalRecords()
@@ -69,8 +71,8 @@ class EntregaGestor(models.Model):
     )
     gestor_externo = models.ForeignKey("core.GestorExterno", on_delete=models.PROTECT, related_name="entregas")
     numero_factura = models.CharField(max_length=50, blank=True)
-    kg_facturados = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    valor_facturado = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+    kg_facturados = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
+    valor_facturado = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
 
     history = HistoricalRecords()
 

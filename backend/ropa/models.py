@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -31,7 +33,7 @@ class DetalleRopa(models.Model):
     prenda = models.ForeignKey(Prenda, on_delete=models.PROTECT, related_name="detalles")
     cantidad_unidades = models.PositiveIntegerField(null=True, blank=True)
     peso_kg = models.DecimalField(
-        max_digits=8, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)],
+        max_digits=8, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(Decimal("0"))],
         help_text="No aplica a la distribución de ropa limpia, que se registra por prenda y cantidad.",
     )
 

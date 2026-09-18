@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
@@ -173,9 +175,9 @@ class Movimiento(models.Model):
 
 class Pesaje(models.Model):
     movimiento = models.ForeignKey(Movimiento, on_delete=models.PROTECT, related_name="pesajes")
-    peso_total = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
-    tara = models.DecimalField(max_digits=8, decimal_places=2, default=0, validators=[MinValueValidator(0)])
-    peso_neto = models.DecimalField(max_digits=8, decimal_places=2, editable=False, validators=[MinValueValidator(0)])
+    peso_total = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
+    tara = models.DecimalField(max_digits=8, decimal_places=2, default=0, validators=[MinValueValidator(Decimal("0"))])
+    peso_neto = models.DecimalField(max_digits=8, decimal_places=2, editable=False, validators=[MinValueValidator(Decimal("0"))])
     pesado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pesajes")
     cantidad_bolsas = models.PositiveIntegerField(
         null=True, blank=True,
@@ -212,7 +214,7 @@ class Novedad(models.Model):
     movimiento = models.ForeignKey(Movimiento, on_delete=models.PROTECT, related_name="novedades")
     tipo_novedad = models.CharField(max_length=30, choices=TipoNovedad.choices)
     cantidad_afectada = models.DecimalField(
-        max_digits=8, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)],
+        max_digits=8, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(Decimal("0"))],
     )
     observacion = models.TextField(blank=True)
     registrado_por = models.ForeignKey(
@@ -242,7 +244,7 @@ class ValidacionEntrega(models.Model):
     fecha = models.DateField()
     jornada = models.CharField(max_length=10, choices=Jornada.choices)
     peso_declarado = models.DecimalField(
-        max_digits=9, decimal_places=2, validators=[MinValueValidator(0)],
+        max_digits=9, decimal_places=2, validators=[MinValueValidator(Decimal("0"))],
         help_text="Total en kg que el personal contó a mano para la jornada.",
     )
     observacion = models.TextField(blank=True)

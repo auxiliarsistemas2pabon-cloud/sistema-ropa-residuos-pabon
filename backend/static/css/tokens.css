@@ -2,10 +2,10 @@
   /* ---- color ---- */
   --fondo-pagina: #F2F5F6;  /* lienzo de la página — nunca blanco puro */
   --fondo: #FFFFFF;         /* superficies: tarjetas, encabezado, campos */
-  --tinta: #1A1D21;
-  --tinta-suave: #5C636A;
+  --tinta: #000000;
+  --tinta-suave: #000000;
   --linea: #D8DCE0;
-  --acento: #0F5C4A;
+  --acento: #000000;
   --acento-suave: #E6F0ED;
   --alerta: #8A4B0F;
   --alerta-suave: #F5EBE0;

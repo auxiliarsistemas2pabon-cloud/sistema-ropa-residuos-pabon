@@ -19,7 +19,7 @@
       <span class="barra-superior__usuario">
         <span class="barra-superior__nombre">{{ user.get_full_name|default:user.username }}</span>
         <span class="insignia-rol{% if user.es_administradora or user.is_superuser %} insignia-rol--admin{% endif %}">
-          {% if user.es_administradora or user.is_superuser %}Administradora{% else %}Usuario{% endif %}
+          {% if user.es_administradora or user.is_superuser %}Administradora{% else %}{{ user.get_rol_display }}{% endif %}
         </span>
       </span>
       <form method="post" action="{% url 'logout' %}">
@@ -34,6 +34,9 @@
   {% include "componentes/_avisos.html" %}
 
   <main class="contenido">
+    {% if user.is_authenticated and request.resolver_match.url_name != "panel_principal" %}
+      <button type="button" class="boton-volver" data-volver>← Volver</button>
+    {% endif %}
     {% block contenido %}{% endblock %}
   </main>
 

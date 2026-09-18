@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -110,7 +112,7 @@ class GestorExterno(models.Model):
 
     nombre = models.CharField(max_length=150)
     nit = models.CharField(max_length=20, unique=True)
-    tarifa_kg_vigente = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    tarifa_kg_vigente = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
     activo = models.BooleanField(default=True)
 
     history = HistoricalRecords()

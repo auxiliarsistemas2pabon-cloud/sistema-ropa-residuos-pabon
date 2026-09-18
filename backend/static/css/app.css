@@ -49,7 +49,7 @@ body {
   border-radius: 999px;
   line-height: 1;
 }
-.insignia-rol--admin { color: var(--marca-rojo); background: var(--marca-rojo-suave); }
+.insignia-rol--admin { color: var(--acento); background: var(--acento-suave); }
 
 @media (max-width: 479px) {
   .barra-superior { padding: var(--espacio-2) var(--espacio-3); gap: var(--espacio-2); min-height: 60px; }
@@ -162,6 +162,21 @@ p { margin: 0 0 var(--espacio-3); }
   background: none;
   border: none;
 }
+.boton-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 var(--espacio-4);
+  padding: 0;
+  min-height: auto;
+  font: inherit;
+  font-weight: var(--peso-medio);
+  color: var(--acento);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.boton-volver:hover { text-decoration: underline; }
 
 .boton:focus-visible,
 input:focus-visible,

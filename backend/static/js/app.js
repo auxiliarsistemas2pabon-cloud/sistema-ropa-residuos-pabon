@@ -242,11 +242,21 @@
     });
   }
 
+  // --- Botón "Volver" del encabezado (una pantalla atrás) ---
+  function iniciarVolver() {
+    var boton = document.querySelector("[data-volver]");
+    if (!boton) return;
+    boton.addEventListener("click", function () {
+      history.back();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     iniciarPesoNeto();
     iniciarDetallePrendas();
     iniciarFirma();
     iniciarPasos();
     iniciarRecargaPorSede();
+    iniciarVolver();
   });
 })();

@@ -73,3 +73,19 @@ def test_administradora_no_puede_validar_entrega(client, administradora):
     (Usuario y Personal de servicio) — la Administradora ya no captura."""
     client.force_login(administradora)
     assert client.get(reverse("ropa:validacion")).status_code == 403
+
+
+def test_insignia_de_rol_distingue_usuario_de_personal_de_servicio(
+    client, usuario, personal_de_servicio, administradora,
+):
+    """La insignia junto al nombre mostraba "Usuario" para cualquiera que
+    no fuera Administradora — con el rol Personal de servicio hay que
+    mostrar su propia etiqueta, no la genérica de Usuario."""
+    for cuenta, esperado in [
+        (usuario, "Usuario"),
+        (personal_de_servicio, "Personal de servicio"),
+        (administradora, "Administradora"),
+    ]:
+        client.force_login(cuenta)
+        cuerpo = client.get(reverse("panel_principal")).content.decode()
+        assert esperado in cuerpo
