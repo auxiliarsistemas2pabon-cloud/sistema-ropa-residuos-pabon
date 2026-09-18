@@ -300,3 +300,45 @@ def test_los_kg_solo_cuentan_lo_pesado(usuario, entrega_de_servicio):
     assert ropa_por_sede(filtros)[1] == 0  # sin pesar no suma
     Pesaje.objects.create(movimiento=entrega_de_servicio, peso_total=10, tara=2, pesado_por=usuario)
     assert ropa_por_sede(filtros)[1] == 8  # al pesarla, entra a los reportes
+
+
+# --- Quien recibe una entrega contada por el servicio tiene que poder pesarla -----------
+
+def test_el_servicio_solo_puede_elegir_como_quien_recibe_a_un_operario(
+    client, servicio, usuario, otro_operario, administradora, sede, area, prendas,
+):
+    client.force_login(servicio)
+    form = client.get(reverse("ropa:entrega_sucia")).context["form"]
+    ofrecidos = set(form.fields["recibe_por"].queryset)
+    assert ofrecidos == {usuario, otro_operario}  # ni la Administradora ni otro personal de servicio
+
+    for quien in (administradora, servicio):
+        resp = client.post(reverse("ropa:entrega_sucia"), {
+            "sede": sede.pk, "area_origen": area.pk, "recibe_por": quien.pk,
+            "detalles_ropa": _detalles(prendas),
+        })
+        assert resp.status_code == 200 and "recibe_por" in resp.context["form"].errors
+    assert not Movimiento.objects.exists()
+
+
+def test_el_operario_sigue_eligiendo_a_cualquiera_en_lavanderia(client, usuario, servicio, sede, area):
+    client.force_login(usuario)
+    form = client.get(reverse("ropa:entrega_sucia")).context["form"]
+    assert servicio in form.fields["recibe_por"].queryset
+
+
+def test_la_api_rechaza_que_el_servicio_asigne_a_quien_no_pesa(api_client, servicio, administradora, sede, area, prendas):
+    api_client.force_authenticate(user=servicio)
+    resp = api_client.post(reverse("api-entrega-ropa-sucia"), {
+        "sede": sede.pk, "area_origen": area.pk, "recibe_por": administradora.pk,
+        "detalles_ropa": _detalles(prendas),
+    })
+    assert resp.status_code == 400 and "recibe_por" in resp.data
+
+
+def test_directorio_de_usuarios_puede_filtrar_a_quienes_pesan(api_client, servicio, usuario, otro_operario, administradora):
+    api_client.force_authenticate(user=servicio)
+    todos = {u["id"] for u in api_client.get(reverse("api-usuario-activos")).data}
+    quienes_pesan = {u["id"] for u in api_client.get(reverse("api-usuario-activos"), {"pesan": "1"}).data}
+    assert {usuario.pk, otro_operario.pk} == quienes_pesan
+    assert {servicio.pk, administradora.pk} <= todos

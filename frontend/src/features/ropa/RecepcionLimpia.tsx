@@ -53,7 +53,7 @@ export function RecepcionLimpia() {
   const cargaDiferida = watch("cargaDiferida");
 
   const { data: sedes } = useQuery({ queryKey: ["sedes"], queryFn: listarSedes });
-  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: listarUsuariosActivos });
+  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: () => listarUsuariosActivos() });
   const { data: prendas } = useQuery({ queryKey: ["prendas"], queryFn: listarPrendas });
 
   const totalNum = parseFloat(pesoTotal || "0") || 0;

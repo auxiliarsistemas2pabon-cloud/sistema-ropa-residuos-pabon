@@ -72,8 +72,12 @@ export async function listarServicios(params: {
   return data;
 }
 
-export async function listarUsuariosActivos(): Promise<UsuarioActivo[]> {
-  const { data } = await api.get<UsuarioActivo[]>("/usuarios/activos/");
+/** `soloQuienPesa`: únicamente el personal de operación, que es quien puede pesar
+ * (para elegir a quien recibe una entrega que el Personal de servicio solo cuenta). */
+export async function listarUsuariosActivos(soloQuienPesa = false): Promise<UsuarioActivo[]> {
+  const { data } = await api.get<UsuarioActivo[]>("/usuarios/activos/", {
+    params: soloQuienPesa ? { pesan: 1 } : undefined,
+  });
   return data;
 }
 

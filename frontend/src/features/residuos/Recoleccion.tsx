@@ -71,7 +71,7 @@ export function Recoleccion() {
     enabled: Boolean(sedeId),
   });
   const { data: categorias } = useQuery({ queryKey: ["categorias-residuo"], queryFn: listarCategoriasResiduo });
-  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: listarUsuariosActivos });
+  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: () => listarUsuariosActivos() });
 
   const categoriasDelGrupo = categorias?.filter((c) => c.categoria_padre === null && c.grupo === grupo) ?? [];
   const tiposDeLaCategoria = categorias?.filter((c) => c.categoria_padre === Number(categoriaId)) ?? [];

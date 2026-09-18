@@ -56,7 +56,7 @@ export function DistribucionLimpia() {
     enabled: Boolean(sedeId),
   });
   const { data: prendas } = useQuery({ queryKey: ["prendas"], queryFn: listarPrendas });
-  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: listarUsuariosActivos });
+  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: () => listarUsuariosActivos() });
 
   const mutacion = useMutation({
     mutationFn: crearDistribucionRopaLimpia,

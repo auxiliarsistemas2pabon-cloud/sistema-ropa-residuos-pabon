@@ -71,6 +71,10 @@ class UsuarioViewSet(SinBorradoModelViewSet):
         este viewset, cualquier autenticado puede llamarla, no solo
         Administradora."""
         usuarios = Usuario.objects.filter(activo=True).order_by("first_name", "username")
+        if request.query_params.get("pesan") in ("1", "true"):
+            # Solo quienes pueden pesar (personal de operación): para elegir a
+            # quien recibirá una entrega que el Personal de servicio solo cuenta.
+            usuarios = usuarios.filter(rol=Usuario.Rol.USUARIO)
         datos = [
             {"id": u.id, "nombre_completo": u.get_full_name() or u.username}
             for u in usuarios

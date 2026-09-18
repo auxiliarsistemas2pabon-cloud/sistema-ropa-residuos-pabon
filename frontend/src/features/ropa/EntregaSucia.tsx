@@ -68,7 +68,10 @@ export function EntregaSucia() {
     queryFn: () => listarServicios({ sede: Number(sedeId), generaRopa: true }),
     enabled: Boolean(sedeId),
   });
-  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: listarUsuariosActivos });
+  const { data: usuarios } = useQuery({
+    queryKey: ["usuarios-activos", cuentaPrendas],
+    queryFn: () => listarUsuariosActivos(cuentaPrendas),
+  });
   const { data: prendas } = useQuery({ queryKey: ["prendas"], queryFn: listarPrendas });
 
   const totalNum = parseFloat(pesoTotal || "0") || 0;
@@ -296,7 +299,7 @@ export function EntregaSucia() {
             />
           )}
           <div className="campo">
-            <label htmlFor="recibe_por">Recibe</label>
+            <label htmlFor="recibe_por">{cuentaPrendas ? "Recibe (quien la pesa)" : "Recibe"}</label>
             <select id="recibe_por" {...register("recibe_por", { required: "Selecciona quién recibe." })}>
               <option value="">Seleccionar…</option>
               {usuarios?.map((u) => (

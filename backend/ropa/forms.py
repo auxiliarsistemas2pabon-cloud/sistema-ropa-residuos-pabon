@@ -136,6 +136,13 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
         if self.cuenta_prendas:
             for campo in ("peso_total", "tara", "cantidad_bolsas"):
                 del self.fields[campo]
+            # Quien recibe es quien pesa: solo el personal de operación puede
+            # hacerlo, así que nadie más se ofrece (la entrega no quedaría
+            # sin pesar para siempre).
+            self.fields["recibe_por"].queryset = Usuario.objects.filter(
+                activo=True, rol=Usuario.Rol.USUARIO,
+            ).order_by("first_name", "username")
+            self.fields["recibe_por"].label = "Recibe (quien la pesa)"
         sede = self._sede_seleccionada()
         self.fields["area_origen"].queryset = (
             AreaServicio.objects.filter(activo=True, genera_ropa=True, sede=sede).order_by("nombre")
