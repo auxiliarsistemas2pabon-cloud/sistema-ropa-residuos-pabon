@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { listarMovimientosDeHoy } from "../api/movimientos";
+import { listarSedes, listarServicios } from "../api/catalogos";
+import { listarMovimientosDeHoy, type EstadoMovimiento, type TipoMovimiento } from "../api/movimientos";
 import {
   IconoBandejaEntrada,
   IconoCalendario,
@@ -14,6 +16,20 @@ import {
   IconoResiduo,
   IconoTijeras,
 } from "../components/Iconos";
+
+const TIPOS: [TipoMovimiento, string][] = [
+  ["ROPA_SUCIA_ENTREGA", "Entrega de ropa sucia"],
+  ["ROPA_LIMPIA_RECEPCION", "Recepción de ropa limpia"],
+  ["ROPA_LIMPIA_DISTRIBUCION", "Distribución de ropa limpia"],
+  ["RESIDUO_GENERACION", "Generación de residuos"],
+  ["RESIDUO_RECOLECCION", "Recolección de residuos"],
+];
+
+const ESTADOS: [EstadoMovimiento, string][] = [
+  ["BORRADOR", "Borrador"],
+  ["PENDIENTE_CARGA", "Pendiente de carga"],
+  ["CERRADO", "Cerrado"],
+];
 
 function fechaDeHoy(): string {
   const hoy = new Date();
@@ -36,14 +52,43 @@ function fechaLegible(): string {
 export function Panel() {
   const { usuario, esAdministradora } = useAuth();
   const fecha = fechaDeHoy();
-  const { data: movimientos, isLoading } = useQuery({
+  const { data: movimientos, isLoading, isError } = useQuery({
     queryKey: ["movimientos", "hoy", fecha],
     queryFn: () => listarMovimientosDeHoy(fecha),
   });
 
-  const totalMovimientos = movimientos?.length ?? 0;
-  const totalKg = (movimientos ?? []).reduce((acc, m) => acc + (m.peso_neto ? Number(m.peso_neto) : 0), 0);
-  const totalPendientes = (movimientos ?? []).filter((m) => m.estado === "PENDIENTE_CARGA").length;
+  const [sedeId, setSedeId] = useState("");
+  const [servicioId, setServicioId] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [estado, setEstado] = useState("");
+
+  const { data: sedes } = useQuery({ queryKey: ["sedes"], queryFn: listarSedes });
+  // Solo los servicios de la sede elegida; sin sede, no hay servicio que filtrar.
+  const { data: servicios } = useQuery({
+    queryKey: ["servicios", sedeId],
+    queryFn: () => listarServicios({ sede: Number(sedeId) }),
+    enabled: Boolean(sedeId),
+  });
+
+  const hayFiltros = Boolean(sedeId || servicioId || tipo || estado);
+  const visibles = (movimientos ?? []).filter(
+    (m) =>
+      (!sedeId || m.sede === Number(sedeId)) &&
+      (!servicioId || m.area_origen === Number(servicioId)) &&
+      (!tipo || m.tipo_movimiento === tipo) &&
+      (!estado || m.estado === estado),
+  );
+
+  const totalMovimientos = visibles.length;
+  const totalKg = visibles.reduce((acc, m) => acc + (m.peso_neto ? Number(m.peso_neto) : 0), 0);
+  const totalPendientes = visibles.filter((m) => m.estado === "PENDIENTE_CARGA").length;
+
+  function limpiarFiltros() {
+    setSedeId("");
+    setServicioId("");
+    setTipo("");
+    setEstado("");
+  }
 
   return (
     <div className="panel">
@@ -138,7 +183,7 @@ export function Panel() {
         )}
       </section>
 
-      <section className="tarjeta-panel">
+      <section className="tarjeta-panel" id="movimientos">
         <div className="tarjeta-panel__encabezado">
           <h2>Movimientos de hoy</h2>
           <div className="resumen-cifras">
@@ -156,9 +201,72 @@ export function Panel() {
             </div>
           </div>
         </div>
+        <div className="fila-filtro filtro-panel">
+          <div className="campo">
+            <label htmlFor="filtro-sede">Sede</label>
+            <select
+              id="filtro-sede"
+              value={sedeId}
+              onChange={(e) => {
+                setSedeId(e.target.value);
+                setServicioId("");
+              }}
+            >
+              <option value="">Todas</option>
+              {sedes?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="campo">
+            <label htmlFor="filtro-servicio">Servicio</label>
+            <select
+              id="filtro-servicio"
+              value={servicioId}
+              disabled={!sedeId}
+              onChange={(e) => setServicioId(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {servicios?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="campo">
+            <label htmlFor="filtro-tipo">Tipo</label>
+            <select id="filtro-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="">Todos</option>
+              {TIPOS.map(([valor, etiqueta]) => (
+                <option key={valor} value={valor}>
+                  {etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="campo">
+            <label htmlFor="filtro-estado">Estado</label>
+            <select id="filtro-estado" value={estado} onChange={(e) => setEstado(e.target.value)}>
+              <option value="">Todos</option>
+              {ESTADOS.map(([valor, etiqueta]) => (
+                <option key={valor} value={valor}>
+                  {etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+          {hayFiltros && (
+            <button type="button" className="boton boton--texto" onClick={limpiarFiltros}>
+              Limpiar filtros
+            </button>
+          )}
+        </div>
         {isLoading ? (
           <p className="estado-carga">Cargando…</p>
-        ) : movimientos && movimientos.length > 0 ? (
+        ) : visibles.length > 0 ? (
           <table className="tabla tabla-kg">
             <thead>
               <tr>
@@ -170,7 +278,7 @@ export function Panel() {
               </tr>
             </thead>
             <tbody>
-              {movimientos.map((m) => (
+              {visibles.map((m) => (
                 <tr key={m.id}>
                   <td>
                     <Link to={`/movimiento/${m.id}`}>{m.hora.slice(0, 5)}</Link>
@@ -183,8 +291,10 @@ export function Panel() {
               ))}
             </tbody>
           </table>
-        ) : (
-          <p className="vacio">Todavía no hay movimientos hoy.</p>
+        ) : isError ? null : (
+          <p className="vacio">
+            {hayFiltros ? "No hay movimientos de hoy con esos filtros." : "Todavía no hay movimientos hoy."}
+          </p>
         )}
       </section>
     </div>

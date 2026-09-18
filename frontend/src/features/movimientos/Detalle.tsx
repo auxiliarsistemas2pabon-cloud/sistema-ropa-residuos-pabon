@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
+import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { obtenerMovimiento, reportarNovedad } from "../../api/movimientos";
-import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/client";
 
 const NOVEDADES_ROPA: [string, string][] = [
   ["FALTANTE", "Faltante de prendas"],
@@ -57,8 +58,6 @@ function FormularioNovedad({ movimientoId, esRopa, onCancelar }: {
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 
-  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
-
   return (
     <form className="seccion" onSubmit={(e) => void handleSubmit((d) => mutacion.mutate(d))(e)} noValidate>
       {erroresServidor.non_field_errors?.map((mensaje) => (
@@ -85,11 +84,7 @@ function FormularioNovedad({ movimientoId, esRopa, onCancelar }: {
         <textarea id="observacion" {...register("observacion")} />
       </div>
 
-      {erroresCampo.map(([campo, mensajes]) => (
-        <p className="campo__error" key={campo}>
-          {campo}: {mensajes.join(" ")}
-        </p>
-      ))}
+      <ErroresCampoServidor errores={erroresServidor} />
 
       <button type="submit" className="boton" disabled={isSubmitting || mutacion.isPending}>
         {mutacion.isPending ? "Guardando…" : "Guardar novedad"}
@@ -104,23 +99,24 @@ function FormularioNovedad({ movimientoId, esRopa, onCancelar }: {
 export function DetalleMovimiento() {
   const { id } = useParams();
   const [mostrarFormNovedad, setMostrarFormNovedad] = useState(false);
-  const { data: movimiento, isLoading } = useQuery({
+  const { data: movimiento, isLoading, error } = useQuery({
     queryKey: ["movimiento", id],
     queryFn: () => obtenerMovimiento(Number(id)),
     enabled: Boolean(id),
   });
 
   if (isLoading) return <p className="estado-carga">Cargando…</p>;
-  if (!movimiento) return <p className="vacio">No se encontró el movimiento.</p>;
+  // Si falló por otra causa, el aviso general de la pantalla ya lo explica.
+  if (!movimiento) return esNoEncontrado(error) ? <p className="vacio">No se encontró el movimiento.</p> : null;
 
   return (
     <>
       <div className="titulo-reporte">
         <h1>{movimiento.tipo_movimiento_display}</h1>
         {movimiento.puede_editar && (
-          <button type="button" className="boton boton--texto">
+          <Link className="boton boton--texto" to={`/movimiento/${movimiento.id}/corregir`}>
             Corregir
-          </button>
+          </Link>
         )}
       </div>
 
@@ -285,7 +281,8 @@ export function DetalleMovimiento() {
           {movimiento.novedades.map((n) => (
             <li key={n.id}>
               <strong>{n.tipo_novedad_display}</strong>
-              {n.cantidad_afectada && ` · ${n.cantidad_afectada} kg`}
+              {n.cantidad_afectada &&
+                ` · ${n.tipo_novedad === "DIFERENCIA_PESO" ? `${n.cantidad_afectada} kg` : `cantidad afectada: ${n.cantidad_afectada}`}`}
               {n.observacion && ` · ${n.observacion}`}
             </li>
           ))}

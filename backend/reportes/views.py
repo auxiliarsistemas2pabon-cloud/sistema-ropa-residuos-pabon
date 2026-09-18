@@ -3,8 +3,11 @@ from datetime import date
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.text import slugify
 
 from core.decorators import solo_administradora
+from core.models import Sede
+from residuos.models import GrupoResiduo
 
 from .exportadores import libro_de_tabla
 from .filters import FiltroConsolidado
@@ -30,6 +33,18 @@ def _mes_pedido(request):
     except (ValueError, TypeError):
         hoy = timezone.localdate()
         return hoy.year, hoy.month
+
+
+def _sede_pedida(request):
+    """Id de la sede pedida en `?sede=` (solo el RH1 la usa) o None. Un valor
+    que no sea un número se ignora en vez de romper la consulta."""
+    crudo = request.GET.get("sede") or ""
+    return int(crudo) if crudo.isdigit() else None
+
+
+def _grupo(codigo):
+    """Nombre legible de un grupo de residuo (los reportes traen el código)."""
+    return GrupoResiduo(codigo).label if codigo in GrupoResiduo.values else codigo
 
 
 def _texto(v):
@@ -62,7 +77,7 @@ def _rep_ropa_por_sede(f):
 
 def _rep_residuos_por_categoria(f):
     filas, total_no_peligrosos = residuos_por_categoria(f)
-    datos = [[_texto(x["categoria_residuo__grupo"]), _texto(x["categoria_residuo__nombre"]), _num(x["kg"])]
+    datos = [[_texto(_grupo(x["categoria_residuo__grupo"])), _texto(x["categoria_residuo__nombre"]), _num(x["kg"])]
              for x in filas]
     datos.append([_texto(""), _texto("Total no peligrosos"), _num(total_no_peligrosos)])
     return "Residuos por categoría", ["Grupo", "Categoría", "kg"], datos
@@ -88,7 +103,7 @@ def _rep_por_jornada(f):
 
 def _rep_corte_peligrosos(f):
     fecha, filas, total = corte_peligrosos(f)
-    datos = [[_texto(x["categoria_residuo__grupo"]), _texto(x["categoria_residuo__nombre"]), _num(x["kg"])]
+    datos = [[_texto(_grupo(x["categoria_residuo__grupo"])), _texto(x["categoria_residuo__nombre"]), _num(x["kg"])]
              for x in filas]
     datos.append([_texto(""), _texto("Total del corte"), _num(total)])
     return f"Corte de peligrosos ({fecha:%d-%m-%Y})", ["Grupo", "Categoría", "kg"], datos
@@ -151,8 +166,13 @@ def ambiental_facturacion(request):
 
 @solo_administradora
 def exportar_rh1(request):
+    """El Excel lleva lo mismo que se ve en pantalla: si se eligió una sede,
+    solo esa sede (y su nombre queda en el archivo)."""
     anio, mes = _mes_pedido(request)
-    datos = rh1_del_mes(anio, mes)
+    sede_id = _sede_pedida(request)
+    datos = rh1_del_mes(anio, mes, sede=sede_id)
+    sede = Sede.objects.filter(pk=sede_id).first() if sede_id else None
+    sufijo = f"_{slugify(sede.nombre)}" if sede else ""
     columnas = ["Fecha"] + [c.nombre for c in datos["columnas"]] + ["Total día"]
     filas = [
         [f["fecha"].isoformat()] + [c for c in f["celdas"]] + [f["total"]]
@@ -161,7 +181,7 @@ def exportar_rh1(request):
     filas.append(["Total mes"] + list(datos["totales_columna"]) + [datos["total_mes"]])
     return _respuesta_xlsx(
         libro_de_tabla(f"RH1 {anio}-{mes:02d}", columnas, filas, num_desde=1),
-        f"rh1_{anio}-{mes:02d}",
+        f"rh1_{anio}-{mes:02d}{sufijo}",
     )
 
 

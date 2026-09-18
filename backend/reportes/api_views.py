@@ -16,7 +16,7 @@ from .services import (
     ropa_por_sede,
     ropa_por_servicio,
 )
-from .views import _mes_pedido
+from .views import _mes_pedido, _sede_pedida
 
 # Los consolidados que devuelven (filas, total) o (fecha, filas, total) en vez
 # de una lista plana — el resto normaliza a {"filas": [...]}.
@@ -63,7 +63,7 @@ class RH1APIView(APIView):
 
     def get(self, request):
         anio, mes = _mes_pedido(request)
-        datos = rh1_del_mes(anio, mes, sede=request.query_params.get("sede") or None)
+        datos = rh1_del_mes(anio, mes, sede=_sede_pedida(request))
         return Response({
             "columnas": ColumnaRH1Serializer(datos["columnas"], many=True).data,
             "filas": datos["filas"],

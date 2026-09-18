@@ -11,8 +11,16 @@ from django.views.decorators.http import require_POST
 from movimientos.models import EstadoMovimiento, Movimiento, Pesaje
 
 from .decorators import solo_administradora
-from .forms import AreaServicioForm, ConfiguracionForm, GestorExternoForm, SedeForm, UsuarioForm
+from .forms import (
+    AreaServicioForm,
+    ConfiguracionForm,
+    FiltroMovimientosPanel,
+    GestorExternoForm,
+    SedeForm,
+    UsuarioForm,
+)
 from .models import AreaServicio, GestorExterno, Sede
+from .services import bloqueo_de_cuenta
 
 Usuario = get_user_model()
 
@@ -21,13 +29,17 @@ Usuario = get_user_model()
 def panel_principal(request):
     """Pantalla 2: cuatro accesos grandes y los movimientos de hoy."""
     hoy = timezone.localdate()
-    movimientos_hoy = (
+    filtro = FiltroMovimientosPanel(request.GET or None)
+    movimientos_hoy = filtro.filtrar(
         Movimiento.objects.filter(fecha=hoy)
         .select_related("sede", "area_origen")
         .prefetch_related("pesajes")
         .order_by("-hora")
     )
-    kg_hoy = Pesaje.objects.filter(movimiento__fecha=hoy).aggregate(total=Sum("peso_neto"))["total"] or 0
+    kg_hoy = (
+        Pesaje.objects.filter(movimiento__in=movimientos_hoy.values("pk")).aggregate(total=Sum("peso_neto"))["total"]
+        or 0
+    )
     pendientes_hoy = movimientos_hoy.filter(estado=EstadoMovimiento.PENDIENTE_CARGA).count()
     return render(
         request,
@@ -37,6 +49,7 @@ def panel_principal(request):
             "hoy": hoy,
             "kg_hoy": kg_hoy,
             "pendientes_hoy": pendientes_hoy,
+            "filtro": filtro,
         },
     )
 
@@ -122,8 +135,29 @@ def alternar_activo(request, modelo, pk):
     if Modelo is None:
         raise Http404
     obj = get_object_or_404(Modelo, pk=pk)
+    if Modelo is Usuario:
+        bloqueo = bloqueo_de_cuenta(request.user, obj, activo=not obj.activo)
+        if bloqueo:
+            messages.error(request, bloqueo[1])
+            return redirect("catalogos_parametros")
     obj.activo = not obj.activo
     obj.save(update_fields=["activo"])
+    return redirect("catalogos_parametros")
+
+
+@solo_administradora
+@require_POST
+def renombrar_sede(request, pk):
+    """Corrige el nombre de una sede (p. ej. al pasar de "Centro" al nombre
+    completo). Los movimientos ya registrados la siguen apuntando: el cambio
+    se ve en todos, y queda en el historial de la sede."""
+    sede = get_object_or_404(Sede, pk=pk)
+    formulario = SedeForm(request.POST, instance=sede)
+    if formulario.is_valid():
+        formulario.save()
+        messages.success(request, f"Sede renombrada: {sede.nombre}.")
+    else:
+        messages.error(request, " ".join(formulario.errors.get("nombre", ["Nombre no válido."])))
     return redirect("catalogos_parametros")
 
 
@@ -133,6 +167,10 @@ def cambiar_rol(request, pk):
     usuario = get_object_or_404(Usuario, pk=pk)
     rol = request.POST.get("rol")
     if rol in dict(Usuario.Rol.choices):
+        bloqueo = bloqueo_de_cuenta(request.user, usuario, rol=rol)
+        if bloqueo:
+            messages.error(request, bloqueo[1])
+            return redirect("catalogos_parametros")
         usuario.rol = rol
         usuario.save(update_fields=["rol"])
     return redirect("catalogos_parametros")

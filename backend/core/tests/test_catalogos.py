@@ -10,7 +10,9 @@ pytestmark = pytest.mark.django_db
 
 
 def test_sedes():
-    assert set(Sede.objects.values_list("nombre", flat=True)) == {"Clínica", "Especialidades", "Centro"}
+    assert set(Sede.objects.values_list("nombre", flat=True)) == {
+        "Clínica Pabón", "Especialidades Pabón", "Centro de Cuidados",
+    }
 
 
 def test_colores():
@@ -32,7 +34,7 @@ def test_areas_con_sus_colores():
 def test_servicios_de_centro_completos_segun_fr_sig_86():
     # El FR-SIG-86 (0009) agrega UCI 5, Imágenes diagnósticas y Ambulancia
     # a los 10 servicios del comunicado de clasificación por sede (0007).
-    centro = Sede.objects.get(nombre="Centro")
+    centro = Sede.objects.get(nombre="Centro de Cuidados")
     nombres = set(AreaServicio.objects.filter(sede=centro, activo=True).values_list("nombre", flat=True))
     assert {"UCI Adultos – 5.º piso", "Imágenes diagnósticas", "Ambulancia"} <= nombres
     assert len(nombres) == 13

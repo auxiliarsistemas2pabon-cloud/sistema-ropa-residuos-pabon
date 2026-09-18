@@ -4,8 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
-import { DetallePrendas, type DetallePrendaItem } from "../../components/DetallePrendas";
+import { DetallePrendas, prendasSinCantidad, type DetallePrendaItem } from "../../components/DetallePrendas";
 import { Firma } from "../../components/Firma";
+import { ErrorCampo } from "../../components/ErrorCampo";
+import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarUsuariosActivos } from "../../api/catalogos";
 import { crearRecepcionRopaLimpia } from "../../api/ropa";
@@ -35,6 +37,7 @@ export function RecepcionLimpia() {
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
   const [detalles, setDetalles] = useState<DetallePrendaItem[]>([]);
+  const [errorDetalles, setErrorDetalles] = useState("");
   const [firmaEntrega, setFirmaEntrega] = useState("");
 
   const {
@@ -42,7 +45,7 @@ export function RecepcionLimpia() {
     handleSubmit,
     watch,
     trigger,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<DatosFormulario>({ defaultValues: { tara: "0", cargaDiferida: false } });
 
   const pesoTotal = watch("peso_total");
@@ -70,8 +73,8 @@ export function RecepcionLimpia() {
       1: ["sede"],
       2: ["peso_total"],
     };
-    const validos = await trigger(camposDelPaso[paso] ?? []);
-    if (validos && !(paso === 2 && (taraInvalida || sinPeso))) {
+    const validos = await trigger(camposDelPaso[paso] ?? [], { shouldFocus: true });
+    if (validos && !(paso === 2 && taraInvalida)) {
       setPaso((p) => Math.min(p + 1, 3));
     }
   }
@@ -82,12 +85,17 @@ export function RecepcionLimpia() {
 
   function onSubmit(datos: DatosFormulario) {
     setErroresServidor({});
-    const detallesValidos = detalles.filter((d) => d.cantidad_unidades >= 1);
+    const incompletas = prendasSinCantidad(detalles, prendas);
+    if (incompletas.length > 0) {
+      setErrorDetalles(`Indica una cantidad de al menos 1 para: ${incompletas.join(", ")}.`);
+      return;
+    }
+    setErrorDetalles("");
     mutacion.mutate({
       sede: Number(datos.sede),
       peso_total: datos.peso_total,
       tara: datos.tara || "0",
-      ...(detallesValidos.length > 0 ? { detalles_ropa: JSON.stringify(detallesValidos) } : {}),
+      ...(detalles.length > 0 ? { detalles_ropa: JSON.stringify(detalles) } : {}),
       entrega_por: Number(datos.entrega_por),
       ...(firmaEntrega ? { firma_entrega: firmaEntrega } : {}),
       observaciones: datos.observaciones,
@@ -96,13 +104,21 @@ export function RecepcionLimpia() {
     });
   }
 
-  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
+  function alEnviar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // Enter en un paso intermedio avanza al siguiente; solo el último guarda.
+    if (paso < 3) {
+      void irSiguiente();
+      return;
+    }
+    void handleSubmit(onSubmit)(e);
+  }
 
   return (
     <>
       <h1>Recibir ropa limpia</h1>
       <Stepper pasos={PASOS} actual={paso} />
-      <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
+      <form onSubmit={alEnviar} noValidate>
         {erroresServidor.non_field_errors?.map((mensaje) => (
           <Aviso error key={mensaje}>
             {mensaje}
@@ -113,7 +129,7 @@ export function RecepcionLimpia() {
           <p className="paso__titulo">Paso 1 de 3 · Origen</p>
           <div className="campo">
             <label htmlFor="sede">Sede</label>
-            <select id="sede" {...register("sede", { required: true })}>
+            <select id="sede" {...register("sede", { required: "Selecciona la sede." })}>
               <option value="">Seleccionar…</option>
               {sedes?.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -121,6 +137,7 @@ export function RecepcionLimpia() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.sede} />
           </div>
           <p className="campo__ayuda">
             Se enlaza sola con las entregas de ropa sucia de esta jornada y compara los kg enviados
@@ -141,8 +158,12 @@ export function RecepcionLimpia() {
               step="0.01"
               min="0"
               inputMode="decimal"
-              {...register("peso_total", { required: true })}
+              {...register("peso_total", {
+                required: "Ingresa el peso total en kg.",
+                validate: (v) => parseFloat(v) > 0 || "El peso total debe ser mayor a 0.",
+              })}
             />
+            <ErrorCampo error={errors.peso_total} />
           </div>
           <div className="campo">
             <label htmlFor="tara">Tara (kg)</label>
@@ -157,7 +178,7 @@ export function RecepcionLimpia() {
               {taraInvalida || sinPeso ? "—" : `${pesoNeto.toFixed(2)} kg`}
             </p>
           </div>
-          <button type="button" className="boton" disabled={taraInvalida || sinPeso} onClick={() => void irSiguiente()}>
+          <button type="button" className="boton" disabled={taraInvalida} onClick={() => void irSiguiente()}>
             Continuar →
           </button>
           <button type="button" className="boton boton--texto" onClick={irAnterior}>
@@ -185,11 +206,15 @@ export function RecepcionLimpia() {
             etiqueta="Tipo de ropa (opcional, si se controla por unidades)"
             prendas={prendas}
             valor={detalles}
-            onCambiar={setDetalles}
+            onCambiar={(siguiente) => {
+              setDetalles(siguiente);
+              setErrorDetalles("");
+            }}
+            error={errorDetalles}
           />
           <div className="campo">
             <label htmlFor="entrega_por">Entrega</label>
-            <select id="entrega_por" {...register("entrega_por", { required: true })}>
+            <select id="entrega_por" {...register("entrega_por", { required: "Selecciona quién entrega." })}>
               <option value="">Seleccionar…</option>
               {usuarios?.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -197,6 +222,7 @@ export function RecepcionLimpia() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.entrega_por} />
           </div>
           <Firma etiqueta="Firma de quien entrega" onCambiar={setFirmaEntrega} />
           <div className="campo">
@@ -229,11 +255,7 @@ export function RecepcionLimpia() {
             )}
           </details>
 
-          {erroresCampo.map(([campo, mensajes]) => (
-            <p className="campo__error" key={campo}>
-              {campo}: {mensajes.join(" ")}
-            </p>
-          ))}
+          <ErroresCampoServidor errores={erroresServidor} />
 
           <button type="submit" className="boton" disabled={isSubmitting || mutacion.isPending}>
             {mutacion.isPending ? "Guardando…" : "Guardar recepción"}

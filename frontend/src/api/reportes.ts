@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { API_URL, api } from "./client";
 
 export type ClaveConsolidado =
   | "ropa_por_servicio"
@@ -110,7 +110,7 @@ export async function obtenerFacturacionConciliacion(mes: string): Promise<FilaC
 }
 
 function urlExport(path: string, params: Record<string, string | number | undefined>): string {
-  const base = (import.meta.env.VITE_API_URL ?? "http://localhost:8000/api") as string;
+  const base = API_URL;
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== "") qs.set(k, String(v));
@@ -122,8 +122,8 @@ function urlExport(path: string, params: Record<string, string | number | undefi
 export function urlExportarConsolidado(clave: ClaveConsolidado, filtros: FiltrosConsolidado): string {
   return urlExport(`/consolidados/exportar/${clave}.xlsx`, filtros as Record<string, string | number | undefined>);
 }
-export function urlExportarRH1(mes: string): string {
-  return urlExport("/rh1/exportar.xlsx", { mes });
+export function urlExportarRH1(mes: string, sede?: number): string {
+  return urlExport("/rh1/exportar.xlsx", { mes, sede });
 }
 export function urlExportarFacturacion(mes: string): string {
   return urlExport("/facturacion/resumen/exportar.xlsx", { mes });

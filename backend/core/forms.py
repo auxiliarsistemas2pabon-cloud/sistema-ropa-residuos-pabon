@@ -1,9 +1,56 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
+from movimientos.models import EstadoMovimiento, TipoMovimiento
+
 from .models import AreaServicio, GestorExterno, Sede
 
 Usuario = get_user_model()
+
+
+class FiltroMovimientosPanel(forms.Form):
+    """Filtros del panel «Movimientos de hoy»: sede, servicio (solo los de la
+    sede elegida), tipo y estado. Todos opcionales y combinables."""
+
+    sede = forms.ModelChoiceField(
+        queryset=Sede.objects.filter(activo=True).order_by("nombre"),
+        required=False, label="Sede", empty_label="Todas",
+    )
+    servicio = forms.ModelChoiceField(
+        queryset=AreaServicio.objects.none(), required=False, label="Servicio", empty_label="Todos",
+    )
+    tipo = forms.ChoiceField(
+        choices=[("", "Todos")] + list(TipoMovimiento.choices), required=False, label="Tipo",
+    )
+    estado = forms.ChoiceField(
+        choices=[("", "Todos")] + list(EstadoMovimiento.choices), required=False, label="Estado",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        servicios = AreaServicio.objects.filter(activo=True)
+        sede_id = self.data.get("sede") if self.is_bound else None
+        if str(sede_id or "").isdigit():
+            servicios = servicios.filter(sede_id=int(sede_id))
+        self.fields["servicio"].queryset = servicios.order_by("sede__nombre", "nombre")
+
+    @property
+    def hay_filtros(self):
+        return self.is_bound and self.is_valid() and any(self.cleaned_data.values())
+
+    def filtrar(self, movimientos):
+        if not self.hay_filtros:
+            return movimientos
+        d = self.cleaned_data
+        if d.get("sede"):
+            movimientos = movimientos.filter(sede=d["sede"])
+        if d.get("servicio"):
+            movimientos = movimientos.filter(area_origen=d["servicio"])
+        if d.get("tipo"):
+            movimientos = movimientos.filter(tipo_movimiento=d["tipo"])
+        if d.get("estado"):
+            movimientos = movimientos.filter(estado=d["estado"])
+        return movimientos
 
 
 class SedeForm(forms.ModelForm):

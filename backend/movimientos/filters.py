@@ -43,3 +43,12 @@ class NovedadFilter(django_filters.FilterSet):
     class Meta:
         model = Novedad
         fields = []
+
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(data, *args, **kwargs)
+        # Con una sede elegida, solo se ofrecen los servicios de esa sede.
+        sede_id = (data or {}).get("sede")
+        if str(sede_id or "").isdigit():
+            self.filters["servicio"].queryset = AreaServicio.objects.filter(
+                sede_id=int(sede_id),
+            ).order_by("nombre")

@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
 import type { Prenda } from "../api/catalogos";
 
 export interface DetallePrendaItem {
   prenda: number;
-  cantidad_unidades: number;
+  /** null mientras la casilla de cantidad está vacía (aún no la escribieron). */
+  cantidad_unidades: number | null;
   /** Peso en kg de esta prenda dentro de la entrega/recepción, opcional. */
   peso_kg?: number;
 }
@@ -12,13 +14,30 @@ interface Props {
   prendas: Prenda[] | undefined;
   valor: DetallePrendaItem[];
   onCambiar: (siguiente: DetallePrendaItem[]) => void;
+  /** Mensaje de validación del formulario que la contiene (p. ej. faltan cantidades). */
+  error?: string;
+}
+
+/** Nombres de las prendas marcadas cuya cantidad falta o es menor a 1: hay que
+ * pedirlas al guardar, no descartarlas en silencio. */
+export function prendasSinCantidad(valor: DetallePrendaItem[], prendas: Prenda[] | undefined): string[] {
+  return valor
+    .filter((i) => i.cantidad_unidades === null || i.cantidad_unidades < 1)
+    .map((i) => prendas?.find((p) => p.id === i.prenda)?.nombre ?? `Prenda ${i.prenda}`);
 }
 
 /** Selección múltiple de prendas con cantidad y peso cada una (RF-011/012):
  * checklist donde cada prenda es una fila con casilla + cantidad + peso en
  * kg en la misma fila — espejo del widget vanilla JS de las plantillas
  * Django (iniciarDetallePrendas en static/js/app.js). */
-export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
+export function DetallePrendas({ etiqueta, prendas, valor, onCambiar, error }: Props) {
+  const raizRef = useRef<HTMLDivElement>(null);
+
+  // El mensaje aparece en medio de un formulario largo: se lleva a la vista.
+  useEffect(() => {
+    if (error) raizRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error]);
+
   function itemDe(prendaId: number): DetallePrendaItem | undefined {
     return valor.find((i) => i.prenda === prendaId);
   }
@@ -37,9 +56,10 @@ export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
   }
 
   function alCambiarCantidad(prendaId: number, texto: string) {
+    // Vacío no es 0: se puede borrar y volver a escribir sin que salte un "0".
     const cantidad = parseInt(texto, 10);
     onCambiar(
-      valor.map((i) => (i.prenda === prendaId ? { ...i, cantidad_unidades: cantidad >= 1 ? cantidad : 0 } : i)),
+      valor.map((i) => (i.prenda === prendaId ? { ...i, cantidad_unidades: Number.isNaN(cantidad) ? null : cantidad } : i)),
     );
   }
 
@@ -51,7 +71,7 @@ export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
   }
 
   return (
-    <div className="detalle-prendas">
+    <div className="detalle-prendas" ref={raizRef}>
       <p className="detalle-prendas__etiqueta">{etiqueta}</p>
       <ul className="detalle-prendas__checklist">
         {prendas?.map((p) => {
@@ -95,6 +115,11 @@ export function DetallePrendas({ etiqueta, prendas, valor, onCambiar }: Props) {
           );
         })}
       </ul>
+      {error && (
+        <p className="campo__error" role="alert">
+          {error}
+        </p>
+      )}
       <p className="campo__ayuda">
         Marca las prendas que necesites y escribe la cantidad y, si la pesas por separado, el
         peso en kg de cada una. Es opcional — solo si necesitas control por unidades o por peso

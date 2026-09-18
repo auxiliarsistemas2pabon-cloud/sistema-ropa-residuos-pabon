@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
-import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { useAuth } from "../../auth/AuthContext";
+import { pesos } from "../../util/formatos";
+import { erroresDeCampo, mensajeDeError, type ErroresDeCampo } from "../../api/client";
 import {
   actualizarConfiguracion,
   actualizarGestor,
@@ -29,6 +31,7 @@ function SedesSeccion() {
   const qc = useQueryClient();
   const [nombre, setNombre] = useState("");
   const [errores, setErrores] = useState<ErroresDeCampo>({});
+  const [editando, setEditando] = useState<{ id: number; nombre: string } | null>(null);
   const { data: sedes, isLoading } = useQuery({ queryKey: ["catalogo-sedes"], queryFn: listarTodasLasSedes });
 
   const crear = useMutation({
@@ -40,10 +43,22 @@ function SedesSeccion() {
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarSede(id, { activo }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-sedes"] }),
   });
+  // Los movimientos ya registrados siguen apuntando a la misma sede: al
+  // renombrarla, el nombre nuevo se ve en todos.
+  const renombrar = useMutation({
+    mutationFn: ({ id, nombre: nuevo }: { id: number; nombre: string }) => actualizarSede(id, { nombre: nuevo }),
+    onSuccess: () => {
+      setEditando(null);
+      void qc.invalidateQueries({ queryKey: ["catalogo-sedes"] });
+      void qc.invalidateQueries({ queryKey: ["sedes"] });
+    },
+  });
 
   return (
     <section className="tarjeta-panel">
       <h2>Sedes</h2>
+      {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
+      {renombrar.isError && <Aviso error>{mensajeDeError(renombrar.error)}</Aviso>}
       {isLoading ? (
         <p className="estado-carga">Cargando…</p>
       ) : (
@@ -53,7 +68,46 @@ function SedesSeccion() {
             <tbody>
               {sedes?.map((s: Sede) => (
                 <tr key={s.id}>
-                  <td>{s.nombre}</td>
+                  <td>
+                    {editando?.id === s.id ? (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (editando.nombre.trim()) renombrar.mutate({ id: s.id, nombre: editando.nombre.trim() });
+                        }}
+                      >
+                        <input
+                          className="entrada-en-tabla"
+                          value={editando.nombre}
+                          maxLength={100}
+                          required
+                          aria-label={`Nuevo nombre de ${s.nombre}`}
+                          onChange={(e) => setEditando({ id: s.id, nombre: e.target.value })}
+                        />{" "}
+                        <button type="submit" className="boton boton--texto" disabled={renombrar.isPending}>
+                          Guardar
+                        </button>
+                        <button type="button" className="boton boton--texto" onClick={() => setEditando(null)}>
+                          Cancelar
+                        </button>
+                      </form>
+                    ) : (
+                      <>
+                        {s.nombre}{" "}
+                        <button
+                          type="button"
+                          className="boton boton--texto"
+                          aria-label={`Renombrar ${s.nombre}`}
+                          onClick={() => {
+                            renombrar.reset();
+                            setEditando({ id: s.id, nombre: s.nombre });
+                          }}
+                        >
+                          Renombrar
+                        </button>
+                      </>
+                    )}
+                  </td>
                   <td>
                     <input type="checkbox" checked={s.activo} onChange={(e) => toggle.mutate({ id: s.id, activo: e.target.checked })} />
                   </td>
@@ -102,6 +156,7 @@ function ServiciosSeccion() {
   return (
     <section className="tarjeta-panel">
       <h2>Servicios</h2>
+      {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {isLoading ? (
         <p className="estado-carga">Cargando…</p>
       ) : (
@@ -159,7 +214,7 @@ function GestoresSeccion() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ nombre: "", nit: "", tarifa_kg_vigente: "" });
   const [errores, setErrores] = useState<ErroresDeCampo>({});
-  const { data: gestores, isLoading } = useQuery({ queryKey: ["catalogo-gestores"], queryFn: listarTodosLosGestores });
+  const { data: gestores, isLoading, isError } = useQuery({ queryKey: ["catalogo-gestores"], queryFn: listarTodosLosGestores });
 
   const crear = useMutation({
     mutationFn: () => crearGestor({ nombre: form.nombre, nit: form.nit, tarifa_kg_vigente: form.tarifa_kg_vigente }),
@@ -174,10 +229,11 @@ function GestoresSeccion() {
   return (
     <section className="tarjeta-panel">
       <h2>Gestores externos</h2>
+      {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {isLoading ? (
         <p className="estado-carga">Cargando…</p>
       ) : !gestores?.length ? (
-        <p className="vacio">Todavía no hay gestores externos registrados.</p>
+        isError ? null : <p className="vacio">Todavía no hay gestores externos registrados.</p>
       ) : (
         <div className="tabla-envoltura">
           <table className="tabla tabla-kg">
@@ -187,7 +243,7 @@ function GestoresSeccion() {
                 <tr key={g.id}>
                   <td>{g.nombre}</td>
                   <td>{g.nit}</td>
-                  <td className="num cifra-kg">{g.tarifa_kg_vigente ?? "—"}</td>
+                  <td className="num cifra-kg">{g.tarifa_kg_vigente ? pesos(g.tarifa_kg_vigente) : "—"}</td>
                   <td>
                     <input type="checkbox" checked={g.activo} onChange={(e) => toggle.mutate({ id: g.id, activo: e.target.checked })} />
                   </td>
@@ -231,6 +287,7 @@ const ROLES: [Rol, string][] = [
 
 function UsuariosSeccion() {
   const qc = useQueryClient();
+  const { usuario: yo } = useAuth();
   const [form, setForm] = useState({ username: "", first_name: "", last_name: "", documento: "", rol: "USUARIO" as Rol, password: "" });
   const [errores, setErrores] = useState<ErroresDeCampo>({});
   const { data: usuarios, isLoading } = useQuery({ queryKey: ["catalogo-usuarios"], queryFn: listarTodosLosUsuarios });
@@ -255,6 +312,8 @@ function UsuariosSeccion() {
   return (
     <section className="tarjeta-panel">
       <h2>Usuarios</h2>
+      {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
+      {cambiarRol.isError && <Aviso error>{mensajeDeError(cambiarRol.error)}</Aviso>}
       {isLoading ? (
         <p className="estado-carga">Cargando…</p>
       ) : (
@@ -268,12 +327,25 @@ function UsuariosSeccion() {
                   <td>{u.first_name} {u.last_name}</td>
                   <td>{u.documento ?? "—"}</td>
                   <td>
-                    <select value={u.rol} onChange={(e) => cambiarRol.mutate({ id: u.id, rol: e.target.value as Rol })}>
+                    <select
+                      value={u.rol}
+                      disabled={u.id === yo?.id}
+                      title={u.id === yo?.id ? "No puedes cambiar tu propio rol; pídeselo a otra Administradora." : undefined}
+                      aria-label={`Rol de ${u.username}`}
+                      onChange={(e) => cambiarRol.mutate({ id: u.id, rol: e.target.value as Rol })}
+                    >
                       {ROLES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
                     </select>
                   </td>
                   <td>
-                    <input type="checkbox" checked={u.activo} onChange={(e) => toggle.mutate({ id: u.id, activo: e.target.checked })} />
+                    <input
+                      type="checkbox"
+                      checked={u.activo}
+                      disabled={u.id === yo?.id}
+                      title={u.id === yo?.id ? "No puedes desactivar tu propia cuenta." : undefined}
+                      aria-label={`Activo: ${u.username}`}
+                      onChange={(e) => toggle.mutate({ id: u.id, activo: e.target.checked })}
+                    />
                   </td>
                 </tr>
               ))}

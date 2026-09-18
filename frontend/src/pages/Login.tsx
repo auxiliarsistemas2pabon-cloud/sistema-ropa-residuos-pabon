@@ -11,7 +11,7 @@ interface DatosLogin {
 }
 
 export function Login() {
-  const { usuario, iniciarSesion } = useAuth();
+  const { usuario, sesionExpirada, iniciarSesion } = useAuth();
   const location = useLocation();
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const {
@@ -61,6 +61,9 @@ export function Login() {
         <p className="login-tarjeta__subtitulo">Ingresa tus credenciales de acceso</p>
 
         <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
+          {sesionExpirada && !errorGeneral && (
+            <Aviso error>Tu sesión se cerró por inactividad. Ingresa de nuevo para continuar.</Aviso>
+          )}
           {errorGeneral && <Aviso error>{errorGeneral}</Aviso>}
           <div className="campo">
             <label htmlFor="username">Usuario</label>

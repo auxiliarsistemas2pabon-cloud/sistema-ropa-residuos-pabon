@@ -10,7 +10,7 @@ function fechaLegible(iso: string): string {
 }
 
 export function DiaAnterior() {
-  const { data, isLoading } = useQuery({ queryKey: ["dia-anterior"], queryFn: obtenerDiaAnterior });
+  const { data, isLoading, isError } = useQuery({ queryKey: ["dia-anterior"], queryFn: obtenerDiaAnterior });
 
   return (
     <>
@@ -29,7 +29,7 @@ export function DiaAnterior() {
 
       {isLoading ? (
         <p className="estado-carga">Cargando…</p>
-      ) : (
+      ) : isError ? null : (
         <>
           <h2>Movimientos</h2>
           {data && data.movimientos.length > 0 ? (

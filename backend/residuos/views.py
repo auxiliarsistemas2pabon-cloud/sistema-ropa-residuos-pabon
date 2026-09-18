@@ -28,7 +28,8 @@ def _registrar(request, form_class, plantilla, url_exito):
             )
             return redirect(url_exito)
     else:
-        form = form_class(usuario=request.user)
+        inicial = {"sede": request.GET["sede"]} if request.GET.get("sede") else {}
+        form = form_class(initial=inicial, usuario=request.user)
     return render(request, plantilla, {"form": form})
 
 

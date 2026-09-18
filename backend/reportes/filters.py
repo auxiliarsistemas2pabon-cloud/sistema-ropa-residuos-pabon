@@ -22,6 +22,15 @@ class FiltroConsolidado(forms.Form):
         required=False, choices=[("", "Todas")] + list(Jornada.choices), label="Jornada",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Con una sede elegida, solo se ofrecen los servicios de esa sede.
+        sede_id = self.data.get("sede") if self.is_bound else None
+        if str(sede_id or "").isdigit():
+            self.fields["servicio"].queryset = AreaServicio.objects.filter(
+                sede_id=int(sede_id),
+            ).order_by("nombre")
+
     def limpio(self):
         """Devuelve el dict de filtros ya resuelto (el mes tiene prioridad y
         fija desde/hasta)."""

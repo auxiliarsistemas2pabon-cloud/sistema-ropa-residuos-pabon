@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { listarSedes } from "../../api/catalogos";
+import { pesos } from "../../util/formatos";
 import {
   obtenerFacturacionConciliacion,
   obtenerFacturacionResumen,
@@ -31,15 +32,15 @@ export function RH1Facturacion() {
 
   const { data: sedes } = useQuery({ queryKey: ["sedes"], queryFn: listarSedes });
 
-  const { data: rh1, isLoading: cargandoRH1 } = useQuery({
+  const { data: rh1, isLoading: cargandoRH1, isError: falloRH1 } = useQuery({
     queryKey: ["rh1", mesAplicado, sedeRH1],
     queryFn: () => obtenerRH1(mesAplicado, sedeRH1),
   });
-  const { data: facturacion, isLoading: cargandoFacturacion } = useQuery({
+  const { data: facturacion, isLoading: cargandoFacturacion, isError: falloFacturacion } = useQuery({
     queryKey: ["facturacion-resumen", mesAplicado],
     queryFn: () => obtenerFacturacionResumen(mesAplicado),
   });
-  const { data: conciliacion, isLoading: cargandoConciliacion } = useQuery({
+  const { data: conciliacion, isLoading: cargandoConciliacion, isError: falloConciliacion } = useQuery({
     queryKey: ["facturacion-conciliacion", mesAplicado],
     queryFn: () => obtenerFacturacionConciliacion(mesAplicado),
   });
@@ -78,7 +79,7 @@ export function RH1Facturacion() {
       <section className="tarjeta-panel">
         <div className="titulo-reporte">
           <h2>Formato RH1</h2>
-          <a className="boton boton--texto" href={urlExportarRH1(mesAplicado)}>Exportar RH1</a>
+          <a className="boton boton--texto" href={urlExportarRH1(mesAplicado, sedeRH1)}>Exportar RH1</a>
         </div>
         <p className="tinta-suave">
           Generación por día calendario, con las columnas del formato oficial FR-SIG-193.
@@ -116,7 +117,7 @@ export function RH1Facturacion() {
             </div>
             <p className="tinta-suave">Se muestran solo los días con generación; el Excel trae el mes completo.</p>
           </>
-        ) : (
+        ) : falloRH1 ? null : (
           <p className="vacio">No hay columnas del RH1 configuradas.</p>
         )}
       </section>
@@ -129,19 +130,19 @@ export function RH1Facturacion() {
 
         {cargandoFacturacion ? (
           <p className="estado-carga">Cargando…</p>
-        ) : (
+        ) : falloFacturacion ? null : (
           <>
             <h3>Del periodo</h3>
             {facturacion?.actual.length ? (
               <div className="tabla-envoltura">
                 <table className="tabla tabla-kg">
-                  <thead><tr><th>Gestor</th><th className="num">kg</th><th className="num">Valor</th><th className="num">Facturas</th></tr></thead>
+                  <thead><tr><th>Gestor</th><th className="num">kg</th><th className="num">Valor ($)</th><th className="num">Facturas</th></tr></thead>
                   <tbody>
                     {facturacion.actual.map((x, i) => (
                       <tr key={i}>
                         <td>{x.gestor_externo__nombre}</td>
                         <td className="num cifra-kg">{kg(x.kg)}</td>
-                        <td className="num cifra-kg">{kg(x.valor)}</td>
+                        <td className="num cifra-kg">{pesos(x.valor)}</td>
                         <td className="num">{x.facturas}</td>
                       </tr>
                     ))}
@@ -156,13 +157,13 @@ export function RH1Facturacion() {
             {facturacion?.pendientes_anteriores.length ? (
               <div className="tabla-envoltura">
                 <table className="tabla tabla-kg">
-                  <thead><tr><th>Gestor</th><th className="num">kg</th><th className="num">Valor</th><th className="num">Facturas</th></tr></thead>
+                  <thead><tr><th>Gestor</th><th className="num">kg</th><th className="num">Valor ($)</th><th className="num">Facturas</th></tr></thead>
                   <tbody>
                     {facturacion.pendientes_anteriores.map((x, i) => (
                       <tr key={i}>
                         <td>{x.gestor_externo__nombre}</td>
                         <td className="num cifra-kg">{kg(x.kg)}</td>
-                        <td className="num cifra-kg">{kg(x.valor)}</td>
+                        <td className="num cifra-kg">{pesos(x.valor)}</td>
                         <td className="num">{x.facturas}</td>
                       </tr>
                     ))}
@@ -173,7 +174,7 @@ export function RH1Facturacion() {
               <p className="vacio">Nada pendiente del mes anterior.</p>
             )}
 
-            <p><strong>Total general: {kg(facturacion?.total_general)}</strong></p>
+            <p><strong>Total general facturado: {pesos(facturacion?.total_general)}</strong></p>
           </>
         )}
       </section>
@@ -205,7 +206,7 @@ export function RH1Facturacion() {
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : falloConciliacion ? null : (
           <p className="vacio">Sin entregas al gestor en este periodo.</p>
         )}
       </section>

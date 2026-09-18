@@ -132,7 +132,7 @@
 {% endif %}
   </section>
 
-  <section class="tarjeta-panel">
+  <section class="tarjeta-panel" id="movimientos">
     <div class="tarjeta-panel__encabezado">
       <h2>Movimientos de hoy</h2>
       <div class="resumen-cifras">
@@ -150,6 +150,15 @@
         </div>
       </div>
     </div>
+    <form method="get" action="{% url 'panel_principal' %}#movimientos" class="fila-filtro filtro-panel">
+      {% for campo in filtro %}
+        {% include "componentes/_campo.html" with campo=campo %}
+      {% endfor %}
+      <button type="submit" class="boton">Filtrar</button>
+      {% if filtro.hay_filtros %}
+        <a class="boton boton--texto" href="{% url 'panel_principal' %}#movimientos">Limpiar filtros</a>
+      {% endif %}
+    </form>
     {% if movimientos_hoy %}
       <table class="tabla tabla-kg">
         <thead>
@@ -170,7 +179,7 @@
         </tbody>
       </table>
     {% else %}
-      <p class="vacio">Todavía no hay movimientos hoy.</p>
+      <p class="vacio">{% if filtro.hay_filtros %}No hay movimientos de hoy con esos filtros.{% else %}Todavía no hay movimientos hoy.{% endif %}</p>
     {% endif %}
   </section>
 </div>

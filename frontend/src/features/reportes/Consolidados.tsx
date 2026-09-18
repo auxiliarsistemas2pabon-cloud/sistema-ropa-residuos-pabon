@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listarSedes, listarServicios } from "../../api/catalogos";
+import { etiquetaGrupo } from "../../util/formatos";
 import {
   obtenerConsolidado,
   urlExportarConsolidado,
@@ -22,7 +23,7 @@ function kg(valor: unknown): string {
 }
 
 function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidado; titulo: string; filtros: FiltrosConsolidado }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["consolidado", clave, filtros],
     queryFn: () => obtenerConsolidado(clave, filtros),
   });
@@ -37,7 +38,7 @@ function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidad
       </div>
       {isLoading ? (
         <p className="estado-carga">Cargando…</p>
-      ) : !data?.filas.length ? (
+      ) : isError ? null : !data?.filas.length ? (
         <p className="vacio">Sin datos para este filtro.</p>
       ) : (
         <div className="tabla-envoltura">
@@ -74,7 +75,7 @@ function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidad
                 <tbody>
                   {data.filas.map((f, i) => (
                     <tr key={i}>
-                      <td>{f.categoria_residuo__grupo}</td>
+                      <td>{etiquetaGrupo(f.categoria_residuo__grupo)}</td>
                       <td>{f.categoria_residuo__nombre}</td>
                       <td className="num cifra-kg">{kg(f.kg)}</td>
                     </tr>

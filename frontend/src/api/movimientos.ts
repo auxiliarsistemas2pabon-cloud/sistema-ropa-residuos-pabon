@@ -41,11 +41,22 @@ export interface Paginado<T> {
   results: T[];
 }
 
+/** La API pagina de a 25. Para listas acotadas (lo de hoy, de una sede) que
+ * la pantalla necesita completas —para sumar, filtrar o elegir—, recorre todas
+ * las páginas en vez de quedarse en silencio con la primera. */
+async function todasLasPaginas(params: Record<string, string | number>): Promise<MovimientoResumen[]> {
+  const todos: MovimientoResumen[] = [];
+  for (let pagina = 1; ; pagina += 1) {
+    const { data } = await api.get<Paginado<MovimientoResumen>>("/movimientos/", {
+      params: { ...params, page: pagina },
+    });
+    todos.push(...data.results);
+    if (!data.next) return todos;
+  }
+}
+
 export async function listarMovimientosDeHoy(fecha: string): Promise<MovimientoResumen[]> {
-  const { data } = await api.get<Paginado<MovimientoResumen>>("/movimientos/", {
-    params: { fecha },
-  });
-  return data.results;
+  return todasLasPaginas({ fecha });
 }
 
 export interface Pesaje {
@@ -79,18 +90,12 @@ export interface FiltrosNovedades {
   tipo_novedad?: string;
 }
 
-/** 25 por página (ver REST_FRAMEWORK.PAGE_SIZE) — a diferencia de la lista
- * de hoy en el panel, acá puede haber de sobra más de una página, así que
- * se expone `next` para "cargar más" en vez de truncar en silencio. */
-export async function listarNovedades(
-  filtros: FiltrosNovedades,
-  siguiente?: string,
-): Promise<Paginado<Novedad>> {
-  if (siguiente) {
-    const { data } = await api.get<Paginado<Novedad>>(siguiente);
-    return data;
-  }
-  const { data } = await api.get<Paginado<Novedad>>("/novedades/", { params: filtros });
+/** 25 por página (ver REST_FRAMEWORK.PAGE_SIZE). El histórico no tiene tope,
+ * así que la pantalla pide una página por vez ("Cargar más"). Se pide por
+ * número de página, no por la URL `next`, que depende del host y el
+ * protocolo con que el servidor crea que lo llaman. */
+export async function listarNovedades(filtros: FiltrosNovedades, pagina = 1): Promise<Paginado<Novedad>> {
+  const { data } = await api.get<Paginado<Novedad>>("/novedades/", { params: { ...filtros, page: pagina } });
   return data;
 }
 
@@ -153,11 +158,34 @@ export async function obtenerMovimiento(id: number): Promise<MovimientoDetalle> 
 /** Entregas de ropa sucia donde el usuario dado quedó como quien recibe
  * (recibe_por) — para que vea qué le entregaron y, si algo no coincide,
  * lo reporte desde el detalle del movimiento. */
-export async function listarEntregasRecibidas(usuarioId: number): Promise<MovimientoResumen[]> {
+export async function listarEntregasRecibidas(
+  usuarioId: number,
+  pagina = 1,
+): Promise<Paginado<MovimientoResumen>> {
   const { data } = await api.get<Paginado<MovimientoResumen>>("/movimientos/", {
-    params: { tipo: "ROPA_SUCIA_ENTREGA", recibe_por: usuarioId },
+    params: { tipo: "ROPA_SUCIA_ENTREGA", recibe_por: usuarioId, page: pagina },
   });
-  return data.results;
+  return data;
+}
+
+export interface DatosCorreccion {
+  peso_total?: string;
+  tara?: string;
+  cantidad_unidades?: number;
+  observaciones: string;
+}
+
+/** Autocorrección (RF-041): la Administradora sin límite; el Usuario solo lo
+ * suyo y dentro de la ventana de edición. El backend responde 403 con el
+ * motivo en español si ya no se puede. */
+export async function corregirMovimiento(movimientoId: number, datos: DatosCorreccion): Promise<MovimientoDetalle> {
+  const { data } = await api.patch<MovimientoDetalle>(`/movimientos/${movimientoId}/corregir/`, datos);
+  return data;
+}
+
+export async function consultarPuedeEditar(movimientoId: number): Promise<{ puede: boolean; motivo: string | null }> {
+  const { data } = await api.get<{ puede: boolean; motivo: string | null }>(`/movimientos/${movimientoId}/puede-editar/`);
+  return data;
 }
 
 export interface DatosNovedad {
@@ -174,10 +202,7 @@ export async function reportarNovedad(movimientoId: number, datos: DatosNovedad)
 }
 
 export async function listarEntregasRopaSuciaDeHoy(sede: number, fecha: string): Promise<MovimientoResumen[]> {
-  const { data } = await api.get<Paginado<MovimientoResumen>>("/movimientos/", {
-    params: { tipo: "ROPA_SUCIA_ENTREGA", sede, fecha },
-  });
-  return data.results;
+  return todasLasPaginas({ tipo: "ROPA_SUCIA_ENTREGA", sede, fecha });
 }
 
 export interface DiaAnterior {

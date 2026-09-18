@@ -61,7 +61,7 @@
       <thead><tr><th>Gestor</th><th class="num">kg</th><th class="num">Valor</th><th class="num">Facturas</th></tr></thead>
       <tbody>
         {% for x in facturacion.actual %}
-          <tr><td>{{ x.gestor_externo__nombre }}</td><td class="num cifra-kg">{{ x.kg|default:0 }}</td><td class="num cifra-kg">{{ x.valor|default:0 }}</td><td class="num">{{ x.facturas }}</td></tr>
+          <tr><td>{{ x.gestor_externo__nombre }}</td><td class="num cifra-kg">{{ x.kg|default:0 }}</td><td class="num cifra-kg">$ {{ x.valor|default:0|floatformat:"2g" }}</td><td class="num">{{ x.facturas }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -75,7 +75,7 @@
       <thead><tr><th>Gestor</th><th class="num">kg</th><th class="num">Valor</th><th class="num">Facturas</th></tr></thead>
       <tbody>
         {% for x in facturacion.pendientes_anteriores %}
-          <tr><td>{{ x.gestor_externo__nombre }}</td><td class="num cifra-kg">{{ x.kg|default:0 }}</td><td class="num cifra-kg">{{ x.valor|default:0 }}</td><td class="num">{{ x.facturas }}</td></tr>
+          <tr><td>{{ x.gestor_externo__nombre }}</td><td class="num cifra-kg">{{ x.kg|default:0 }}</td><td class="num cifra-kg">$ {{ x.valor|default:0|floatformat:"2g" }}</td><td class="num">{{ x.facturas }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -83,7 +83,7 @@
     <p class="vacio">Nada pendiente del mes anterior.</p>
   {% endif %}
 
-  <p><strong>Total general: {{ facturacion.total_general }}</strong></p>
+  <p><strong>Total general facturado: $ {{ facturacion.total_general|floatformat:"2g" }}</strong></p>
 </section>
 
 <section class="seccion">

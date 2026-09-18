@@ -17,7 +17,13 @@
           <tbody>
             {% for sede in sedes %}
               <tr>
-                <td>{{ sede.nombre }}</td>
+                <td>
+                  <form class="form-en-linea" method="post" action="{% url 'renombrar_sede' sede.pk %}">
+                    {% csrf_token %}
+                    <input type="text" class="entrada-en-tabla" name="nombre" value="{{ sede.nombre }}" maxlength="100" required aria-label="Nombre de la sede {{ sede.nombre }}">
+                    <button type="submit" class="boton boton--texto">Renombrar</button>
+                  </form>
+                </td>
                 <td>
                   <form class="form-en-linea" method="post" action="{% url 'alternar_activo' 'sede' sede.pk %}">
                     {% csrf_token %}
@@ -92,7 +98,7 @@
               <tr>
                 <td>{{ gestor.nombre }}</td>
                 <td>{{ gestor.nit }}</td>
-                <td class="num cifra-kg">{{ gestor.tarifa_kg_vigente|default:"—" }}</td>
+                <td class="num cifra-kg">{% if gestor.tarifa_kg_vigente %}$ {{ gestor.tarifa_kg_vigente|floatformat:"2g" }}{% else %}—{% endif %}</td>
                 <td>
                   <form class="form-en-linea" method="post" action="{% url 'alternar_activo' 'gestor' gestor.pk %}">
                     {% csrf_token %}

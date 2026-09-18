@@ -42,7 +42,7 @@ def test_escritura_autenticada_sin_csrf_es_rechazada(api_client_csrf, administra
     """La protección real: una vez hay sesión activa, un POST sin CSRF
     válido se rechaza — aquí sí corre enforce_csrf."""
     api_client_csrf.force_login(administradora)
-    resp = api_client_csrf.post(reverse("api-sede-list"), {"nombre": "Centro"})
+    resp = api_client_csrf.post(reverse("api-sede-list"), {"nombre": "Sede de prueba"})
     assert resp.status_code == 403
 
 

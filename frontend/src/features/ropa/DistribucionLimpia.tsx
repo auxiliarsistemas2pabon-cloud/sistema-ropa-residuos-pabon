@@ -5,6 +5,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
 import { Firma } from "../../components/Firma";
+import { ErrorCampo } from "../../components/ErrorCampo";
+import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearDistribucionRopaLimpia } from "../../api/ropa";
@@ -40,7 +42,8 @@ export function DistribucionLimpia() {
     handleSubmit,
     watch,
     trigger,
-    formState: { isSubmitting },
+    setValue,
+    formState: { isSubmitting, errors },
   } = useForm<DatosFormulario>({ defaultValues: { cargaDiferida: false } });
 
   const sedeId = watch("sede");
@@ -66,7 +69,7 @@ export function DistribucionLimpia() {
       1: ["sede", "area_receptora"],
       2: ["prenda", "cantidad_unidades"],
     };
-    const validos = await trigger(camposDelPaso[paso] ?? []);
+    const validos = await trigger(camposDelPaso[paso] ?? [], { shouldFocus: true });
     if (validos) {
       setPaso((p) => Math.min(p + 1, 3));
     }
@@ -90,13 +93,21 @@ export function DistribucionLimpia() {
     });
   }
 
-  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
+  function alEnviar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // Enter en un paso intermedio avanza al siguiente; solo el último guarda.
+    if (paso < 3) {
+      void irSiguiente();
+      return;
+    }
+    void handleSubmit(onSubmit)(e);
+  }
 
   return (
     <>
       <h1>Distribuir ropa limpia</h1>
       <Stepper pasos={PASOS} actual={paso} />
-      <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
+      <form onSubmit={alEnviar} noValidate>
         {erroresServidor.non_field_errors?.map((mensaje) => (
           <Aviso error key={mensaje}>
             {mensaje}
@@ -107,7 +118,7 @@ export function DistribucionLimpia() {
           <p className="paso__titulo">Paso 1 de 3 · Origen</p>
           <div className="campo">
             <label htmlFor="sede">Sede</label>
-            <select id="sede" {...register("sede", { required: true })}>
+            <select id="sede" {...register("sede", { required: "Selecciona la sede.", onChange: () => setValue("area_receptora", "") })}>
               <option value="">Seleccionar…</option>
               {sedes?.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -115,10 +126,11 @@ export function DistribucionLimpia() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.sede} />
           </div>
           <div className="campo">
             <label htmlFor="area_receptora">Servicio que recibe</label>
-            <select id="area_receptora" disabled={!sedeId} {...register("area_receptora", { required: true })}>
+            <select id="area_receptora" disabled={!sedeId} {...register("area_receptora", { required: "Selecciona el servicio que recibe." })}>
               <option value="">Seleccionar…</option>
               {servicios?.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -126,6 +138,7 @@ export function DistribucionLimpia() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.area_receptora} />
           </div>
           <div className="campo">
             <label>Tipo de movimiento</label>
@@ -140,7 +153,7 @@ export function DistribucionLimpia() {
           <p className="paso__titulo">Paso 2 de 3 · Prenda</p>
           <div className="campo">
             <label htmlFor="prenda">Prenda</label>
-            <select id="prenda" {...register("prenda", { required: true })}>
+            <select id="prenda" {...register("prenda", { required: "Selecciona la prenda." })}>
               <option value="">Seleccionar…</option>
               {prendas?.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -148,6 +161,7 @@ export function DistribucionLimpia() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.prenda} />
           </div>
           <div className="campo">
             <label htmlFor="cantidad_unidades">Cantidad entregada</label>
@@ -157,8 +171,12 @@ export function DistribucionLimpia() {
               min="1"
               step="1"
               inputMode="numeric"
-              {...register("cantidad_unidades", { required: true, min: 1 })}
+              {...register("cantidad_unidades", {
+                required: "Ingresa la cantidad entregada.",
+                min: { value: 1, message: "La cantidad debe ser al menos 1." },
+              })}
             />
+            <ErrorCampo error={errors.cantidad_unidades} />
           </div>
           <p className="campo__ayuda">
             Si hay más de una prenda para el mismo servicio, regístralas una por una — cada una queda
@@ -190,7 +208,7 @@ export function DistribucionLimpia() {
           </dl>
           <div className="campo">
             <label htmlFor="recibe_por">Recibe</label>
-            <select id="recibe_por" {...register("recibe_por", { required: true })}>
+            <select id="recibe_por" {...register("recibe_por", { required: "Selecciona quién recibe." })}>
               <option value="">Seleccionar…</option>
               {usuarios?.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -198,6 +216,7 @@ export function DistribucionLimpia() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.recibe_por} />
           </div>
           <Firma etiqueta="Firma de quien recibe" onCambiar={setFirmaRecibe} />
           <div className="campo">
@@ -225,11 +244,7 @@ export function DistribucionLimpia() {
             )}
           </details>
 
-          {erroresCampo.map(([campo, mensajes]) => (
-            <p className="campo__error" key={campo}>
-              {campo}: {mensajes.join(" ")}
-            </p>
-          ))}
+          <ErroresCampoServidor errores={erroresServidor} />
 
           <button type="submit" className="boton" disabled={isSubmitting || mutacion.isPending}>
             {mutacion.isPending ? "Guardando…" : "Guardar distribución"}

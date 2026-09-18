@@ -1,16 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerCortePeligrosos } from "../../api/residuos";
-
-const ETIQUETAS_GRUPO: Record<string, string> = {
-  NO_PELIGROSO: "No peligroso",
-  RIESGO_BIOLOGICO: "Riesgo biológico",
-  OTRO_PELIGROSO: "Otro peligroso",
-  OTROS: "Otros",
-};
+import { etiquetaGrupo } from "../../util/formatos";
 
 export function ConsolidadoPeligrosos() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["corte-peligrosos"],
     queryFn: () => obtenerCortePeligrosos(),
   });
@@ -43,7 +37,7 @@ export function ConsolidadoPeligrosos() {
                     <Link to={`/movimiento/${d.movimiento}`}>Ver</Link>
                   </td>
                   <td>{d.categoria_nombre}</td>
-                  <td>{ETIQUETAS_GRUPO[d.grupo] ?? d.grupo}</td>
+                  <td>{etiquetaGrupo(d.grupo)}</td>
                   <td className="num cifra-kg">{d.peso_kg}</td>
                   <td className="num">{d.cantidad_bolsas ?? "—"}</td>
                 </tr>
@@ -59,7 +53,7 @@ export function ConsolidadoPeligrosos() {
             </tfoot>
           </table>
         </div>
-      ) : (
+      ) : isError ? null : (
         <p className="vacio">No hay residuos peligrosos generados en el corte actual.</p>
       )}
     </>

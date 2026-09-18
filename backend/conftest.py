@@ -28,8 +28,8 @@ def api_client():
 
 @pytest.fixture
 def sede(db):
-    # "Clínica" ya viene sembrada por la data migration del catálogo.
-    obj, _ = Sede.objects.get_or_create(nombre="Clínica")
+    # "Clínica Pabón" ya viene sembrada por la data migration del catálogo.
+    obj, _ = Sede.objects.get_or_create(nombre="Clínica Pabón")
     return obj
 
 

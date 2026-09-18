@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { obtenerCorteControlRopaSucia } from "../../api/ropa";
 
 export function CorteControl() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["corte-control-ropa-sucia"],
     queryFn: () => obtenerCorteControlRopaSucia(),
   });
@@ -54,7 +54,7 @@ export function CorteControl() {
             </tfoot>
           </table>
         </div>
-      ) : (
+      ) : isError ? null : (
         <p className="vacio">No hay entregas de ropa sucia en este corte.</p>
       )}
     </>

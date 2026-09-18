@@ -80,7 +80,7 @@ def test_corte_no_cuenta_la_recoleccion(crear_movimiento, cat_peligrosa):
 
 
 def test_corte_filtra_por_sede(crear_movimiento, cat_peligrosa, sede):
-    otra, _ = Sede.objects.get_or_create(nombre="Especialidades")
+    otra, _ = Sede.objects.get_or_create(nombre="Especialidades Pabón")
     otra_area, _ = AreaServicio.objects.get_or_create(sede=otra, nombre="Laboratorio")
     _detalle(
         crear_movimiento, cat_peligrosa, DIA, time(9, 0), "50.00",

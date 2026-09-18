@@ -383,6 +383,10 @@ a:focus-visible {
    no deben romper el flujo de la fila a un bloque de ancho completo. */
 .form-en-linea { display: inline; }
 .form-en-linea input[type="checkbox"] { min-height: auto; width: 20px; height: 20px; }
+
+/* Nombre editable dentro de la celda (renombrar sede). */
+.entrada-en-tabla { width: 20rem; max-width: 100%; min-height: 40px; padding: var(--espacio-1) var(--espacio-2); border: var(--grosor-borde) solid var(--linea); border-radius: var(--radio); font: inherit; color: var(--tinta); background: #fff; }
+.entrada-en-tabla:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
 .tabla { width: 100%; border-collapse: collapse; font-size: var(--texto-sm); }
 .tabla th, .tabla td { padding: var(--espacio-2) var(--espacio-3); text-align: left; border-bottom: var(--grosor-borde) solid var(--linea); }
 .tabla thead th {
@@ -447,6 +451,8 @@ a:focus-visible {
 /* --- Filtros y enlaces secundarios --- */
 .fila-filtro { display: flex; flex-wrap: wrap; gap: var(--espacio-3); align-items: flex-end; }
 .fila-filtro .campo { flex: 1 1 160px; margin-bottom: var(--espacio-3); }
+.filtro-panel { margin: 0 0 var(--espacio-4); }
+.filtro-panel .boton--texto { margin: 0 0 var(--espacio-3) var(--espacio-2); }
 
 .enlaces-secundarios { display: flex; flex-wrap: wrap; gap: var(--espacio-4); margin-top: var(--espacio-4); }
 .enlaces-secundarios a { display: inline-flex; align-items: center; gap: 6px; color: var(--acento); text-decoration: none; }

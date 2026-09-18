@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Aviso } from "../../components/Aviso";
+import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { listarSedes } from "../../api/catalogos";
 import {
   crearValidacionEntrega,
@@ -81,8 +82,6 @@ export function Validacion() {
   const declarado = parseFloat(pesoDeclarado || "0") || 0;
   const saldo = sistema - declarado;
   const hayDiferencia = declarado > 0 && Math.abs(saldo) >= 0.005;
-
-  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
 
   return (
     <>
@@ -216,13 +215,8 @@ export function Validacion() {
                 {mensaje}
               </Aviso>
             ))}
-            {erroresCampo
-              .filter(([campo]) => campo !== "observacion")
-              .map(([campo, mensajes]) => (
-                <p className="campo__error" key={campo}>
-                  {campo}: {mensajes.join(" ")}
-                </p>
-              ))}
+            {/* La observación se muestra junto a su campo solo cuando ese campo está visible. */}
+            <ErroresCampoServidor errores={erroresServidor} omitir={hayDiferencia ? ["observacion"] : []} />
 
             {evaluacion && (
               <Aviso error={!evaluacion.conforme}>

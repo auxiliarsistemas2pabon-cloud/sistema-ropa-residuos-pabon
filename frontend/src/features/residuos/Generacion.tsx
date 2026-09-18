@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
+import { ErrorCampo } from "../../components/ErrorCampo";
+import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { useAuth } from "../../auth/AuthContext";
 import { listarCategoriasResiduo, listarSedes, listarServicios } from "../../api/catalogos";
 import { crearGeneracionResiduo } from "../../api/residuos";
@@ -47,7 +49,8 @@ export function Generacion() {
     handleSubmit,
     watch,
     trigger,
-    formState: { isSubmitting },
+    setValue,
+    formState: { isSubmitting, errors },
   } = useForm<DatosFormulario>({ defaultValues: { tara: "0", cargaDiferida: false } });
 
   const sedeId = watch("sede");
@@ -85,8 +88,8 @@ export function Generacion() {
       1: ["sede", "servicio", "grupo", "categoria"],
       2: ["peso_total"],
     };
-    const validos = await trigger(camposDelPaso[paso] ?? []);
-    if (validos && !(paso === 2 && (taraInvalida || sinPeso))) {
+    const validos = await trigger(camposDelPaso[paso] ?? [], { shouldFocus: true });
+    if (validos && !(paso === 2 && taraInvalida)) {
       setPaso((p) => Math.min(p + 1, 3));
     }
   }
@@ -110,13 +113,21 @@ export function Generacion() {
     });
   }
 
-  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
+  function alEnviar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // Enter en un paso intermedio avanza al siguiente; solo el último guarda.
+    if (paso < 3) {
+      void irSiguiente();
+      return;
+    }
+    void handleSubmit(onSubmit)(e);
+  }
 
   return (
     <>
       <h1>Generación de residuos</h1>
       <Stepper pasos={PASOS} actual={paso} />
-      <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
+      <form onSubmit={alEnviar} noValidate>
         {erroresServidor.non_field_errors?.map((mensaje) => (
           <Aviso error key={mensaje}>
             {mensaje}
@@ -127,7 +138,7 @@ export function Generacion() {
           <p className="paso__titulo">Paso 1 de 3 · Origen y categoría</p>
           <div className="campo">
             <label htmlFor="sede">Sede</label>
-            <select id="sede" {...register("sede", { required: true })}>
+            <select id="sede" {...register("sede", { required: "Selecciona la sede.", onChange: () => setValue("servicio", "") })}>
               <option value="">Seleccionar…</option>
               {sedes?.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -135,10 +146,11 @@ export function Generacion() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.sede} />
           </div>
           <div className="campo">
             <label htmlFor="servicio">Servicio</label>
-            <select id="servicio" disabled={!sedeId} {...register("servicio", { required: true })}>
+            <select id="servicio" disabled={!sedeId} {...register("servicio", { required: "Selecciona el servicio." })}>
               <option value="">Seleccionar…</option>
               {servicios?.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -146,10 +158,17 @@ export function Generacion() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.servicio} />
           </div>
           <div className="campo">
             <label htmlFor="grupo">Grupo</label>
-            <select id="grupo" {...register("grupo", { required: true })}>
+            <select id="grupo" {...register("grupo", {
+                required: "Selecciona el grupo de residuo.",
+                onChange: () => {
+                  setValue("categoria", "");
+                  setValue("tipo_especifico", "");
+                },
+              })}>
               <option value="">Seleccionar grupo</option>
               {GRUPOS.map(([valor, etiqueta]) => (
                 <option key={valor} value={valor}>
@@ -157,10 +176,14 @@ export function Generacion() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.grupo} />
           </div>
           <div className="campo">
             <label htmlFor="categoria">Categoría</label>
-            <select id="categoria" disabled={!grupo} {...register("categoria", { required: true })}>
+            <select id="categoria" disabled={!grupo} {...register("categoria", {
+                required: "Selecciona la categoría.",
+                onChange: () => setValue("tipo_especifico", ""),
+              })}>
               <option value="">Seleccionar…</option>
               {categoriasDelGrupo.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -168,6 +191,7 @@ export function Generacion() {
                 </option>
               ))}
             </select>
+            <ErrorCampo error={errors.categoria} />
           </div>
           <div className="campo">
             <label htmlFor="tipo_especifico">Tipo específico (opcional)</label>
@@ -195,8 +219,12 @@ export function Generacion() {
               step="0.01"
               min="0"
               inputMode="decimal"
-              {...register("peso_total", { required: true })}
+              {...register("peso_total", {
+                required: "Ingresa el peso total en kg.",
+                validate: (v) => parseFloat(v) > 0 || "El peso total debe ser mayor a 0.",
+              })}
             />
+            <ErrorCampo error={errors.peso_total} />
           </div>
           <div className="campo">
             <label htmlFor="tara">Tara (kg)</label>
@@ -211,7 +239,7 @@ export function Generacion() {
               {taraInvalida || sinPeso ? "—" : `${pesoNeto.toFixed(2)} kg`}
             </p>
           </div>
-          <button type="button" className="boton" disabled={taraInvalida || sinPeso} onClick={() => void irSiguiente()}>
+          <button type="button" className="boton" disabled={taraInvalida} onClick={() => void irSiguiente()}>
             Continuar →
           </button>
           <button type="button" className="boton boton--texto" onClick={irAnterior}>
@@ -260,11 +288,7 @@ export function Generacion() {
             )}
           </details>
 
-          {erroresCampo.map(([campo, mensajes]) => (
-            <p className="campo__error" key={campo}>
-              {campo}: {mensajes.join(" ")}
-            </p>
-          ))}
+          <ErroresCampoServidor errores={erroresServidor} />
 
           <button type="submit" className="boton" disabled={isSubmitting || mutacion.isPending}>
             {mutacion.isPending ? "Guardando…" : "Guardar generación"}

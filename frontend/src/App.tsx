@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { RutaProtegida } from "./auth/RutaProtegida";
 import { Layout } from "./components/Layout";
@@ -20,6 +20,7 @@ import { Recoleccion } from "./features/residuos/Recoleccion";
 import { ConsolidadoPeligrosos } from "./features/residuos/ConsolidadoPeligrosos";
 import { EntregaGestor } from "./features/residuos/EntregaGestor";
 import { DetalleMovimiento } from "./features/movimientos/Detalle";
+import { EditarMovimiento } from "./features/movimientos/Editar";
 import { DiaAnterior } from "./features/movimientos/DiaAnterior";
 import { Novedades } from "./features/movimientos/Novedades";
 import { Consolidados } from "./features/reportes/Consolidados";
@@ -44,8 +45,11 @@ export default function App() {
               <Route element={<RutaProtegida />}>
                 <Route path="/" element={<Panel />} />
                 <Route path="/movimiento/:id" element={<DetalleMovimiento />} />
+                <Route path="/movimiento/:id/corregir" element={<EditarMovimiento />} />
                 <Route path="/dia-anterior" element={<DiaAnterior />} />
                 <Route path="/ropa/corte-control" element={<CorteControl />} />
+                {/* Cualquier dirección que no exista lleva al panel, no a una pantalla en blanco. */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
 
               <Route element={<RutaProtegida paraAdministradora={false} />}>

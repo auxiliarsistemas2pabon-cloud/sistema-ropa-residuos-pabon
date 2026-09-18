@@ -1,5 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { AvisoConsultasFallidas } from "./AvisoConsultasFallidas";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 const ETIQUETA_ROL: Record<string, string> = {
   USUARIO: "Usuario",
@@ -12,6 +14,9 @@ export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const esPanel = location.pathname === "/";
+  // "default" = la primera pantalla de la sesión (enlace directo, pestaña
+  // nueva): retroceder sacaría a la persona de la aplicación.
+  const puedeRetroceder = location.key !== "default";
 
   return (
     <>
@@ -41,11 +46,14 @@ export function Layout() {
       </header>
       <main className="contenido">
         {!esPanel && (
-          <button type="button" className="boton-volver" onClick={() => navigate(-1)}>
+          <button type="button" className="boton-volver" onClick={() => (puedeRetroceder ? navigate(-1) : navigate("/"))}>
             ← Volver
           </button>
         )}
-        <Outlet />
+        <AvisoConsultasFallidas />
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </>
   );

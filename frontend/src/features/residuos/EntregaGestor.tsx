@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
+import { ErrorCampo } from "../../components/ErrorCampo";
+import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { listarTodosLosGestores } from "../../api/catalogos";
 import { crearEntregaGestor, listarRecoleccionesSinFactura } from "../../api/residuos";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
@@ -19,7 +21,7 @@ export function EntregaGestor() {
   const navigate = useNavigate();
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
 
-  const { register, handleSubmit, formState: { isSubmitting } } = useForm<DatosFormulario>();
+  const { register, handleSubmit, formState: { isSubmitting, errors } } = useForm<DatosFormulario>();
 
   const { data: recolecciones } = useQuery({
     queryKey: ["recolecciones-sin-factura"],
@@ -44,8 +46,6 @@ export function EntregaGestor() {
     });
   }
 
-  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
-
   return (
     <>
       <h1>Entrega al gestor externo</h1>
@@ -63,7 +63,7 @@ export function EntregaGestor() {
 
         <div className="campo">
           <label htmlFor="movimiento">Recolección de residuos</label>
-          <select id="movimiento" {...register("movimiento", { required: true })}>
+          <select id="movimiento" {...register("movimiento", { required: "Selecciona la recolección de residuos." })}>
             <option value="">Seleccionar…</option>
             {recolecciones?.map((m) => (
               <option key={m.id} value={m.id}>
@@ -78,11 +78,12 @@ export function EntregaGestor() {
               «Registrar residuos».
             </p>
           )}
+          <ErrorCampo error={errors.movimiento} />
         </div>
 
         <div className="campo">
           <label htmlFor="gestor_externo">Gestor externo</label>
-          <select id="gestor_externo" {...register("gestor_externo", { required: true })}>
+          <select id="gestor_externo" {...register("gestor_externo", { required: "Selecciona el gestor externo." })}>
             <option value="">Seleccionar…</option>
             {gestores?.filter((g) => g.activo).map((g) => (
               <option key={g.id} value={g.id}>
@@ -90,6 +91,7 @@ export function EntregaGestor() {
               </option>
             ))}
           </select>
+          <ErrorCampo error={errors.gestor_externo} />
         </div>
 
         <div className="campo">
@@ -105,8 +107,9 @@ export function EntregaGestor() {
             step="0.01"
             min="0"
             inputMode="decimal"
-            {...register("kg_facturados", { required: true })}
+            {...register("kg_facturados", { required: "Ingresa los kg facturados." })}
           />
+          <ErrorCampo error={errors.kg_facturados} />
         </div>
 
         <div className="campo">
@@ -117,15 +120,12 @@ export function EntregaGestor() {
             step="0.01"
             min="0"
             inputMode="decimal"
-            {...register("valor_facturado", { required: true })}
+            {...register("valor_facturado", { required: "Ingresa el valor facturado." })}
           />
+          <ErrorCampo error={errors.valor_facturado} />
         </div>
 
-        {erroresCampo.map(([campo, mensajes]) => (
-          <p className="campo__error" key={campo}>
-            {campo}: {mensajes.join(" ")}
-          </p>
-        ))}
+        <ErroresCampoServidor errores={erroresServidor} />
 
         <button type="submit" className="boton" disabled={isSubmitting || mutacion.isPending}>
           {mutacion.isPending ? "Guardando…" : "Guardar entrega"}

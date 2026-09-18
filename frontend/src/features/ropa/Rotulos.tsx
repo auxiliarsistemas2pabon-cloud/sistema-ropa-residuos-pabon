@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
+import { ErrorCampo } from "../../components/ErrorCampo";
+import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { listarSedes } from "../../api/catalogos";
 import { listarEntregasRopaSuciaDeHoy } from "../../api/movimientos";
 import { crearRotulo, listarRotulosDeMovimiento } from "../../api/ropa";
@@ -32,7 +34,8 @@ export function Rotulos() {
     handleSubmit,
     watch,
     reset,
-    formState: { isSubmitting },
+    setValue,
+    formState: { isSubmitting, errors },
   } = useForm<DatosFormulario>({ defaultValues: { sin_rotular: false } });
 
   const sedeId = watch("sede");
@@ -70,8 +73,6 @@ export function Rotulos() {
     });
   }
 
-  const erroresCampo = Object.entries(erroresServidor).filter(([campo]) => campo !== "non_field_errors");
-
   return (
     <>
       <h1>Registrar rótulos</h1>
@@ -90,7 +91,7 @@ export function Rotulos() {
 
         <div className="campo">
           <label htmlFor="sede">Sede</label>
-          <select id="sede" {...register("sede", { required: true })}>
+          <select id="sede" {...register("sede", { required: "Selecciona la sede.", onChange: () => setValue("movimiento", "") })}>
             <option value="">Seleccionar…</option>
             {sedes?.map((s) => (
               <option key={s.id} value={s.id}>
@@ -98,11 +99,12 @@ export function Rotulos() {
               </option>
             ))}
           </select>
+          <ErrorCampo error={errors.sede} />
         </div>
 
         <div className="campo">
           <label htmlFor="movimiento">Entrega de ropa sucia</label>
-          <select id="movimiento" disabled={!sedeId} {...register("movimiento", { required: true })}>
+          <select id="movimiento" disabled={!sedeId} {...register("movimiento", { required: "Selecciona la entrega de ropa sucia." })}>
             <option value="">Seleccionar…</option>
             {entregas?.map((m) => (
               <option key={m.id} value={m.id}>
@@ -117,6 +119,7 @@ export function Rotulos() {
               «Entregar ropa sucia».
             </p>
           )}
+          <ErrorCampo error={errors.movimiento} />
         </div>
 
         <div className="campo">
@@ -132,11 +135,7 @@ export function Rotulos() {
           <label htmlFor="sin_rotular">Llegó sin rotular</label>
         </div>
 
-        {erroresCampo.map(([campo, mensajes]) => (
-          <p className="campo__error" key={campo}>
-            {campo}: {mensajes.join(" ")}
-          </p>
-        ))}
+        <ErroresCampoServidor errores={erroresServidor} />
 
         <button type="submit" className="boton" disabled={isSubmitting || mutacion.isPending}>
           {mutacion.isPending ? "Guardando…" : "Guardar rótulo"}

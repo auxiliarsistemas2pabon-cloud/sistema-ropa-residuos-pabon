@@ -67,10 +67,16 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
 
     def _sede_seleccionada(self):
         if self.is_bound:
+            candidato = self.data.get("sede")
+        else:
+            candidato = self.initial.get("sede")
+        if candidato:
             try:
-                return Sede.objects.get(pk=self.data.get("sede"))
+                return Sede.objects.get(pk=candidato)
             except (Sede.DoesNotExist, ValueError, TypeError):
-                return None
+                pass
+        if self.is_bound:
+            return None
         return Sede.objects.filter(activo=True).order_by("nombre").first()
 
     def categorias_disponibles(self):

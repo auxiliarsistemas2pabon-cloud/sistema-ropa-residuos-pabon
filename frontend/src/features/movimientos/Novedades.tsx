@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { listarSedes, listarServicios } from "../../api/catalogos";
-import { listarNovedades, type FiltrosNovedades, type Novedad } from "../../api/movimientos";
+import { listarNovedades, type FiltrosNovedades } from "../../api/movimientos";
 import { urlExportarNovedades } from "../../api/reportes";
 
 const TIPOS_NOVEDAD: [string, string][] = [
@@ -34,8 +34,6 @@ export function Novedades() {
   const { esAdministradora } = useAuth();
   const [filtros, setFiltros] = useState<FiltrosNovedades>({});
   const [aplicados, setAplicados] = useState<FiltrosNovedades>({});
-  const [items, setItems] = useState<Novedad[]>([]);
-  const [siguiente, setSiguiente] = useState<string | null>(null);
 
   const { data: sedes } = useQuery({ queryKey: ["sedes"], queryFn: listarSedes });
   const { data: servicios } = useQuery({
@@ -43,22 +41,13 @@ export function Novedades() {
     queryFn: () => listarServicios({ sede: filtros.sede }),
   });
 
-  const { isLoading, isFetching } = useQuery({
+  const { data, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } = useInfiniteQuery({
     queryKey: ["novedades", aplicados],
-    queryFn: async () => {
-      const pagina = await listarNovedades(aplicados);
-      setItems(pagina.results);
-      setSiguiente(pagina.next);
-      return pagina;
-    },
+    queryFn: ({ pageParam }) => listarNovedades(aplicados, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (ultima, _paginas, ultimaPagina) => (ultima.next ? ultimaPagina + 1 : undefined),
   });
-
-  async function cargarMas() {
-    if (!siguiente) return;
-    const pagina = await listarNovedades(aplicados, siguiente);
-    setItems((prev) => [...prev, ...pagina.results]);
-    setSiguiente(pagina.next);
-  }
+  const items = data?.pages.flatMap((pagina) => pagina.results) ?? [];
 
   return (
     <div className="panel">
@@ -166,13 +155,18 @@ export function Novedades() {
                 </tbody>
               </table>
             </div>
-            {siguiente && (
-              <button type="button" className="boton boton--texto" onClick={() => void cargarMas()} disabled={isFetching}>
-                Cargar más
+            {hasNextPage && (
+              <button
+                type="button"
+                className="boton boton--texto"
+                onClick={() => void fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? "Cargando…" : "Cargar más"}
               </button>
             )}
           </>
-        ) : (
+        ) : isError ? null : (
           <p className="vacio">No hay novedades con esos filtros.</p>
         )}
       </section>

@@ -234,7 +234,18 @@
   function iniciarRecargaPorSede() {
     var sede = document.getElementById("id_sede");
     if (!sede) return;
+    var form = sede.form;
+    var esFiltro = form && (form.getAttribute("method") || "get").toLowerCase() === "get";
     sede.addEventListener("change", function () {
+      // Formulario de filtros (GET): se limpia el servicio (era de otra
+      // sede) y se envía el mismo formulario, así no se pierden los demás
+      // filtros ya elegidos.
+      if (esFiltro) {
+        var servicio = form.querySelector("#id_servicio");
+        if (servicio) servicio.value = "";
+        form.submit();
+        return;
+      }
       if (!sede.value) return;
       var params = new URLSearchParams(window.location.search);
       params.set("sede", sede.value);

@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .models import AreaServicio, GestorExterno, Sede
+from .services import bloqueo_de_cuenta
 
 Usuario = get_user_model()
 
@@ -68,6 +69,17 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "id", "username", "first_name", "last_name", "documento",
             "rol", "activo", "password",
         ]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if self.instance is not None and request is not None:
+            bloqueo = bloqueo_de_cuenta(
+                request.user, self.instance, activo=attrs.get("activo"), rol=attrs.get("rol"),
+            )
+            if bloqueo:
+                campo, motivo = bloqueo
+                raise serializers.ValidationError({campo: [motivo]})
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)

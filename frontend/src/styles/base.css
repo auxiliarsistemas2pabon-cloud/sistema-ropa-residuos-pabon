@@ -226,6 +226,9 @@ a:focus-visible {
 .campo--casilla label { display: inline; margin: 0 0 0 var(--espacio-2); }
 .campo__ayuda { margin: var(--espacio-1) 0 0; font-size: var(--texto-sm); color: var(--tinta-suave); }
 .campo__error { margin: var(--espacio-1) 0 0; font-size: var(--texto-sm); color: var(--alerta); }
+.campo:has(> .campo__error) input,
+.campo:has(> .campo__error) select,
+.campo:has(> .campo__error) textarea { border-color: var(--alerta); }
 
 .dato-fijo { margin: 0; padding: var(--espacio-3); background: var(--acento-suave); border-radius: var(--radio); }
 
@@ -364,6 +367,9 @@ a:focus-visible {
 /* El RH1 (22 columnas) desbordaba la tarjeta sin esto — la tabla se
    desplaza horizontalmente dentro de su propia caja, nunca la página. */
 .tabla-envoltura { overflow-x: auto; }
+/* Nombre editable dentro de la celda (renombrar sede). */
+.entrada-en-tabla { width: 20rem; max-width: 100%; min-height: 40px; padding: var(--espacio-1) var(--espacio-2); border: var(--grosor-borde) solid var(--linea); border-radius: var(--radio); font: inherit; color: var(--tinta); background: #fff; }
+.entrada-en-tabla:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
 .tabla { width: 100%; border-collapse: collapse; font-size: var(--texto-sm); }
 .tabla th, .tabla td { padding: var(--espacio-2) var(--espacio-3); text-align: left; border-bottom: var(--grosor-borde) solid var(--linea); }
 .tabla thead th {
@@ -407,6 +413,8 @@ a:focus-visible {
 /* --- Filtros y enlaces secundarios --- */
 .fila-filtro { display: flex; flex-wrap: wrap; gap: var(--espacio-3); align-items: flex-end; }
 .fila-filtro .campo { flex: 1 1 160px; margin-bottom: var(--espacio-3); }
+.filtro-panel { margin: 0 0 var(--espacio-4); }
+.filtro-panel .boton--texto { margin: 0 0 var(--espacio-3) var(--espacio-2); }
 
 .enlaces-secundarios { display: flex; flex-wrap: wrap; gap: var(--espacio-4); margin-top: var(--espacio-4); padding: 0; list-style: none; }
 .enlaces-secundarios a, .enlaces-secundarios button {
