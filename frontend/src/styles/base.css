@@ -155,6 +155,7 @@ p { margin: 0 0 var(--espacio-3); }
   cursor: pointer;
 }
 .boton[disabled] { opacity: 0.4; cursor: not-allowed; }
+.boton:not([disabled]):hover { filter: brightness(1.15); }
 .boton--ancho { width: 100%; }
 .boton--texto {
   min-height: auto;
@@ -166,6 +167,7 @@ p { margin: 0 0 var(--espacio-3); }
   font-size: var(--texto-base);
 }
 .boton--texto:first-child { margin-left: 0; }
+.boton--texto:hover { text-decoration: underline; }
 .boton-volver {
   display: inline-flex;
   align-items: center;
@@ -364,12 +366,21 @@ a:focus-visible {
 .tabla-envoltura { overflow-x: auto; }
 .tabla { width: 100%; border-collapse: collapse; font-size: var(--texto-sm); }
 .tabla th, .tabla td { padding: var(--espacio-2) var(--espacio-3); text-align: left; border-bottom: var(--grosor-borde) solid var(--linea); }
-.tabla th { color: var(--tinta-suave); font-weight: var(--peso-medio); }
+.tabla thead th {
+  color: var(--tinta-suave);
+  font-weight: var(--peso-semibold);
+  font-size: var(--texto-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--fondo-pagina);
+  border-bottom: 2px solid var(--linea);
+}
+.tabla tbody tr:hover { background: var(--fondo-pagina); }
 .tabla .num { text-align: right; }
 .tabla-kg td.num { font-size: var(--texto-peso); font-variant-numeric: tabular-nums; }
 
 .seccion { margin-top: var(--espacio-6); }
-.vacio { color: var(--tinta-suave); }
+.vacio { color: var(--tinta-suave); padding: var(--espacio-5) 0; text-align: center; }
 
 /* --- Ciclo de retorno --- */
 .ciclo { margin-bottom: var(--espacio-4); padding: var(--espacio-3) var(--espacio-4); background: var(--acento-suave); border-radius: var(--radio); }
@@ -421,7 +432,16 @@ a:focus-visible {
 .tabla tfoot th, .tabla tfoot td { font-weight: var(--peso-semibold); border-top: 2px solid var(--linea); }
 
 /* --- Estado de carga / vacío --- */
-.estado-carga { color: var(--tinta-suave); padding: var(--espacio-4) 0; }
+.estado-carga {
+  color: var(--tinta-suave);
+  padding: var(--espacio-6) 0;
+  text-align: center;
+  animation: carga-pulso 1.4s ease-in-out infinite;
+}
+@keyframes carga-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 
 /* --- Pantallas todavía no construidas en React --- */
 .proximamente { padding: var(--espacio-5) 0; }
@@ -570,7 +590,7 @@ a:focus-visible {
   border-color: var(--tinta);
   box-shadow: 0 1px 2px rgba(26, 29, 33, 0.2), 0 10px 24px rgba(26, 29, 33, 0.28);
 }
-.login-tarjeta .boton--ancho:hover { background: #000000; border-color: #000000; }
+.login-tarjeta .boton--ancho:hover { opacity: 0.85; }
 
 /* --- Login en pantallas anchas: la marca a la izquierda, la tarjeta de
    acceso a la derecha. Ambas columnas comparten UN solo eje vertical

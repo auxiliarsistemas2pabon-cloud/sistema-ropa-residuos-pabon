@@ -153,6 +153,7 @@ p { margin: 0 0 var(--espacio-3); }
   cursor: pointer;
 }
 .boton[disabled] { opacity: 0.4; cursor: not-allowed; }
+.boton:not([disabled]):hover { filter: brightness(1.15); }
 .boton--ancho { display: flex; width: 100%; }
 .boton--texto {
   min-height: auto;
@@ -162,6 +163,7 @@ p { margin: 0 0 var(--espacio-3); }
   background: none;
   border: none;
 }
+.boton--texto:hover { text-decoration: underline; }
 .boton-volver {
   display: inline-flex;
   align-items: center;
@@ -383,12 +385,31 @@ a:focus-visible {
 .form-en-linea input[type="checkbox"] { min-height: auto; width: 20px; height: 20px; }
 .tabla { width: 100%; border-collapse: collapse; font-size: var(--texto-sm); }
 .tabla th, .tabla td { padding: var(--espacio-2) var(--espacio-3); text-align: left; border-bottom: var(--grosor-borde) solid var(--linea); }
-.tabla th { color: var(--tinta-suave); font-weight: var(--peso-medio); }
+.tabla thead th {
+  color: var(--tinta-suave);
+  font-weight: var(--peso-semibold);
+  font-size: var(--texto-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--fondo-pagina);
+  border-bottom: 2px solid var(--linea);
+}
+.tabla tbody tr:hover { background: var(--fondo-pagina); }
 .tabla .num { text-align: right; }
 .tabla-kg td.num { font-size: var(--texto-peso); font-variant-numeric: tabular-nums; }
 
 .seccion { margin-top: var(--espacio-6); }
-.vacio { color: var(--tinta-suave); }
+.vacio { color: var(--tinta-suave); padding: var(--espacio-5) 0; text-align: center; }
+.estado-carga {
+  color: var(--tinta-suave);
+  padding: var(--espacio-6) 0;
+  text-align: center;
+  animation: carga-pulso 1.4s ease-in-out infinite;
+}
+@keyframes carga-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 
 /* --- Ciclo de retorno de la ropa (pantalla 4) --- */
 .ciclo {
@@ -573,7 +594,7 @@ body.pagina-login .contenido {
   border-color: var(--tinta);
   box-shadow: 0 1px 2px rgba(26, 29, 33, 0.2), 0 10px 24px rgba(26, 29, 33, 0.28);
 }
-.login-tarjeta .boton--ancho:hover { background: #000000; border-color: #000000; }
+.login-tarjeta .boton--ancho:hover { opacity: 0.85; }
 
 /* --- Login en pantallas anchas: la marca a la izquierda, la tarjeta de
    acceso a la derecha. Ambas columnas comparten UN solo eje vertical

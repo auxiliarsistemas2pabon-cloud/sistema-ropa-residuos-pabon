@@ -68,6 +68,7 @@ class Rotulo(models.Model):
     class Meta:
         verbose_name = "rótulo"
         verbose_name_plural = "rótulos"
+        ordering = ["-id"]
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
