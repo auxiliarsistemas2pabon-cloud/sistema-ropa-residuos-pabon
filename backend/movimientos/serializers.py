@@ -7,7 +7,7 @@ from residuos.serializers import DetalleResiduoSerializer, EntregaGestorSerializ
 from ropa.serializers import DetalleRopaSerializer, RotuloSerializer
 
 from .models import Movimiento, Novedad, Pesaje
-from .services import puede_editar, puede_reportar_novedad
+from .services import puede_editar, puede_pesar, puede_reportar_novedad
 
 Usuario = get_user_model()
 
@@ -96,6 +96,7 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
     recepciones_enlazadas = MovimientoResumenSerializer(many=True, read_only=True, source="movimientos_resultantes")
     puede_editar = serializers.SerializerMethodField()
     puede_reportar_novedad = serializers.SerializerMethodField()
+    puede_pesar = serializers.SerializerMethodField()
 
     class Meta:
         model = Movimiento
@@ -107,6 +108,7 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
             "creado_por", "creado_en",
             "pesajes", "novedades", "detalles_ropa", "detalles_residuo", "rotulos",
             "entrega_gestor", "recepciones_enlazadas", "puede_editar", "puede_reportar_novedad",
+            "puede_pesar",
         ]
 
     def get_puede_editar(self, obj):
@@ -114,6 +116,12 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
         if request is None:
             return None
         return puede_editar(request.user, obj)
+
+    def get_puede_pesar(self, obj):
+        request = self.context.get("request")
+        if request is None:
+            return None
+        return puede_pesar(request.user, obj)
 
     def get_puede_reportar_novedad(self, obj):
         request = self.context.get("request")

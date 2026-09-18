@@ -100,6 +100,12 @@ class Usuario(AbstractUser):
     def es_administradora(self):
         return self.rol == self.Rol.ADMIN
 
+    @property
+    def es_personal_de_servicio(self):
+        """El Personal de servicio solo cuenta prendas: no pesa nada (el peso
+        de su entrega lo registra quien la recibe)."""
+        return self.rol == self.Rol.SERVICIO
+
     def __str__(self):
         return self.get_full_name() or self.get_username()
 

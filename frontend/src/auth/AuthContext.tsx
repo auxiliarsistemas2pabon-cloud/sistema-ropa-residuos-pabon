@@ -11,6 +11,8 @@ interface AuthContextValue {
    * persona estaba en la aplicación (no cuando ella misma cierra sesión). */
   sesionExpirada: boolean;
   esAdministradora: boolean;
+  /** Personal de servicio: solo cuenta prendas, no pesa nada. */
+  esPersonalDeServicio: boolean;
   iniciarSesion: (username: string, password: string) => Promise<void>;
   cerrarSesion: () => Promise<void>;
 }
@@ -64,9 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const esAdministradora = Boolean(usuario?.es_administradora || usuario?.is_superuser);
+  const esPersonalDeServicio = usuario?.rol === "SERVICIO" && !esAdministradora;
 
   return (
-    <AuthContext.Provider value={{ usuario, cargando, sesionExpirada, esAdministradora, iniciarSesion, cerrarSesion }}>
+    <AuthContext.Provider value={{ usuario, cargando, sesionExpirada, esAdministradora, esPersonalDeServicio, iniciarSesion, cerrarSesion }}>
       {children}
     </AuthContext.Provider>
   );

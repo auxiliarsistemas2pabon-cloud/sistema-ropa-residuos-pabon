@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
+import { FormularioPeso } from "./FormularioPeso";
 import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { obtenerMovimiento, reportarNovedad } from "../../api/movimientos";
 import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/client";
@@ -99,6 +100,7 @@ function FormularioNovedad({ movimientoId, esRopa, onCancelar }: {
 export function DetalleMovimiento() {
   const { id } = useParams();
   const [mostrarFormNovedad, setMostrarFormNovedad] = useState(false);
+  const [mostrarFormPeso, setMostrarFormPeso] = useState(false);
   const { data: movimiento, isLoading, error } = useQuery({
     queryKey: ["movimiento", id],
     queryFn: () => obtenerMovimiento(Number(id)),
@@ -113,6 +115,11 @@ export function DetalleMovimiento() {
     <>
       <div className="titulo-reporte">
         <h1>{movimiento.tipo_movimiento_display}</h1>
+        {movimiento.puede_pesar && !mostrarFormPeso && (
+          <button type="button" className="boton" onClick={() => setMostrarFormPeso(true)}>
+            Registrar peso
+          </button>
+        )}
         {movimiento.puede_editar && (
           <Link className="boton boton--texto" to={`/movimiento/${movimiento.id}/corregir`}>
             Corregir
@@ -179,6 +186,14 @@ export function DetalleMovimiento() {
           )}
         </div>
       )}
+
+      {movimiento.pesajes.length === 0 && movimiento.tipo_movimiento === "ROPA_SUCIA_ENTREGA" && (
+        <Aviso>
+          <strong>Sin pesar.</strong> El personal de servicio cuenta las prendas y no pesa: el peso lo registra
+          quien recibe la entrega.
+        </Aviso>
+      )}
+      {mostrarFormPeso && <FormularioPeso movimientoId={movimiento.id} onCancelar={() => setMostrarFormPeso(false)} />}
 
       {movimiento.pesajes.length > 0 && (
         <>

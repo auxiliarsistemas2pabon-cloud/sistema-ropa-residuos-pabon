@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from core.api_errors import form_errors_response
 from core.models import Sede
+from core.permissions import IsOperario
 from movimientos.models import Jornada, Movimiento
 from movimientos.serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer
 from movimientos.services import corte_ropa_sucia, resumen_ciclo
@@ -50,6 +51,9 @@ class _ResumenCicloSerializer(serializers.Serializer):
 
 
 class RecepcionRopaLimpiaAPIView(_CapturaRopaAPIView):
+    # Recibir ropa limpia se pesa: el Personal de servicio solo cuenta prendas.
+    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsOperario]
+
     def post(self, request):
         form = RecepcionRopaLimpiaForm(data=request.data, usuario=request.user)
         if not form.is_valid():
@@ -80,7 +84,7 @@ class CicloRetornoAPIView(APIView):
     necesita antes de que el usuario digite el peso recibido (resumen_ciclo
     sin kg_recibidos, ver movimientos.services)."""
 
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsOperario]
     queryset = Movimiento.objects.none()
 
     def get_queryset(self):

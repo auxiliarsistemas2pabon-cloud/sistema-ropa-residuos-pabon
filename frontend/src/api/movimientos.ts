@@ -148,6 +148,8 @@ export interface MovimientoDetalle extends MovimientoResumen {
   recepciones_enlazadas: MovimientoResumen[];
   puede_editar: boolean | null;
   puede_reportar_novedad: boolean | null;
+  /** Entrega de ropa sucia que llegó sin pesar y este usuario debe pesar. */
+  puede_pesar: boolean | null;
 }
 
 export async function obtenerMovimiento(id: number): Promise<MovimientoDetalle> {
@@ -185,6 +187,19 @@ export async function corregirMovimiento(movimientoId: number, datos: DatosCorre
 
 export async function consultarPuedeEditar(movimientoId: number): Promise<{ puede: boolean; motivo: string | null }> {
   const { data } = await api.get<{ puede: boolean; motivo: string | null }>(`/movimientos/${movimientoId}/puede-editar/`);
+  return data;
+}
+
+export interface DatosPeso {
+  peso_total: string;
+  tara?: string;
+  cantidad_bolsas?: number;
+}
+
+/** El Personal de servicio solo cuenta prendas y no pesa: quien recibe la
+ * entrega registra su peso, una sola vez (403 con el motivo si no puede). */
+export async function registrarPeso(movimientoId: number, datos: DatosPeso): Promise<MovimientoDetalle> {
+  const { data } = await api.post<MovimientoDetalle>(`/movimientos/${movimientoId}/pesar/`, datos);
   return data;
 }
 

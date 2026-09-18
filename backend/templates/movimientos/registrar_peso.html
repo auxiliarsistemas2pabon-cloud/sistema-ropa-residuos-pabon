@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block titulo %}Registrar peso · Clínica Pabón{% endblock %}
+
+{% block contenido %}
+<h1>Registrar peso de la entrega</h1>
+<p class="tinta-suave">
+  {{ movimiento.get_tipo_movimiento_display }} · {{ movimiento.fecha|date:"d M" }} {{ movimiento.hora|time:"H:i" }}
+  · {{ movimiento.area_origen.nombre|default:"—" }}. El personal de servicio cuenta las prendas y no
+  pesa: el peso lo registras tú, que recibes la entrega.
+</p>
+<dl class="calculado">
+  <div><dt>Entrega</dt><dd>{{ movimiento.entrega_por|default:"—" }}</dd></div>
+  <div><dt>Recibe</dt><dd>{{ movimiento.recibe_por|default:"—" }}</dd></div>
+</dl>
+
+<h2>Prendas que registró el servicio</h2>
+{% if detalles_ropa %}
+  <table class="tabla">
+    <thead><tr><th>Prenda</th><th class="num">Cantidad</th></tr></thead>
+    <tbody>
+      {% for d in detalles_ropa %}
+        <tr><td>{{ d.prenda.nombre }}</td><td class="num">{{ d.cantidad_unidades|default:"—" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="campo__ayuda">
+    Si algo no coincide con lo que te entregaron, reporta la diferencia con
+    <a href="{% url 'movimientos:registrar_novedad' movimiento.pk %}">Reportar novedad</a>.
+  </p>
+{% else %}
+  <p class="vacio">Esta entrega no trae prendas registradas.</p>
+{% endif %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% include "componentes/_campo.html" with campo=form.peso_total %}
+  {% include "componentes/_campo.html" with campo=form.tara %}
+  <p class="error-tara" data-error-tara hidden>
+    La tara no puede ser mayor al peso total. Revisa el valor del recipiente.
+  </p>
+  <div class="campo">
+    <label>Peso neto</label>
+    <p class="peso-neto" data-peso-neto>—</p>
+  </div>
+  {% include "componentes/_campo.html" with campo=form.cantidad_bolsas %}
+
+  <button type="submit" class="boton" data-requiere-peso-valido>Guardar peso</button>
+  <a class="boton boton--texto" href="{% url 'movimientos:detalle_movimiento' movimiento.pk %}">Cancelar</a>
+</form>
+{% endblock %}

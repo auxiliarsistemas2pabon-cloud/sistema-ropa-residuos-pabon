@@ -19,6 +19,24 @@ def solo_administradora(view):
     return _envuelta
 
 
+def solo_operario(view):
+    """Pantallas que exigen pesar (recepción de ropa limpia, residuos...):
+    exclusivas del Usuario (operario). El Personal de servicio solo cuenta
+    prendas y no pesa nada, y la Administradora no captura. El superusuario
+    técnico sigue pasando, igual que en solo_usuario."""
+
+    @wraps(view)
+    def _envuelta(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        Usuario = request.user.__class__
+        if not (request.user.is_superuser or request.user.rol == Usuario.Rol.USUARIO):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+
+    return _envuelta
+
+
 def solo_usuario(view):
     """Espejo de solo_administradora: pantallas de captura/operación
     exclusivas del personal de piso (Usuario y Personal de servicio, que

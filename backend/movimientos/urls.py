@@ -11,4 +11,5 @@ urlpatterns = [
     path("movimiento/<int:pk>/", views.detalle_movimiento, name="detalle_movimiento"),
     path("movimiento/<int:pk>/editar/", views.editar_movimiento, name="editar_movimiento"),
     path("movimiento/<int:pk>/novedad/", views.registrar_novedad, name="registrar_novedad"),
+    path("movimiento/<int:pk>/peso/", views.registrar_peso, name="registrar_peso"),
 ]

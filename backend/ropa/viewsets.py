@@ -8,7 +8,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from core.api_errors import form_errors_response
 from core.models import Sede
-from core.permissions import IsUsuario
+from core.permissions import IsOperario
 from core.viewsets import SinBorradoModelViewSet
 from movimientos.models import Jornada, ValidacionEntrega
 from movimientos.services import suma_por_servicio
@@ -32,7 +32,7 @@ class RotuloViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewS
 
     queryset = Rotulo.objects.select_related("movimiento", "area_servicio").all()
     serializer_class = RotuloSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsOperario]
     filterset_fields = ["movimiento", "area_servicio"]
     http_method_names = ["get", "post", "head", "options"]
 
@@ -45,13 +45,13 @@ class RotuloViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewS
 
 
 class ValidacionEntregaViewSet(mixins.CreateModelMixin, GenericViewSet):
-    """Validar la entrega a lavandería es exclusivo del perfil Usuario (7.
-    del prompt) — la Administradora ya no captura ni valida, solo consulta
-    reportes."""
+    """Validar la entrega a lavandería es exclusivo del Usuario (operario): la
+    Administradora no captura ni valida, y el Personal de servicio solo cuenta
+    prendas — validar compara contra un peso contado a mano."""
 
     queryset = ValidacionEntrega.objects.select_related("sede", "validado_por").all()
     serializer_class = ValidacionEntregaSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsUsuario]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsOperario]
     http_method_names = ["get", "post", "head", "options"]
 
     def create(self, request, *args, **kwargs):

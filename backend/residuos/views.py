@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import Sum
 from django.shortcuts import redirect, render
+
+from core.decorators import solo_operario
 from django.utils import timezone
 
 from .forms import EntregaGestorForm, GeneracionResiduoForm, RecoleccionResiduoForm
@@ -34,6 +36,7 @@ def _registrar(request, form_class, plantilla, url_exito):
 
 
 @login_required
+@solo_operario
 @permission_required("movimientos.add_movimiento", raise_exception=True)
 def generacion_residuo(request):
     return _registrar(
@@ -42,6 +45,7 @@ def generacion_residuo(request):
 
 
 @login_required
+@solo_operario
 @permission_required("movimientos.add_movimiento", raise_exception=True)
 def recoleccion_residuo(request):
     return _registrar(
@@ -95,6 +99,7 @@ def entrega_gestor(request):
 
 
 @login_required
+@solo_operario
 @permission_required("movimientos.view_movimiento", raise_exception=True)
 def consolidado_peligrosos(request):
     hoy = timezone.localdate()

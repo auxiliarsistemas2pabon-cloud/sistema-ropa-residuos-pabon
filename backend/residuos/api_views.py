@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.api_errors import form_errors_response
-from core.permissions import IsAdministradora
+from core.permissions import IsAdministradora, IsOperario
 from movimientos.models import Movimiento, TipoMovimiento
 from movimientos.serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer
 
@@ -22,7 +22,8 @@ class _CapturaResiduoAPIView(APIView):
     (cascada grupo→categoría→tipo, carga diferida) es la única fuente de la
     regla de negocio."""
 
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    # Los residuos se pesan: el Personal de servicio solo cuenta prendas de ropa.
+    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsOperario]
     queryset = Movimiento.objects.none()
 
     def get_queryset(self):
@@ -56,7 +57,7 @@ class CortePeligrososAPIView(APIView):
     mañana de hoy, solo generación. Reutiliza tal cual
     DetalleResiduo.objects.corte_peligrosos()."""
 
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsOperario]
     queryset = Movimiento.objects.none()
 
     def get_queryset(self):

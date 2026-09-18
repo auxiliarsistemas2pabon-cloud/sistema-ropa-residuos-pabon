@@ -5,9 +5,10 @@
 {% block contenido %}
 <h1>Ropa sucia que me entregaron</h1>
 <p class="tinta-suave">
-  Entregas de ropa sucia donde quedaste como quien recibe. Abre el detalle
-  para ver el peso, las bolsas y las prendas registradas — si algo no
-  coincide con lo que te entregaron, repórtalo ahí con «Reportar novedad».
+  Entregas de ropa sucia donde quedaste como quien recibe. Verifica que las
+  prendas coincidan con lo que te entregaron — si algo no coincide, repórtalo
+  desde el detalle con «Reportar novedad». Las entregas del personal de
+  servicio llegan sin pesar: el peso lo registras tú con «Registrar peso».
 </p>
 
 {% if entregas %}
@@ -31,7 +32,11 @@
                   {% for d in m.detalles_ropa.all %}{{ d.prenda.nombre }} × {{ d.cantidad_unidades|default:"—" }}{% if not forloop.last %}, {% endif %}{% endfor %}
                 {% else %}—{% endif %}
               </td>
-              <td class="num cifra-kg">{{ p.peso_neto|default:"—" }}</td>
+              <td class="num cifra-kg">
+                {% if p %}{{ p.peso_neto }}
+                {% elif m.puede_pesar %}<a href="{% url 'movimientos:registrar_peso' m.pk %}">Registrar peso</a>
+                {% else %}Sin pesar{% endif %}
+              </td>
               <td class="num">{{ p.cantidad_bolsas|default:"—" }}</td>
               <td class="num">{{ m.novedades.all|length }}</td>
             </tr>

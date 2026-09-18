@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerDiaAnterior } from "../../api/movimientos";
+import { pesoOSinPesar } from "../../util/formatos";
 
 function fechaLegible(iso: string): string {
   const [anio, mes, dia] = iso.split("-").map(Number);
@@ -52,7 +53,7 @@ export function DiaAnterior() {
                       </td>
                       <td>{m.tipo_movimiento_display}</td>
                       <td>{m.servicio_nombre ?? "—"}</td>
-                      <td className="num cifra-kg">{m.peso_neto ?? "—"}</td>
+                      <td className="num cifra-kg">{pesoOSinPesar(m)}</td>
                       <td>{m.estado === "CERRADO" ? "Cerrado" : m.estado === "PENDIENTE_CARGA" ? "Pendiente de carga" : "Borrador"}</td>
                     </tr>
                   ))}

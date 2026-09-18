@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { listarSedes, listarServicios } from "../api/catalogos";
 import { listarMovimientosDeHoy, type EstadoMovimiento, type TipoMovimiento } from "../api/movimientos";
+import { pesoOSinPesar } from "../util/formatos";
 import {
   IconoBandejaEntrada,
   IconoCalendario,
@@ -50,7 +51,7 @@ function fechaLegible(): string {
 }
 
 export function Panel() {
-  const { usuario, esAdministradora } = useAuth();
+  const { usuario, esAdministradora, esPersonalDeServicio } = useAuth();
   const fecha = fechaDeHoy();
   const { data: movimientos, isLoading, isError } = useQuery({
     queryKey: ["movimientos", "hoy", fecha],
@@ -142,6 +143,31 @@ export function Panel() {
               </Link>
             </p>
           </>
+        ) : esPersonalDeServicio ? (
+          <>
+            {/* Solo cuenta prendas: nada de lo que exige pesar. */}
+            <div className="accesos">
+              <Link className="acceso" to="/ropa/entrega-sucia">
+                <span className="acceso__icono"><IconoCesto /></span>
+                <span className="acceso__texto">
+                  Entregar ropa sucia
+                  <small>Cuenta las prendas por servicio; no se pesa</small>
+                </span>
+              </Link>
+              <Link className="acceso" to="/ropa/limpia/distribucion">
+                <span className="acceso__icono"><IconoPila /></span>
+                <span className="acceso__texto">
+                  Distribuir ropa limpia
+                  <small>Prendas y cantidades por servicio</small>
+                </span>
+              </Link>
+            </div>
+            <p className="enlaces-secundarios">
+              <Link to="/ropa/entregas-recibidas">
+                <IconoBandejaEntrada size={16} /> Ropa sucia que me entregaron
+              </Link>
+            </p>
+          </>
         ) : (
           <>
             <div className="accesos">
@@ -191,10 +217,12 @@ export function Panel() {
               <span className="cifra__valor">{totalMovimientos}</span>
               <span className="cifra__etiqueta">Movimientos</span>
             </div>
-            <div className="cifra">
-              <span className="cifra__valor cifra-kg">{totalKg.toFixed(2)}</span>
-              <span className="cifra__etiqueta">Kg netos</span>
-            </div>
+            {!esPersonalDeServicio && (
+              <div className="cifra">
+                <span className="cifra__valor cifra-kg">{totalKg.toFixed(2)}</span>
+                <span className="cifra__etiqueta">Kg netos</span>
+              </div>
+            )}
             <div className="cifra">
               <span className="cifra__valor">{totalPendientes}</span>
               <span className="cifra__etiqueta">Pendientes</span>
@@ -273,7 +301,7 @@ export function Panel() {
                 <th>Hora</th>
                 <th>Tipo</th>
                 <th>Servicio</th>
-                <th className="num">kg netos</th>
+                {!esPersonalDeServicio && <th className="num">kg netos</th>}
                 <th>Estado</th>
               </tr>
             </thead>
@@ -285,7 +313,7 @@ export function Panel() {
                   </td>
                   <td>{m.tipo_movimiento_display}</td>
                   <td>{m.servicio_nombre ?? "—"}</td>
-                  <td className="num cifra-kg">{m.peso_neto ?? "—"}</td>
+                  {!esPersonalDeServicio && <td className="num cifra-kg">{pesoOSinPesar(m)}</td>}
                   <td>{m.estado === "CERRADO" ? "Cerrado" : m.estado === "PENDIENTE_CARGA" ? "Pendiente de carga" : "Borrador"}</td>
                 </tr>
               ))}

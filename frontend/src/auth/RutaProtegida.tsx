@@ -7,8 +7,15 @@ import { useAuth } from "./AuthContext";
  * Esto es solo el reflejo en el cliente — el 403 real siempre lo decide
  * el backend (DjangoModelPermissions / IsAdministradora).
  */
-export function RutaProtegida({ paraAdministradora }: { paraAdministradora?: boolean }) {
-  const { usuario, cargando, sesionExpirada, esAdministradora } = useAuth();
+export function RutaProtegida({
+  paraAdministradora,
+  soloOperario,
+}: {
+  paraAdministradora?: boolean;
+  /** Pantallas que exigen pesar: el Personal de servicio solo cuenta prendas. */
+  soloOperario?: boolean;
+}) {
+  const { usuario, cargando, sesionExpirada, esAdministradora, esPersonalDeServicio } = useAuth();
   const location = useLocation();
 
   if (cargando) return <div className="estado-carga">Cargando…</div>;
@@ -21,5 +28,6 @@ export function RutaProtegida({ paraAdministradora }: { paraAdministradora?: boo
   if (paraAdministradora !== undefined && paraAdministradora !== esAdministradora) {
     return <Navigate to="/" replace />;
   }
+  if (soloOperario && esPersonalDeServicio) return <Navigate to="/" replace />;
   return <Outlet />;
 }

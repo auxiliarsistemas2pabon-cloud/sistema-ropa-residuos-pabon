@@ -5,7 +5,7 @@
 {% block contenido %}
 <h1>Entregar ropa sucia</h1>
 
-{% include "componentes/_stepper.html" %}
+{% include "componentes/_stepper.html" with paso2=form.cuenta_prendas|yesno:"Prendas," %}
 
 <form method="post" class="formulario-pasos" data-formulario-pasos novalidate>
   {% csrf_token %}
@@ -23,6 +23,15 @@
     <button type="button" class="boton" data-siguiente>Continuar →</button>
   </section>
 
+  {% if form.cuenta_prendas %}
+  {# --- Paso 2 (Personal de servicio): solo cuenta prendas, no pesa --- #}
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 2 de 3 · Prendas</p>
+    {% include "componentes/_detalle_prendas.html" with prendas=prendas campo=form.detalles_ropa etiqueta="Prendas que entregas" sin_peso=True %}
+    <button type="button" class="boton" data-siguiente data-requiere-prendas>Continuar →</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+  {% else %}
   {# --- Paso 2: Pesaje --- #}
   <section class="paso" data-paso hidden>
     <p class="paso__titulo">Paso 2 de 3 · Pesaje</p>
@@ -39,6 +48,7 @@
     <button type="button" class="boton" data-siguiente data-requiere-peso-valido>Continuar →</button>
     <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
   </section>
+  {% endif %}
 
   {# --- Paso 3: Cierre --- #}
   <section class="paso" data-paso hidden>
@@ -48,7 +58,9 @@
       <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
       <div><dt>Entrega</dt><dd>{{ form.usuario|default:"—" }}</dd></div>
     </dl>
-    {% include "componentes/_detalle_prendas.html" with prendas=prendas campo=form.detalles_ropa etiqueta="Prenda" %}
+    {% if not form.cuenta_prendas %}
+      {% include "componentes/_detalle_prendas.html" with prendas=prendas campo=form.detalles_ropa etiqueta="Prenda" %}
+    {% endif %}
     {% include "componentes/_campo.html" with campo=form.recibe_por %}
     {% include "componentes/_firma.html" with campo=form.firma_recibe etiqueta="Firma de quien recibe" %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}

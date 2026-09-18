@@ -180,6 +180,29 @@ def motivo_no_editable(usuario, movimiento):
     return None
 
 
+def motivo_no_pesable(usuario, movimiento):
+    """None si `usuario` puede registrar ahora el peso de `movimiento`; si no,
+    el motivo en español (mismo estilo que motivo_no_editable).
+
+    El Personal de servicio solo cuenta prendas: cuando entrega ropa sucia no
+    pesa, y el peso lo registra quien la recibe (el operario asignado como
+    «Recibe»). Una entrega ya pesada no se vuelve a pesar: si el peso quedó
+    mal, se corrige (RF-041), no se duplica."""
+    if movimiento.tipo_movimiento != TipoMovimiento.ROPA_SUCIA_ENTREGA:
+        return "Solo las entregas de ropa sucia se pesan después de registrarlas."
+    if movimiento.pesajes.exists():
+        return "Esta entrega ya tiene su peso registrado. Si hay un error, la Administradora puede corregirlo."
+    if usuario.rol != usuario.__class__.Rol.USUARIO:
+        return "Solo el personal de operación registra el peso."
+    if usuario.pk != movimiento.recibe_por_id:
+        return "Esta entrega no te la asignaron a ti para recibirla."
+    return None
+
+
+def puede_pesar(usuario, movimiento):
+    return motivo_no_pesable(usuario, movimiento) is None
+
+
 def puede_editar(usuario, movimiento):
     """RF-041: el rol Usuario solo edita sus propios movimientos y dentro de
     la ventana configurable (60 min por defecto); la Administradora edita sin

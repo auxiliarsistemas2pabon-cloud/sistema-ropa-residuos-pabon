@@ -6,9 +6,9 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from core.decorators import solo_usuario
+from core.decorators import solo_operario, solo_usuario
 from movimientos.models import Movimiento, Proceso, TipoMovimiento
-from movimientos.services import calcular_jornada, corte_ropa_sucia
+from movimientos.services import calcular_jornada, corte_ropa_sucia, puede_pesar
 
 from .forms import (
     DistribucionRopaLimpiaForm,
@@ -33,10 +33,15 @@ def entrega_ropa_sucia(request):
         if form.is_valid():
             movimiento = form.guardar(creado_por=request.user)
             pesaje = movimiento.pesajes.first()
+            if pesaje is not None:
+                resumen = f"{pesaje.peso_neto} kg"
+            else:  # Personal de servicio: cuenta prendas, el peso lo registra quien recibe
+                unidades = sum(d.cantidad_unidades or 0 for d in movimiento.detalles_ropa.all())
+                resumen = f"{unidades} prendas · el peso lo registra quien recibe"
             messages.success(
                 request,
                 f"Entrega guardada · {movimiento.area_origen.nombre} · "
-                f"{pesaje.peso_neto} kg · {movimiento.hora:%H:%M}",
+                f"{resumen} · {movimiento.hora:%H:%M}",
             )
             return redirect("ropa:entrega_sucia")
     else:
@@ -48,6 +53,7 @@ def entrega_ropa_sucia(request):
 
 
 @login_required
+@solo_operario
 @permission_required("movimientos.add_movimiento", raise_exception=True)
 def recepcion_ropa_limpia(request):
     if request.method == "POST":
@@ -97,6 +103,7 @@ def distribucion_ropa_limpia(request):
 
 
 @login_required
+@solo_operario
 @permission_required("movimientos.add_movimiento", raise_exception=True)
 def registro_rotulos(request):
     rotulos_de_la_entrega = None
@@ -143,6 +150,9 @@ def entregas_recibidas(request):
         .prefetch_related("pesajes", "novedades", "detalles_ropa__prenda")
         .order_by("-fecha", "-hora")[:50]
     )
+    entregas = list(entregas)
+    for entrega in entregas:  # las que llegaron sin pesar y este usuario puede pesar
+        entrega.puede_pesar = puede_pesar(request.user, entrega)
     return render(request, "ropa/entregas_recibidas.html", {"entregas": entregas})
 
 
@@ -158,7 +168,7 @@ def corte_control(request):
     )
 
 
-@solo_usuario
+@solo_operario
 def validacion_entrega(request):
     if request.method == "POST":
         form = ValidacionEntregaForm(request.POST, usuario=request.user)

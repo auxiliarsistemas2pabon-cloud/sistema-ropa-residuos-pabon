@@ -72,20 +72,29 @@
           var cantidad = fila.querySelector("[data-detalle-prenda-cantidad-inline]");
           var peso = fila.querySelector("[data-detalle-prenda-peso-inline]");
           cantidad.disabled = !check.checked;
-          peso.disabled = !check.checked;
+          if (peso) peso.disabled = !check.checked;
           if (!check.checked) {
             cantidad.value = "";
-            peso.value = "";
+            if (peso) peso.value = "";
             return;
           }
           var cantidadVal = parseInt(cantidad.value, 10);
           if (cantidadVal >= 1) {
             var detalle = { prenda: check.value, cantidad_unidades: cantidadVal };
-            if (peso.value !== "") detalle.peso_kg = peso.value;
+            if (peso && peso.value !== "") detalle.peso_kg = peso.value;
             detalles.push(detalle);
           }
         });
         oculto.value = JSON.stringify(detalles);
+
+        // Personal de servicio: solo cuenta prendas, así que su paso no avanza
+        // hasta que haya al menos una con cantidad.
+        var paso = contenedor.closest("[data-paso]");
+        if (paso) {
+          paso.querySelectorAll("[data-requiere-prendas]").forEach(function (b) {
+            b.disabled = detalles.length === 0;
+          });
+        }
       }
 
       filas.forEach(function (fila) {
@@ -103,7 +112,7 @@
           }
         });
         cantidad.addEventListener("input", actualizar);
-        peso.addEventListener("input", actualizar);
+        if (peso) peso.addEventListener("input", actualizar);
       });
 
       actualizar();

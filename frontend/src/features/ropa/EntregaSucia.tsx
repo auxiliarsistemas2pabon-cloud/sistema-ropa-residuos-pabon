@@ -26,15 +26,22 @@ interface DatosFormulario {
   hora: string;
 }
 
-const PASOS = [
+const PASOS_CON_PESO = [
   { numero: 1, nombre: "Origen" },
   { numero: 2, nombre: "Pesaje" },
   { numero: 3, nombre: "Cierre" },
 ];
 
+// El Personal de servicio solo cuenta prendas y no pesa: su paso 2 son las prendas.
+const PASOS_SOLO_CONTEO = [
+  { numero: 1, nombre: "Origen" },
+  { numero: 2, nombre: "Prendas" },
+  { numero: 3, nombre: "Cierre" },
+];
+
 export function EntregaSucia() {
   const navigate = useNavigate();
-  const { usuario } = useAuth();
+  const { usuario, esPersonalDeServicio: cuentaPrendas } = useAuth();
   const [paso, setPaso] = useState(1);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
   const [detalles, setDetalles] = useState<DetallePrendaItem[]>([]);
@@ -76,7 +83,20 @@ export function EntregaSucia() {
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 
+  /** Personal de servicio: al menos una prenda, y cada una con su cantidad. */
+  function problemaConLasPrendas(): string {
+    if (detalles.length === 0) return "Cuenta al menos una prenda: marca cuáles entregas y cuántas son.";
+    const incompletas = prendasSinCantidad(detalles, prendas);
+    return incompletas.length > 0 ? `Indica una cantidad de al menos 1 para: ${incompletas.join(", ")}.` : "";
+  }
+
   async function irSiguiente() {
+    if (cuentaPrendas && paso === 2) {
+      const problema = problemaConLasPrendas();
+      setErrorDetalles(problema);
+      if (!problema) setPaso(3);
+      return;
+    }
     const camposDelPaso: Record<number, (keyof DatosFormulario)[]> = {
       1: ["sede", "area_origen"],
       2: ["peso_total"],
@@ -93,18 +113,24 @@ export function EntregaSucia() {
 
   function onSubmit(datos: DatosFormulario) {
     setErroresServidor({});
+    const problema = cuentaPrendas ? problemaConLasPrendas() : "";
     const incompletas = prendasSinCantidad(detalles, prendas);
-    if (incompletas.length > 0) {
-      setErrorDetalles(`Indica una cantidad de al menos 1 para: ${incompletas.join(", ")}.`);
+    if (problema || incompletas.length > 0) {
+      setErrorDetalles(problema || `Indica una cantidad de al menos 1 para: ${incompletas.join(", ")}.`);
       return;
     }
     setErrorDetalles("");
     mutacion.mutate({
       sede: Number(datos.sede),
       area_origen: Number(datos.area_origen),
-      peso_total: datos.peso_total,
-      tara: datos.tara || "0",
-      ...(datos.cantidad_bolsas ? { cantidad_bolsas: Number(datos.cantidad_bolsas) } : {}),
+      // Quien solo cuenta prendas no manda peso, tara ni bolsas: los registra quien recibe.
+      ...(cuentaPrendas
+        ? {}
+        : {
+            peso_total: datos.peso_total,
+            tara: datos.tara || "0",
+            ...(datos.cantidad_bolsas ? { cantidad_bolsas: Number(datos.cantidad_bolsas) } : {}),
+          }),
       ...(detalles.length > 0 ? { detalles_ropa: JSON.stringify(detalles) } : {}),
       recibe_por: Number(datos.recibe_por),
       ...(firmaRecibe ? { firma_recibe: firmaRecibe } : {}),
@@ -126,7 +152,7 @@ export function EntregaSucia() {
   return (
     <>
       <h1>Entregar ropa sucia</h1>
-      <Stepper pasos={PASOS} actual={paso} />
+      <Stepper pasos={cuentaPrendas ? PASOS_SOLO_CONTEO : PASOS_CON_PESO} actual={paso} />
       <form onSubmit={alEnviar} noValidate>
         {erroresServidor.non_field_errors?.map((mensaje) => (
           <Aviso error key={mensaje}>
@@ -169,54 +195,77 @@ export function EntregaSucia() {
           </button>
         </section>
 
-        <section hidden={paso !== 2}>
-          <p className="paso__titulo">Paso 2 de 3 · Pesaje</p>
-          <div className="campo">
-            <label htmlFor="peso_total">Peso total (kg)</label>
-            <input
-              id="peso_total"
-              type="number"
-              step="0.01"
-              min="0"
-              inputMode="decimal"
-              {...register("peso_total", {
-                required: "Ingresa el peso total en kg.",
-                validate: (v) => parseFloat(v) > 0 || "El peso total debe ser mayor a 0.",
-              })}
+        {cuentaPrendas ? (
+          <section hidden={paso !== 2}>
+            <p className="paso__titulo">Paso 2 de 3 · Prendas</p>
+            <DetallePrendas
+              etiqueta="Prendas que entregas"
+              prendas={prendas}
+              valor={detalles}
+              onCambiar={(siguiente) => {
+                setDetalles(siguiente);
+                setErrorDetalles("");
+              }}
+              error={errorDetalles}
+              sinPeso
             />
-            <ErrorCampo error={errors.peso_total} />
-          </div>
-          <div className="campo">
-            <label htmlFor="tara">Tara (kg)</label>
-            <input id="tara" type="number" step="0.01" min="0" inputMode="decimal" {...register("tara")} />
-          </div>
-          {taraInvalida && (
-            <p className="error-tara">La tara no puede ser mayor al peso total. Revisa el valor del recipiente.</p>
-          )}
-          <div className="campo">
-            <label>Peso neto</label>
-            <p className={`peso-neto${taraInvalida ? " is-invalido" : ""}`}>
-              {taraInvalida || sinPeso ? "—" : `${pesoNeto.toFixed(2)} kg`}
-            </p>
-          </div>
-          <div className="campo">
-            <label htmlFor="cantidad_bolsas">Cantidad de bolsas (opcional)</label>
-            <input
-              id="cantidad_bolsas"
-              type="number"
-              min="1"
-              step="1"
-              inputMode="numeric"
-              {...register("cantidad_bolsas")}
-            />
-          </div>
-          <button type="button" className="boton" disabled={taraInvalida} onClick={() => void irSiguiente()}>
-            Continuar →
-          </button>
-          <button type="button" className="boton boton--texto" onClick={irAnterior}>
-            ← Volver
-          </button>
-        </section>
+            <button type="button" className="boton" onClick={() => void irSiguiente()}>
+              Continuar →
+            </button>
+            <button type="button" className="boton boton--texto" onClick={irAnterior}>
+              ← Volver
+            </button>
+          </section>
+        ) : (
+          <section hidden={paso !== 2}>
+            <p className="paso__titulo">Paso 2 de 3 · Pesaje</p>
+            <div className="campo">
+              <label htmlFor="peso_total">Peso total (kg)</label>
+              <input
+                id="peso_total"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                {...register("peso_total", {
+                  required: "Ingresa el peso total en kg.",
+                  validate: (v) => parseFloat(v) > 0 || "El peso total debe ser mayor a 0.",
+                })}
+              />
+              <ErrorCampo error={errors.peso_total} />
+            </div>
+            <div className="campo">
+              <label htmlFor="tara">Tara (kg)</label>
+              <input id="tara" type="number" step="0.01" min="0" inputMode="decimal" {...register("tara")} />
+            </div>
+            {taraInvalida && (
+              <p className="error-tara">La tara no puede ser mayor al peso total. Revisa el valor del recipiente.</p>
+            )}
+            <div className="campo">
+              <label>Peso neto</label>
+              <p className={`peso-neto${taraInvalida ? " is-invalido" : ""}`}>
+                {taraInvalida || sinPeso ? "—" : `${pesoNeto.toFixed(2)} kg`}
+              </p>
+            </div>
+            <div className="campo">
+              <label htmlFor="cantidad_bolsas">Cantidad de bolsas (opcional)</label>
+              <input
+                id="cantidad_bolsas"
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                {...register("cantidad_bolsas")}
+              />
+            </div>
+            <button type="button" className="boton" disabled={taraInvalida} onClick={() => void irSiguiente()}>
+              Continuar →
+            </button>
+            <button type="button" className="boton boton--texto" onClick={irAnterior}>
+              ← Volver
+            </button>
+          </section>
+        )}
 
         <section hidden={paso !== 3}>
           <p className="paso__titulo">Paso 3 de 3 · Cierre</p>
@@ -234,16 +283,18 @@ export function EntregaSucia() {
               <dd>{usuario?.first_name || usuario?.username}</dd>
             </div>
           </dl>
-          <DetallePrendas
-            etiqueta="Prenda (opcional, si se controla por unidades)"
-            prendas={prendas}
-            valor={detalles}
-            onCambiar={(siguiente) => {
-              setDetalles(siguiente);
-              setErrorDetalles("");
-            }}
-            error={errorDetalles}
-          />
+          {!cuentaPrendas && (
+            <DetallePrendas
+              etiqueta="Prenda (opcional, si se controla por unidades)"
+              prendas={prendas}
+              valor={detalles}
+              onCambiar={(siguiente) => {
+                setDetalles(siguiente);
+                setErrorDetalles("");
+              }}
+              error={errorDetalles}
+            />
+          )}
           <div className="campo">
             <label htmlFor="recibe_por">Recibe</label>
             <select id="recibe_por" {...register("recibe_por", { required: "Selecciona quién recibe." })}>

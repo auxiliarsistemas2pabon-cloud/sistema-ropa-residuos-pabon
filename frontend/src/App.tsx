@@ -54,11 +54,15 @@ export default function App() {
 
               <Route element={<RutaProtegida paraAdministradora={false} />}>
                 <Route path="/ropa/entrega-sucia" element={<EntregaSucia />} />
+                <Route path="/ropa/limpia/distribucion" element={<DistribucionLimpia />} />
+                <Route path="/ropa/entregas-recibidas" element={<EntregasRecibidas />} />
+              </Route>
+
+              {/* Lo que exige pesar es del operario: el Personal de servicio solo cuenta prendas. */}
+              <Route element={<RutaProtegida paraAdministradora={false} soloOperario />}>
                 <Route path="/ropa/limpia" element={<RopaLimpiaMenu />} />
                 <Route path="/ropa/limpia/recepcion" element={<RecepcionLimpia />} />
-                <Route path="/ropa/limpia/distribucion" element={<DistribucionLimpia />} />
                 <Route path="/ropa/rotulos" element={<Rotulos />} />
-                <Route path="/ropa/entregas-recibidas" element={<EntregasRecibidas />} />
                 <Route path="/validacion" element={<Validacion />} />
                 <Route path="/residuos" element={<ResiduosMenu />} />
                 <Route path="/residuos/generacion" element={<Generacion />} />

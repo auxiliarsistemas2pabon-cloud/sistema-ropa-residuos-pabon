@@ -42,24 +42,25 @@ def personal_de_servicio(db):
     )
 
 
-def test_personal_de_servicio_hace_lo_mismo_que_usuario(client, personal_de_servicio):
-    """Personal de servicio hace exactamente lo mismo que Usuario (Entregar
-    ropa sucia, Recepción de ropa limpia, con el conteo de prendas por
-    tipo) — mismo grupo de permisos, solo queda identificado con su propio
-    rol en los registros."""
+def test_personal_de_servicio_solo_cuenta_prendas_de_ropa(client, personal_de_servicio):
+    """El Personal de servicio solo cuenta prendas y no pesa nada: entrega
+    ropa sucia (contando prendas), distribuye ropa limpia y ve lo que le
+    entregaron. Sin residuos ni recepción de ropa limpia, que exigen pesar
+    (ver ropa/tests/test_personal_de_servicio.py)."""
     client.force_login(personal_de_servicio)
-    resp_captura = client.get(reverse("ropa:entrega_sucia"))
-    assert resp_captura.status_code == 200
+    assert client.get(reverse("ropa:entrega_sucia")).status_code == 200
 
     cuerpo = client.get(reverse("panel_principal")).content.decode()
     assert "Entregar ropa sucia" in cuerpo
-    assert "Registrar residuos" in cuerpo
+    assert "Registrar residuos" not in cuerpo
     assert "Consolidados" not in cuerpo
 
 
-def test_personal_de_servicio_puede_validar_entrega(client, personal_de_servicio):
+def test_personal_de_servicio_no_puede_validar_entrega(client, personal_de_servicio):
+    """Validar la entrega compara contra un peso contado a mano: es del
+    operario, no de quien solo cuenta prendas."""
     client.force_login(personal_de_servicio)
-    assert client.get(reverse("ropa:validacion")).status_code == 200
+    assert client.get(reverse("ropa:validacion")).status_code == 403
 
 
 def test_personal_de_servicio_no_entra_a_reportes_ni_catalogos(client, personal_de_servicio):
@@ -69,8 +70,8 @@ def test_personal_de_servicio_no_entra_a_reportes_ni_catalogos(client, personal_
 
 
 def test_administradora_no_puede_validar_entrega(client, administradora):
-    """Validar entrega a lavandería es exclusivo del personal de piso
-    (Usuario y Personal de servicio) — la Administradora ya no captura."""
+    """Validar entrega a lavandería es exclusivo del operario (Usuario) — la
+    Administradora ya no captura y el Personal de servicio no pesa."""
     client.force_login(administradora)
     assert client.get(reverse("ropa:validacion")).status_code == 403
 

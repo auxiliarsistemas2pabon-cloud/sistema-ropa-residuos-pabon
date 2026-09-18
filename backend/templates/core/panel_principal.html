@@ -76,6 +76,39 @@
       Corte de control de ropa sucia
     </a>
   </p>
+{% elif user.es_personal_de_servicio %}
+  <div class="accesos">
+    <a class="acceso" href="{% url 'ropa:entrega_sucia' %}">
+      <span class="acceso__icono" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 10h16l-2 9a2 2 0 0 1-2 1.6H8a2 2 0 0 1-2-1.6L4 10z"></path>
+          <ellipse cx="12" cy="10" rx="8" ry="2"></ellipse>
+          <path d="M8.5 10l1 10.5M15.5 10l-1 10.5"></path>
+        </svg>
+      </span>
+      <span class="acceso__texto">Entregar ropa sucia<small>Cuenta las prendas por servicio; no se pesa</small></span>
+    </a>
+    <a class="acceso" href="{% url 'ropa:distribucion_limpia' %}">
+      <span class="acceso__icono" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="15" width="16" height="4" rx="1.5"></rect>
+          <rect x="5" y="10.5" width="14" height="4" rx="1.5"></rect>
+          <rect x="6" y="6" width="12" height="4" rx="1.5"></rect>
+        </svg>
+      </span>
+      <span class="acceso__texto">Distribuir ropa limpia<small>Prendas y cantidades por servicio</small></span>
+    </a>
+  </div>
+  <p class="enlaces-secundarios">
+    <a href="{% url 'ropa:entregas_recibidas' %}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6"></path>
+        <path d="M3 12h5a2 2 0 0 1 2 2v0a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2v0a2 2 0 0 1 2-2h5"></path>
+        <path d="M3 12 5.5 5h13L21 12"></path>
+      </svg>
+      Ropa sucia que me entregaron
+    </a>
+  </p>
 {% else %}
   <div class="accesos">
     <a class="acceso" href="{% url 'ropa:entrega_sucia' %}">
@@ -140,10 +173,12 @@
           <span class="cifra__valor">{{ movimientos_hoy|length }}</span>
           <span class="cifra__etiqueta">Movimientos</span>
         </div>
+        {% if not user.es_personal_de_servicio %}
         <div class="cifra">
           <span class="cifra__valor cifra-kg">{{ kg_hoy|floatformat:2 }}</span>
           <span class="cifra__etiqueta">Kg netos</span>
         </div>
+        {% endif %}
         <div class="cifra">
           <span class="cifra__valor">{{ pendientes_hoy }}</span>
           <span class="cifra__etiqueta">Pendientes</span>
@@ -162,7 +197,7 @@
     {% if movimientos_hoy %}
       <table class="tabla tabla-kg">
         <thead>
-          <tr><th>Hora</th><th>Tipo</th><th>Servicio</th><th class="num">kg netos</th><th>Estado</th></tr>
+          <tr><th>Hora</th><th>Tipo</th><th>Servicio</th>{% if not user.es_personal_de_servicio %}<th class="num">kg netos</th>{% endif %}<th>Estado</th></tr>
         </thead>
         <tbody>
           {% for m in movimientos_hoy %}
@@ -170,9 +205,11 @@
               <td><a href="{% url 'movimientos:detalle_movimiento' m.pk %}">{{ m.hora|time:"H:i" }}</a></td>
               <td>{{ m.get_tipo_movimiento_display }}</td>
               <td>{{ m.area_origen.nombre|default:"—" }}</td>
+              {% if not user.es_personal_de_servicio %}
               <td class="num cifra-kg">
-                {% with p=m.pesajes.all|first %}{{ p.peso_neto|default:"—" }}{% endwith %}
+                {% with p=m.pesajes.all|first %}{% if p %}{{ p.peso_neto }}{% elif m.tipo_movimiento == "ROPA_SUCIA_ENTREGA" %}Sin pesar{% else %}—{% endif %}{% endwith %}
               </td>
+              {% endif %}
               <td>{{ m.get_estado_display }}</td>
             </tr>
           {% endfor %}

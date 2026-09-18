@@ -129,6 +129,13 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.usuario = usuario
+        # El Personal de servicio solo cuenta prendas: no pesa, así que su
+        # formulario no lleva peso, tara ni bolsas, y exige las prendas. El
+        # operario que recibe la entrega registra el peso después.
+        self.cuenta_prendas = bool(usuario is not None and usuario.es_personal_de_servicio)
+        if self.cuenta_prendas:
+            for campo in ("peso_total", "tara", "cantidad_bolsas"):
+                del self.fields[campo]
         sede = self._sede_seleccionada()
         self.fields["area_origen"].queryset = (
             AreaServicio.objects.filter(activo=True, genera_ropa=True, sede=sede).order_by("nombre")
@@ -165,6 +172,14 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
         detalles, errores = _parsear_detalles_ropa(cleaned.get("detalles_ropa"))
         for error in errores:
             self.add_error("detalles_ropa", error)
+        if self.cuenta_prendas:
+            if not detalles and not errores:
+                self.add_error(
+                    "detalles_ropa",
+                    "Cuenta al menos una prenda: marca cuáles entregas y cuántas son.",
+                )
+            for item in detalles:
+                item["peso_kg"] = None  # no pesan: el peso no se registra por prenda
         cleaned["detalles"] = detalles
         return cleaned
 
@@ -183,13 +198,14 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
             estado=estado,
             creado_por=creado_por,
         )
-        Pesaje.objects.create(
-            movimiento=movimiento,
-            peso_total=self.cleaned_data["peso_total"],
-            tara=self.cleaned_data.get("tara") or 0,
-            cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"),
-            pesado_por=creado_por,
-        )
+        if not self.cuenta_prendas:
+            Pesaje.objects.create(
+                movimiento=movimiento,
+                peso_total=self.cleaned_data["peso_total"],
+                tara=self.cleaned_data.get("tara") or 0,
+                cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"),
+                pesado_por=creado_por,
+            )
         for item in self.cleaned_data.get("detalles", []):
             DetalleRopa.objects.create(
                 movimiento=movimiento, prenda=item["prenda"], cantidad_unidades=item["cantidad_unidades"],

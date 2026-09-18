@@ -12,9 +12,9 @@ from core.decorators import solo_administradora
 from reportes.exportadores import libro_de_tabla
 
 from .filters import NovedadFilter
-from .forms import EdicionMovimientoForm, NovedadForm
+from .forms import EdicionMovimientoForm, NovedadForm, RegistroPesoForm
 from .models import EstadoMovimiento, Movimiento, Novedad
-from .services import motivo_no_editable, puede_editar, puede_reportar_novedad
+from .services import motivo_no_editable, motivo_no_pesable, puede_editar, puede_pesar, puede_reportar_novedad
 
 
 def _novedades_filtradas(request):
@@ -136,6 +136,7 @@ def detalle_movimiento(request, pk):
         "recepciones_enlazadas": movimiento.movimientos_resultantes.select_related("sede").all(),
         "puede_editar": puede_editar(request.user, movimiento),
         "puede_reportar_novedad": puede_reportar_novedad(request.user, movimiento),
+        "puede_pesar": puede_pesar(request.user, movimiento),
     }
     if request.user.es_administradora or request.user.is_superuser:
         contexto["historial"] = _historial_con_cambios(movimiento)
@@ -174,6 +175,34 @@ def editar_movimiento(request, pk):
         request,
         "movimientos/editar_movimiento.html",
         {"form": form, "movimiento": movimiento, "limite_edicion": limite_edicion},
+    )
+
+
+@login_required
+def registrar_peso(request, pk):
+    """Peso de una entrega de ropa sucia que llegó sin pesar: la registró el
+    Personal de servicio (solo cuenta prendas) y quien la recibe la pesa,
+    verificando de paso que las prendas coincidan con lo entregado."""
+    movimiento = get_object_or_404(
+        Movimiento.objects.select_related("sede", "area_origen", "entrega_por", "recibe_por"), pk=pk,
+    )
+    motivo = motivo_no_pesable(request.user, movimiento)
+    if motivo:
+        raise PermissionDenied(motivo)
+
+    if request.method == "POST":
+        form = RegistroPesoForm(request.POST, movimiento=movimiento)
+        if form.is_valid():
+            pesaje = form.guardar(pesado_por=request.user)
+            messages.success(request, f"Peso registrado · {pesaje.peso_neto:.2f} kg netos.")
+            return redirect("movimientos:detalle_movimiento", pk=movimiento.pk)
+    else:
+        form = RegistroPesoForm(movimiento=movimiento)
+
+    return render(
+        request,
+        "movimientos/registrar_peso.html",
+        {"form": form, "movimiento": movimiento, "detalles_ropa": movimiento.detalles_ropa.select_related("prenda")},
     )
 
 

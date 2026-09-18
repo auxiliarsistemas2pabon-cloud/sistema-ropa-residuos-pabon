@@ -2,9 +2,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { listarEntregasRecibidas } from "../../api/movimientos";
+import { pesoOSinPesar } from "../../util/formatos";
 
 export function EntregasRecibidas() {
-  const { usuario } = useAuth();
+  const { usuario, esPersonalDeServicio } = useAuth();
   const { data, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } = useInfiniteQuery({
     queryKey: ["entregas-recibidas", usuario?.id],
     queryFn: ({ pageParam }) => listarEntregasRecibidas(usuario!.id, pageParam),
@@ -19,8 +20,10 @@ export function EntregasRecibidas() {
       <h1>Ropa sucia que me entregaron</h1>
       <p className="tinta-suave">
         Entregas de ropa sucia donde quedaste como quien recibe — verifica que la cantidad de
-        cada prenda coincida con lo que te entregaron. Abre el detalle para ver el peso y las
-        bolsas — si algo no coincide, repórtalo ahí con «Reportar novedad».
+        cada prenda coincida con lo que te entregaron; si algo no coincide, repórtalo desde el
+        detalle con «Reportar novedad».
+        {!esPersonalDeServicio &&
+          " Las entregas del personal de servicio llegan sin pesar: el peso lo registras tú desde el detalle."}
       </p>
 
       {isLoading ? (
@@ -55,7 +58,13 @@ export function EntregasRecibidas() {
                             .join(", ")
                         : "—"}
                     </td>
-                    <td className="num cifra-kg">{m.peso_neto ?? "—"}</td>
+                    <td className="num cifra-kg">
+                      {m.peso_neto === null && !esPersonalDeServicio ? (
+                        <Link to={`/movimiento/${m.id}`}>Registrar peso</Link>
+                      ) : (
+                        pesoOSinPesar(m)
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

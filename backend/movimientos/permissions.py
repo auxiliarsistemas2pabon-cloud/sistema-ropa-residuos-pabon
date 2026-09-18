@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from .services import motivo_no_editable, puede_reportar_novedad
+from .services import motivo_no_editable, motivo_no_pesable, puede_reportar_novedad
 
 
 class PuedeEditarMovimiento(BasePermission):
@@ -25,3 +25,16 @@ class PuedeReportarNovedad(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return puede_reportar_novedad(request.user, obj)
+
+
+class PuedePesarMovimiento(BasePermission):
+    """Registrar el peso de una entrega de ropa sucia que llegó sin pesar
+    (la del Personal de servicio, que solo cuenta prendas): únicamente quien
+    la recibe, y una sola vez — reutiliza motivo_no_pesable tal cual."""
+
+    def has_object_permission(self, request, view, obj):
+        motivo = motivo_no_pesable(request.user, obj)
+        if motivo:
+            self.message = motivo
+            return False
+        return True

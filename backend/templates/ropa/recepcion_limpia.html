@@ -25,7 +25,7 @@
           {% for e in form.resumen.entregas %}
             <li>
               <span>{{ e.hora|time:"H:i" }} · {{ e.area_origen.nombre|default:"—" }}</span>
-              <span class="cifra-kg">{{ e.pesajes.all.0.peso_neto }} kg</span>
+              <span class="cifra-kg">{% if e.pesajes.all %}{{ e.pesajes.all.0.peso_neto }} kg{% else %}sin pesar{% endif %}</span>
             </li>
           {% endfor %}
         </ul>

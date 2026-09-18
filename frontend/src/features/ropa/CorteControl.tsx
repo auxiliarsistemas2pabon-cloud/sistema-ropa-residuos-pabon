@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerCorteControlRopaSucia } from "../../api/ropa";
+import { pesoOSinPesar } from "../../util/formatos";
 
 export function CorteControl() {
   const { data, isLoading, isError } = useQuery({
@@ -42,7 +43,7 @@ export function CorteControl() {
                   <td>{e.jornada === "MANANA" ? "Mañana" : "Tarde"}</td>
                   <td>{e.sede_nombre}</td>
                   <td>{e.servicio_nombre ?? "—"}</td>
-                  <td className="num cifra-kg">{e.peso_neto ?? "—"}</td>
+                  <td className="num cifra-kg">{pesoOSinPesar(e)}</td>
                 </tr>
               ))}
             </tbody>

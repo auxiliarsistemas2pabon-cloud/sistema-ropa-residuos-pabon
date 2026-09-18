@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 
-from .models import EstadoMovimiento, Novedad, Proceso, TipoNovedad
+from .models import EstadoMovimiento, Novedad, Pesaje, Proceso, TipoNovedad
 
 
 class RegistroDiferidoMixin(forms.Form):
@@ -163,4 +163,46 @@ class NovedadForm(forms.Form):
             cantidad_afectada=self.cleaned_data.get("cantidad_afectada"),
             observacion=self.cleaned_data.get("observacion", "").strip(),
             registrado_por=registrado_por,
+        )
+
+
+class RegistroPesoForm(forms.Form):
+    """Peso de una entrega de ropa sucia que llegó sin pesar: la registró el
+    Personal de servicio (solo cuenta prendas) y quien la recibe la pesa. La
+    persona que pesa queda en el pesaje (pesado_por)."""
+
+    peso_total = forms.DecimalField(
+        label="Peso total (kg)", max_digits=8, decimal_places=2, min_value=0,
+        localize=False, widget=_peso_widget(),
+    )
+    tara = forms.DecimalField(
+        label="Tara (kg)", max_digits=8, decimal_places=2, min_value=0,
+        required=False, initial=0, localize=False, widget=_peso_widget(),
+    )
+    cantidad_bolsas = forms.IntegerField(
+        label="Cantidad de bolsas (opcional)", required=False, min_value=1,
+        widget=forms.NumberInput(attrs={"inputmode": "numeric", "step": "1", "min": "1"}),
+    )
+
+    def __init__(self, *args, movimiento, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.movimiento = movimiento
+
+    def clean(self):
+        cleaned = super().clean()
+        total = cleaned.get("peso_total")
+        tara = cleaned.get("tara") or 0
+        if total is not None and tara > total:
+            self.add_error(
+                "tara", "La tara no puede ser mayor al peso total. Revisa el valor del recipiente.",
+            )
+        return cleaned
+
+    def guardar(self, *, pesado_por):
+        return Pesaje.objects.create(
+            movimiento=self.movimiento,
+            peso_total=self.cleaned_data["peso_total"],
+            tara=self.cleaned_data.get("tara") or 0,
+            cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"),
+            pesado_por=pesado_por,
         )

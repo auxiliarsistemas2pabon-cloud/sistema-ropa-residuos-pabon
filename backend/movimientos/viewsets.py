@@ -11,9 +11,9 @@ from core.api_errors import form_errors_response
 from core.permissions import IsAdministradora
 
 from .filters import MovimientoFilter, NovedadFilter
-from .forms import EdicionMovimientoForm, NovedadForm
+from .forms import EdicionMovimientoForm, NovedadForm, RegistroPesoForm
 from .models import EstadoMovimiento, Movimiento, Novedad
-from .permissions import PuedeEditarMovimiento, PuedeReportarNovedad
+from .permissions import PuedeEditarMovimiento, PuedePesarMovimiento, PuedeReportarNovedad
 from .serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer, NovedadSerializer
 from .services import motivo_no_editable
 
@@ -63,6 +63,23 @@ class MovimientoViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, Generi
         movimiento.refresh_from_db()
         serializer = MovimientoDetalleSerializer(movimiento, context={"request": request})
         return Response(serializer.data)
+
+    @action(
+        detail=True, methods=["post"],
+        permission_classes=[IsAuthenticated, PuedePesarMovimiento],
+    )
+    def pesar(self, request, pk=None):
+        """Peso de una entrega de ropa sucia que llegó sin pesar (la del
+        Personal de servicio, que solo cuenta prendas): lo registra quien la
+        recibe, una sola vez."""
+        movimiento = self.get_object()
+        form = RegistroPesoForm(data=request.data, movimiento=movimiento)
+        if not form.is_valid():
+            return form_errors_response(form)
+        form.guardar(pesado_por=request.user)
+        movimiento.refresh_from_db()
+        serializer = MovimientoDetalleSerializer(movimiento, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
         detail=True, methods=["post"],

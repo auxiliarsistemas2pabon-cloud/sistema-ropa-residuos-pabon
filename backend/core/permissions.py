@@ -15,6 +15,21 @@ class IsAdministradora(BasePermission):
         )
 
 
+class IsOperario(BasePermission):
+    """Espejo de core.decorators.solo_operario para la API: lo que exige
+    pesar es del Usuario (operario). El Personal de servicio solo cuenta
+    prendas y la Administradora no captura."""
+
+    message = "Esta acción exige pesar y es exclusiva del personal de operación."
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_superuser:
+            return True
+        return request.user.rol == request.user.__class__.Rol.USUARIO
+
+
 class IsUsuario(BasePermission):
     """Espejo de core.decorators.solo_usuario para la API: pantallas de
     captura/operación exclusivas del personal de piso (Usuario y Personal
