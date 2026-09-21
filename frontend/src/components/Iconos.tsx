@@ -169,3 +169,53 @@ export function IconoBuscar({ size = 16 }: { size?: number }) {
     </svg>
   );
 }
+
+export function IconoSalir({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  );
+}
+
+export function IconoMovimientos({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 8h15l-4-4" />
+      <path d="M20 16H5l4 4" />
+    </svg>
+  );
+}
+
+export function IconoBalanza({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v18" />
+      <path d="M7 21h10" />
+      <path d="M5 7h14" />
+      <path d="M5 7l-3 7a3 3 0 0 0 6 0z" />
+      <path d="M19 7l-3 7a3 3 0 0 0 6 0z" />
+    </svg>
+  );
+}
+
+export function IconoReloj({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+export function IconoDescarga({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v12" />
+      <path d="M7 11l5 5 5-5" />
+      <path d="M5 21h14" />
+    </svg>
+  );
+}

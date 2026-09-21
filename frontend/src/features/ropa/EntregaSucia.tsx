@@ -12,6 +12,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearEntregaRopaSucia } from "../../api/ropa";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { toast } from "sonner";
 
 interface DatosFormulario {
   sede: string;
@@ -82,7 +83,10 @@ export function EntregaSucia() {
 
   const mutacion = useMutation({
     mutationFn: crearEntregaRopaSucia,
-    onSuccess: (mov) => navigate(`/movimiento/${mov.id}`),
+    onSuccess: (mov) => {
+      toast.success("Entrega de ropa sucia registrada");
+      navigate(`/movimiento/${mov.id}`);
+    },
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 

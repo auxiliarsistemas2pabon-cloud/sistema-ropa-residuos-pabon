@@ -3,7 +3,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { listarEntregasRecibidas, listarResiduosRecibidos, type MovimientoResumen } from "../../api/movimientos";
-import { pesoOSinPesar } from "../../util/formatos";
+import { PesoNeto } from "../../components/Pildora";
 import { EsqueletoTabla } from "../../components/Esqueleto";
 import type { ColumnDef } from "@tanstack/react-table";
 import { TablaDatos } from "../../components/TablaDatos";
@@ -38,12 +38,12 @@ function columnasEntregas(
       header: "kg netos",
       accessorFn: (m) => (m.peso_neto === null ? undefined : Number(m.peso_neto)),
       sortUndefined: "last",
-      meta: { clase: "num cifra-kg" },
+      meta: { clase: "num" },
       cell: ({ row }) =>
         row.original.peso_neto === null && !esPersonalDeServicio ? (
           <Link to={`/movimiento/${row.original.id}`}>Registrar peso</Link>
         ) : (
-          pesoOSinPesar(row.original)
+          <PesoNeto movimiento={row.original} />
         ),
     },
   ];
@@ -100,6 +100,7 @@ export function EntregasRecibidas() {
             columnas={columnasRopa}
             idFila={(m) => String(m.id)}
             clase="tabla-kg"
+            apilar
             ordenable={!hasNextPage}
           />
           {hasNextPage && (
@@ -132,6 +133,7 @@ export function EntregasRecibidas() {
             columnas={columnasResiduos}
             idFila={(m) => String(m.id)}
             clase="tabla-kg"
+            apilar
             ordenable={!residuosRecibidos.hasNextPage}
           />
           {residuosRecibidos.hasNextPage && (

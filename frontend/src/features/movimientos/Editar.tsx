@@ -13,6 +13,7 @@ import {
 } from "../../api/movimientos";
 import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/client";
 import { EsqueletoDetalle } from "../../components/Esqueleto";
+import { toast } from "sonner";
 
 interface DatosFormulario {
   peso_total: string;
@@ -63,6 +64,7 @@ function FormularioCorreccion({ movimiento }: { movimiento: MovimientoDetalle })
         observaciones: datos.observaciones,
       }),
     onSuccess: () => {
+      toast.success("Corrección guardada");
       void queryClient.invalidateQueries({ queryKey: ["movimiento", String(movimiento.id)] });
       void queryClient.invalidateQueries({ queryKey: ["movimientos"] });
       navigate(`/movimiento/${movimiento.id}`, { replace: true });

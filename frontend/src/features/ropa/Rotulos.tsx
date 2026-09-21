@@ -9,6 +9,7 @@ import { listarEntregasRopaSuciaDeHoy } from "../../api/movimientos";
 import { crearRotulo, listarRotulosDeMovimiento } from "../../api/ropa";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
 import { useListaAnimada } from "../../components/useListaAnimada";
+import { toast } from "sonner";
 
 interface DatosFormulario {
   sede: string;
@@ -58,6 +59,7 @@ export function Rotulos() {
   const mutacion = useMutation({
     mutationFn: crearRotulo,
     onSuccess: () => {
+      toast.success("Rótulo guardado");
       reset({ sede: sedeId, movimiento: movimientoId, codigo_rotulo: "", contenido: "", sin_rotular: false });
       void queryClient.invalidateQueries({ queryKey: ["rotulos", movimientoId] });
     },

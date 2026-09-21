@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import { Toaster } from "sonner";
 import { AuthProvider } from "./auth/AuthContext";
 import { RutaProtegida } from "./auth/RutaProtegida";
 import { Layout } from "./components/Layout";
@@ -36,6 +37,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ProveedorAnimacion>
+      <Toaster position="top-right" closeButton offset={{ top: 92, right: 20 }} mobileOffset={{ top: 76, right: 12, left: 12 }} />
       <BrowserRouter>
         <AuthProvider>
           <Routes>

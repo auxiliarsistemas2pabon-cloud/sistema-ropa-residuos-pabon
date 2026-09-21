@@ -12,6 +12,7 @@ import {
 import { EsqueletoTabla } from "../../components/Esqueleto";
 import type { ColumnDef } from "@tanstack/react-table";
 import { TablaDatos } from "../../components/TablaDatos";
+import { IconoDescarga } from "../../components/Iconos";
 
 const REPORTES: { clave: ClaveConsolidado; titulo: string }[] = [
   { clave: "ropa_por_servicio", titulo: "Ropa por servicio" },
@@ -91,7 +92,9 @@ function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidad
     <section className="tarjeta-panel">
       <div className="titulo-reporte">
         <h2>{tituloCompleto}</h2>
-        <a className="boton boton--texto" href={urlExportarConsolidado(clave, filtros)}>Exportar a Excel</a>
+        <a className="boton boton--texto" href={urlExportarConsolidado(clave, filtros)}>
+          <IconoDescarga /> Exportar a Excel
+        </a>
       </div>
       {isLoading ? (
         <EsqueletoTabla filas={3} columnas={3} />
@@ -181,9 +184,11 @@ export function Consolidados() {
         </form>
       </section>
 
-      {REPORTES.map((r) => (
-        <ReporteConsolidado key={r.clave} clave={r.clave} titulo={r.titulo} filtros={aplicados} />
-      ))}
+      <div className="rejilla-reportes">
+        {REPORTES.map((r) => (
+          <ReporteConsolidado key={r.clave} clave={r.clave} titulo={r.titulo} filtros={aplicados} />
+        ))}
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { listarCategoriasResiduo, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearRecoleccionResiduo } from "../../api/residuos";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { toast } from "sonner";
 
 const GRUPOS: [string, string][] = [
   ["NO_PELIGROSO", "No peligroso"],
@@ -98,7 +99,10 @@ export function Recoleccion() {
 
   const mutacion = useMutation({
     mutationFn: crearRecoleccionResiduo,
-    onSuccess: (mov) => navigate(`/movimiento/${mov.id}`),
+    onSuccess: (mov) => {
+      toast.success("Recolección de residuos registrada");
+      navigate(`/movimiento/${mov.id}`);
+    },
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 

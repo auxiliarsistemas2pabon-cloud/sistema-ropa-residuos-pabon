@@ -8,6 +8,7 @@ import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { listarTodosLosGestores } from "../../api/catalogos";
 import { crearEntregaGestor, listarRecoleccionesSinFactura } from "../../api/residuos";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { toast } from "sonner";
 
 interface DatosFormulario {
   movimiento: string;
@@ -31,7 +32,10 @@ export function EntregaGestor() {
 
   const mutacion = useMutation({
     mutationFn: crearEntregaGestor,
-    onSuccess: () => navigate("/rh1-facturacion"),
+    onSuccess: () => {
+      toast.success("Entrega al gestor registrada");
+      navigate("/rh1-facturacion");
+    },
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 

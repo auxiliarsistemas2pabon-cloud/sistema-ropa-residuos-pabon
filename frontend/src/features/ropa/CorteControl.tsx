@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerCorteControlRopaSucia } from "../../api/ropa";
 import type { MovimientoResumen } from "../../api/movimientos";
-import { pesoOSinPesar } from "../../util/formatos";
+import { PesoNeto } from "../../components/Pildora";
 import { EsqueletoTabla } from "../../components/Esqueleto";
 import type { ColumnDef } from "@tanstack/react-table";
 import { TablaDatos } from "../../components/TablaDatos";
@@ -26,8 +26,8 @@ const COLUMNAS: ColumnDef<MovimientoResumen>[] = [
     header: "kg",
     accessorFn: (e) => (e.peso_neto === null ? undefined : Number(e.peso_neto)),
     sortUndefined: "last",
-    cell: ({ row }) => pesoOSinPesar(row.original),
-    meta: { clase: "num cifra-kg" },
+    cell: ({ row }) => <PesoNeto movimiento={row.original} />,
+    meta: { clase: "num" },
   },
 ];
 
@@ -55,6 +55,7 @@ export function CorteControl() {
           columnas={COLUMNAS}
           idFila={(e) => String(e.id)}
           clase="tabla-kg"
+          apilar
           pie={
             <tr>
               <th colSpan={4}>Total del corte</th>

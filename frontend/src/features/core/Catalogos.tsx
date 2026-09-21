@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, m } from "framer-motion";
+import { toast } from "sonner";
 import { Aviso } from "../../components/Aviso";
 import { Interruptor } from "../../components/Interruptor";
 import { IconoBuscar, IconoLapiz } from "../../components/Iconos";
@@ -49,6 +51,7 @@ function SedesSeccion() {
   const crear = useMutation({
     mutationFn: () => crearSede(nombre),
     onSuccess: () => {
+      toast.success("Sede creada");
       setNombre("");
       setErrores({});
       setAbierto(false);
@@ -58,13 +61,17 @@ function SedesSeccion() {
   });
   const toggle = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarSede(id, { activo }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-sedes"] }),
+    onSuccess: (_dato, { activo }) => {
+      toast.success(activo ? "Sede activada" : "Sede desactivada");
+      void qc.invalidateQueries({ queryKey: ["catalogo-sedes"] });
+    },
   });
   // Los movimientos ya registrados siguen apuntando a la misma sede: al
   // renombrarla, el nombre nuevo se ve en todos.
   const renombrar = useMutation({
     mutationFn: ({ id, nombre: nuevo }: { id: number; nombre: string }) => actualizarSede(id, { nombre: nuevo }),
     onSuccess: () => {
+      toast.success("Sede renombrada");
       setEditando(null);
       void qc.invalidateQueries({ queryKey: ["catalogo-sedes"] });
       void qc.invalidateQueries({ queryKey: ["sedes"] });
@@ -200,6 +207,7 @@ function ServiciosSeccion() {
       sede: Number(form.sede), nombre: form.nombre, genera_ropa: form.genera_ropa, genera_residuos: form.genera_residuos,
     }),
     onSuccess: () => {
+      toast.success("Servicio creado");
       setForm({ sede: "", nombre: "", genera_ropa: true, genera_residuos: false });
       setErrores({});
       setAbierto(false);
@@ -209,7 +217,10 @@ function ServiciosSeccion() {
   });
   const toggle = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarServicio(id, { activo }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-servicios"] }),
+    onSuccess: (_dato, { activo }) => {
+      toast.success(activo ? "Servicio activado" : "Servicio desactivado");
+      void qc.invalidateQueries({ queryKey: ["catalogo-servicios"] });
+    },
   });
 
   const visibles = useMemo(
@@ -358,6 +369,7 @@ function GestoresSeccion() {
   const crear = useMutation({
     mutationFn: () => crearGestor({ nombre: form.nombre, nit: form.nit, tarifa_kg_vigente: form.tarifa_kg_vigente }),
     onSuccess: () => {
+      toast.success("Gestor creado");
       setForm({ nombre: "", nit: "", tarifa_kg_vigente: "" });
       setErrores({});
       setAbierto(false);
@@ -367,7 +379,10 @@ function GestoresSeccion() {
   });
   const toggle = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarGestor(id, { activo }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-gestores"] }),
+    onSuccess: (_dato, { activo }) => {
+      toast.success(activo ? "Gestor activado" : "Gestor desactivado");
+      void qc.invalidateQueries({ queryKey: ["catalogo-gestores"] });
+    },
   });
 
   const alternar = toggle.mutate;
@@ -489,6 +504,7 @@ function UsuariosSeccion() {
       documento: form.documento || undefined, rol: form.rol, password: form.password,
     }),
     onSuccess: () => {
+      toast.success("Usuario creado");
       setForm({ username: "", first_name: "", last_name: "", documento: "", rol: "USUARIO", password: "" });
       setErrores({});
       setAbierto(false);
@@ -498,11 +514,17 @@ function UsuariosSeccion() {
   });
   const toggle = useMutation({
     mutationFn: ({ id, activo }: { id: number; activo: boolean }) => actualizarUsuario(id, { activo }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] }),
+    onSuccess: (_dato, { activo }) => {
+      toast.success(activo ? "Usuario activado" : "Usuario desactivado");
+      void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] });
+    },
   });
   const cambiarRol = useMutation({
     mutationFn: ({ id, rol }: { id: number; rol: Rol }) => actualizarUsuario(id, { rol }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] }),
+    onSuccess: () => {
+      toast.success("Rol actualizado");
+      void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] });
+    },
   });
 
   const activos = (usuarios ?? []).filter((u) => u.activo).length;
@@ -783,15 +805,42 @@ function ConfiguracionSeccion() {
   );
 }
 
-const SECCIONES: [string, string][] = [
-  ["sedes", "Sedes"],
-  ["servicios", "Servicios"],
-  ["gestores", "Gestores externos"],
-  ["usuarios", "Usuarios"],
-  ["configuracion", "Configuración"],
+/** Cada pestaña muestra una sección a la vez: la pantalla deja de ser una lista larguísima. */
+const SECCIONES: { id: string; etiqueta: string; contenido: () => ReactNode }[] = [
+  { id: "sedes", etiqueta: "Sedes", contenido: () => <SedesSeccion /> },
+  { id: "servicios", etiqueta: "Servicios", contenido: () => <ServiciosSeccion /> },
+  { id: "gestores", etiqueta: "Gestores externos", contenido: () => <GestoresSeccion /> },
+  { id: "usuarios", etiqueta: "Usuarios", contenido: () => <UsuariosSeccion /> },
+  { id: "configuracion", etiqueta: "Configuración", contenido: () => <ConfiguracionSeccion /> },
 ];
 
+/** La pestaña se recuerda en la dirección (#servicios): recargar o compartir el enlace vuelve a ella. */
+function pestanaInicial(): string {
+  const id = window.location.hash.replace("#", "");
+  return SECCIONES.some((seccion) => seccion.id === id) ? id : SECCIONES[0].id;
+}
+
 export function Catalogos() {
+  const [activa, setActiva] = useState(pestanaInicial);
+  const seccion = SECCIONES.find((x) => x.id === activa) ?? SECCIONES[0];
+
+  function elegir(id: string) {
+    setActiva(id);
+    // replaceState: no suma entradas al historial, así que "← Volver" sigue saliendo de la pantalla.
+    window.history.replaceState(window.history.state, "", `#${id}`);
+  }
+
+  function alPulsarTecla(e: KeyboardEvent<HTMLButtonElement>) {
+    const n = SECCIONES.length;
+    const i = SECCIONES.findIndex((x) => x.id === activa);
+    const destino =
+      e.key === "ArrowRight" ? (i + 1) % n : e.key === "ArrowLeft" ? (i - 1 + n) % n : e.key === "Home" ? 0 : e.key === "End" ? n - 1 : null;
+    if (destino === null) return;
+    e.preventDefault();
+    elegir(SECCIONES[destino].id);
+    document.getElementById(`pestana-${SECCIONES[destino].id}`)?.focus();
+  }
+
   return (
     <div className="panel">
       <header className="panel__encabezado">
@@ -802,29 +851,47 @@ export function Catalogos() {
           </p>
         </div>
       </header>
-      <nav aria-label="Secciones de catálogos">
-        <ul className="catalogo-nav">
-          {SECCIONES.map(([id, etiqueta]) => (
-            <li key={id}>
-              <a
-                href={`#${id}`}
-                onClick={(e) => {
-                  // Desplaza sin sumar entradas al historial: "← Volver" sigue saliendo de la pantalla.
-                  e.preventDefault();
-                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                {etiqueta}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <SedesSeccion />
-      <ServiciosSeccion />
-      <GestoresSeccion />
-      <UsuariosSeccion />
-      <ConfiguracionSeccion />
+
+      <div className="pestanas" role="tablist" aria-label="Secciones de catálogos">
+        {SECCIONES.map(({ id, etiqueta }) => {
+          const seleccionada = id === activa;
+          return (
+            <button
+              key={id}
+              id={`pestana-${id}`}
+              type="button"
+              role="tab"
+              className="pestana"
+              aria-selected={seleccionada}
+              aria-controls="panel-catalogo"
+              tabIndex={seleccionada ? 0 : -1}
+              onClick={() => elegir(id)}
+              onKeyDown={alPulsarTecla}
+            >
+              {seleccionada && (
+                <m.span layoutId="pestana-activa" className="pestanas__indicador" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+              )}
+              <span className="pestana__texto">{etiqueta}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <AnimatePresence mode="wait" initial={false}>
+        <m.div
+          key={seccion.id}
+          id="panel-catalogo"
+          role="tabpanel"
+          aria-labelledby={`pestana-${seccion.id}`}
+          className="panel-pestana"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
+        >
+          {seccion.contenido()}
+        </m.div>
+      </AnimatePresence>
     </div>
   );
 }

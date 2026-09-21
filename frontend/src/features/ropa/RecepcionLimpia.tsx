@@ -12,6 +12,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarUsuariosActivos } from "../../api/catalogos";
 import { crearRecepcionRopaLimpia } from "../../api/ropa";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { toast } from "sonner";
 
 interface DatosFormulario {
   sede: string;
@@ -64,7 +65,10 @@ export function RecepcionLimpia() {
 
   const mutacion = useMutation({
     mutationFn: crearRecepcionRopaLimpia,
-    onSuccess: (respuesta) => navigate(`/movimiento/${respuesta.movimiento.id}`),
+    onSuccess: (respuesta) => {
+      toast.success("Recepción de ropa limpia registrada");
+      navigate(`/movimiento/${respuesta.movimiento.id}`);
+    },
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 

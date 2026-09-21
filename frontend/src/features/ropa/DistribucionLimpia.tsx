@@ -11,6 +11,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { listarPrendas, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearDistribucionRopaLimpia } from "../../api/ropa";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { toast } from "sonner";
 
 interface DatosFormulario {
   sede: string;
@@ -60,7 +61,10 @@ export function DistribucionLimpia() {
 
   const mutacion = useMutation({
     mutationFn: crearDistribucionRopaLimpia,
-    onSuccess: (mov) => navigate(`/movimiento/${mov.id}`),
+    onSuccess: (mov) => {
+      toast.success("Distribución de ropa limpia registrada");
+      navigate(`/movimiento/${mov.id}`);
+    },
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 

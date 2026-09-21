@@ -1,25 +1,29 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useAuth } from "../auth/AuthContext";
 import { listarSedes, listarServicios } from "../api/catalogos";
 import { listarMovimientosDeHoy, type EstadoMovimiento, type MovimientoResumen, type TipoMovimiento } from "../api/movimientos";
-import { etiquetaEstado, pesoOSinPesar } from "../util/formatos";
+import { etiquetaEstado } from "../util/formatos";
 import {
+  IconoBalanza,
   IconoBandejaEntrada,
   IconoCalendario,
   IconoCampana,
   IconoCesto,
   IconoDocumento,
   IconoGrafico,
+  IconoMovimientos,
   IconoParametros,
   IconoPila,
+  IconoReloj,
   IconoResiduo,
   IconoTijeras,
 } from "../components/Iconos";
 import { Esqueleto, EsqueletoTabla } from "../components/Esqueleto";
-import { Acceso, ContenedorAccesos, TarjetaAnimada } from "../components/Animacion";
-import type { ColumnDef } from "@tanstack/react-table";
+import { Acceso, Aparece, ContenedorAccesos, Contador, TarjetaAnimada } from "../components/Animacion";
+import { PesoNeto, PildoraEstado } from "../components/Pildora";
 import { TablaDatos } from "../components/TablaDatos";
 
 const TIPOS: [TipoMovimiento, string][] = [
@@ -44,7 +48,7 @@ function fechaDeHoy(): string {
 }
 
 function fechaLegible(): string {
-  return new Intl.DateTimeFormat("es-CO", {
+  const texto = new Intl.DateTimeFormat("es-CO", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -52,6 +56,20 @@ function fechaLegible(): string {
   })
     .format(new Date())
     .replace(",", "");
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+/** Una cifra del día: ícono de color, número que cuenta hasta su valor y su etiqueta. */
+function TarjetaCifra({ tono, icono, etiqueta, children }: { tono: string; icono: ReactNode; etiqueta: string; children: ReactNode }) {
+  return (
+    <div className={`cifra-tarjeta tono-${tono}`}>
+      <span className="cifra-tarjeta__icono" aria-hidden="true">{icono}</span>
+      <div>
+        <span className="cifra-tarjeta__valor">{children}</span>
+        <span className="cifra-tarjeta__etiqueta">{etiqueta}</span>
+      </div>
+    </div>
+  );
 }
 
 export function Panel() {
@@ -79,11 +97,11 @@ export function Panel() {
   const visibles = useMemo(
     () =>
       (movimientos ?? []).filter(
-      (m) =>
-        (!sedeId || m.sede === Number(sedeId)) &&
-        (!servicioId || m.area_origen === Number(servicioId)) &&
-        (!tipo || m.tipo_movimiento === tipo) &&
-        (!estado || m.estado === estado),
+        (m) =>
+          (!sedeId || m.sede === Number(sedeId)) &&
+          (!servicioId || m.area_origen === Number(servicioId)) &&
+          (!tipo || m.tipo_movimiento === tipo) &&
+          (!estado || m.estado === estado),
       ),
     [movimientos, sedeId, servicioId, tipo, estado],
   );
@@ -106,11 +124,16 @@ export function Panel() {
               header: "kg netos",
               accessorFn: (m: MovimientoResumen) => (m.peso_neto === null ? undefined : Number(m.peso_neto)),
               sortUndefined: "last" as const,
-              cell: ({ row }: { row: { original: MovimientoResumen } }) => pesoOSinPesar(row.original),
-              meta: { clase: "num cifra-kg" },
+              cell: ({ row }: { row: { original: MovimientoResumen } }) => <PesoNeto movimiento={row.original} />,
+              meta: { clase: "num" },
             },
           ]),
-      { id: "estado", header: "Estado", accessorFn: (m) => etiquetaEstado(m.estado) },
+      {
+        id: "estado",
+        header: "Estado",
+        accessorFn: (m) => etiquetaEstado(m.estado),
+        cell: ({ row }) => <PildoraEstado estado={row.original.estado} />,
+      },
     ],
     [esPersonalDeServicio],
   );
@@ -126,42 +149,54 @@ export function Panel() {
     setEstado("");
   }
 
+  const nombre = usuario?.first_name || usuario?.username;
+  const ayuda = esAdministradora
+    ? "Consulta consolidados, facturación y novedades de todas las sedes."
+    : esPersonalDeServicio
+      ? "Cuenta las prendas y marca los tipos de residuo: el peso lo registra quien recibe."
+      : "Registra la ropa y los residuos de tu turno.";
+
   return (
     <div className="panel">
-      <header className="panel__encabezado">
-        <div>
-          <p className="panel__saludo">Hola, {usuario?.first_name || usuario?.username}</p>
+      <Aparece className="hero">
+        <div className="hero__texto">
+          <p className="hero__saludo">Hola, {nombre}</p>
           <h1>{esAdministradora ? "Administración y reportes" : "¿Qué vas a registrar?"}</h1>
+          <p className="hero__ayuda">{ayuda}</p>
+          <p className="hero__fecha">
+            <IconoCalendario size={16} /> {fechaLegible()}
+          </p>
         </div>
-        <p className="panel__fecha">{fechaLegible()}</p>
-      </header>
+        <img className="hero__mascota" src="/img/mascota-wertino.png" alt="" aria-hidden="true" />
+      </Aparece>
 
-      <TarjetaAnimada className="tarjeta-panel">
+      <section className="bloque" aria-labelledby="titulo-accesos">
+        <h2 id="titulo-accesos" className="bloque__titulo">Accesos</h2>
         {esAdministradora ? (
           <>
             <ContenedorAccesos>
-              <Acceso to="/consolidados">
+              <Acceso to="/consolidados" tono="rojo">
                 <span className="acceso__icono"><IconoGrafico /></span>
                 <span className="acceso__texto">
                   Consolidados
                   <small>Ropa y residuos por sede, servicio y jornada</small>
                 </span>
               </Acceso>
-              <Acceso to="/rh1-facturacion">
+              <Acceso to="/rh1-facturacion" tono="tinta">
                 <span className="acceso__icono"><IconoDocumento /></span>
                 <span className="acceso__texto">
                   RH1 y facturación
                   <small>Formato oficial y conciliación con el gestor</small>
                 </span>
               </Acceso>
-              <Acceso to="/novedades">
+              <Acceso to="/novedades" tono="vino">
                 <span className="acceso__icono"><IconoCampana /></span>
                 <span className="acceso__texto">
                   Novedades
                   <small>Diferencias y observaciones registradas</small>
                 </span>
               </Acceso>
-              <Acceso to="/catalogos">
+              <Acceso to="/catalogos" tono="gris">
                 <span className="acceso__icono"><IconoParametros /></span>
                 <span className="acceso__texto">
                   Catálogos y parámetros
@@ -182,21 +217,21 @@ export function Panel() {
           <>
             {/* Solo cuenta prendas: nada de lo que exige pesar. */}
             <ContenedorAccesos>
-              <Acceso to="/ropa/entrega-sucia">
+              <Acceso to="/ropa/entrega-sucia" tono="rojo">
                 <span className="acceso__icono"><IconoCesto /></span>
                 <span className="acceso__texto">
                   Entregar ropa sucia
                   <small>Cuenta las prendas por servicio; no se pesa</small>
                 </span>
               </Acceso>
-              <Acceso to="/ropa/limpia/distribucion">
+              <Acceso to="/ropa/limpia/distribucion" tono="tinta">
                 <span className="acceso__icono"><IconoPila /></span>
                 <span className="acceso__texto">
                   Distribuir ropa limpia
                   <small>Prendas y cantidades por servicio</small>
                 </span>
               </Acceso>
-              <Acceso to="/residuos">
+              <Acceso to="/residuos" tono="vino">
                 <span className="acceso__icono"><IconoResiduo /></span>
                 <span className="acceso__texto">
                   Entregar residuos
@@ -213,28 +248,28 @@ export function Panel() {
         ) : (
           <>
             <ContenedorAccesos>
-              <Acceso to="/ropa/entrega-sucia">
+              <Acceso to="/ropa/entrega-sucia" tono="rojo">
                 <span className="acceso__icono"><IconoCesto /></span>
                 <span className="acceso__texto">
                   Entregar ropa sucia
                   <small>Pesaje por servicio y jornada</small>
                 </span>
               </Acceso>
-              <Acceso to="/ropa/limpia">
+              <Acceso to="/ropa/limpia" tono="tinta">
                 <span className="acceso__icono"><IconoPila /></span>
                 <span className="acceso__texto">
                   Ropa limpia
                   <small>Recepción de lavandería y distribución</small>
                 </span>
               </Acceso>
-              <Acceso to="/residuos">
+              <Acceso to="/residuos" tono="vino">
                 <span className="acceso__icono"><IconoResiduo /></span>
                 <span className="acceso__texto">
                   Registrar residuos
                   <small>Generación y recolección por categoría</small>
                 </span>
               </Acceso>
-              <Acceso to="/dia-anterior">
+              <Acceso to="/dia-anterior" tono="gris">
                 <span className="acceso__icono"><IconoCalendario /></span>
                 <span className="acceso__texto">
                   Ver día anterior
@@ -249,28 +284,27 @@ export function Panel() {
             </p>
           </>
         )}
-      </TarjetaAnimada>
+      </section>
 
       <TarjetaAnimada className="tarjeta-panel" id="movimientos" retraso={0.08}>
         <div className="tarjeta-panel__encabezado">
           <h2>Movimientos de hoy</h2>
-          <div className="resumen-cifras">
-            <div className="cifra">
-              <span className="cifra__valor">{isLoading ? <Esqueleto ancho={40} alto={28} radio={6} /> : totalMovimientos}</span>
-              <span className="cifra__etiqueta">Movimientos</span>
-            </div>
-            {!esPersonalDeServicio && (
-              <div className="cifra">
-                <span className="cifra__valor cifra-kg">{isLoading ? <Esqueleto ancho={64} alto={28} radio={6} /> : totalKg.toFixed(2)}</span>
-                <span className="cifra__etiqueta">Kg netos</span>
-              </div>
-            )}
-            <div className="cifra">
-              <span className="cifra__valor">{isLoading ? <Esqueleto ancho={40} alto={28} radio={6} /> : totalPendientes}</span>
-              <span className="cifra__etiqueta">Pendientes</span>
-            </div>
-          </div>
         </div>
+
+        <div className="cifras">
+          <TarjetaCifra tono="rojo" icono={<IconoMovimientos />} etiqueta="Movimientos">
+            {isLoading ? <Esqueleto ancho={48} alto={28} radio={6} /> : <Contador valor={totalMovimientos} />}
+          </TarjetaCifra>
+          {!esPersonalDeServicio && (
+            <TarjetaCifra tono="tinta" icono={<IconoBalanza />} etiqueta="Kg netos">
+              {isLoading ? <Esqueleto ancho={72} alto={28} radio={6} /> : <Contador valor={totalKg} decimales={2} />}
+            </TarjetaCifra>
+          )}
+          <TarjetaCifra tono="vino" icono={<IconoReloj />} etiqueta="Pendientes">
+            {isLoading ? <Esqueleto ancho={48} alto={28} radio={6} /> : <Contador valor={totalPendientes} />}
+          </TarjetaCifra>
+        </div>
+
         <div className="fila-filtro filtro-panel">
           <div className="campo">
             <label htmlFor="filtro-sede">Sede</label>
@@ -345,6 +379,7 @@ export function Panel() {
             tamanoPagina={10}
             clase="tabla-kg"
             claveFiltro={[sedeId, servicioId, tipo, estado].join("|")}
+            apilar
           />
         ) : isError ? null : (
           <p className="vacio">

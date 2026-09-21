@@ -11,6 +11,7 @@ import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/c
 import { EsqueletoDetalle } from "../../components/Esqueleto";
 import { Despliega } from "../../components/Animacion";
 import { useListaAnimada } from "../../components/useListaAnimada";
+import { toast } from "sonner";
 
 const NOVEDADES_ROPA: [string, string][] = [
   ["FALTANTE", "Faltante de prendas"],
@@ -57,6 +58,7 @@ function FormularioNovedad({ movimientoId, esRopa, onCancelar }: {
         observacion: datos.observacion,
       }),
     onSuccess: () => {
+      toast.success("Novedad reportada");
       void queryClient.invalidateQueries({ queryKey: ["movimiento", String(movimientoId)] });
       onCancelar();
     },

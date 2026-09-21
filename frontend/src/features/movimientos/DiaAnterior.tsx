@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerDiaAnterior, type MovimientoResumen } from "../../api/movimientos";
-import { etiquetaEstado, pesoOSinPesar } from "../../util/formatos";
+import { etiquetaEstado } from "../../util/formatos";
+import { PesoNeto, PildoraEstado } from "../../components/Pildora";
 import { EsqueletoTabla } from "../../components/Esqueleto";
 import type { ColumnDef } from "@tanstack/react-table";
 import { TablaDatos } from "../../components/TablaDatos";
@@ -27,10 +28,15 @@ const COLUMNAS: ColumnDef<MovimientoResumen>[] = [
     header: "kg netos",
     accessorFn: (m) => (m.peso_neto === null ? undefined : Number(m.peso_neto)),
     sortUndefined: "last",
-    cell: ({ row }) => pesoOSinPesar(row.original),
-    meta: { clase: "num cifra-kg" },
+    cell: ({ row }) => <PesoNeto movimiento={row.original} />,
+    meta: { clase: "num" },
   },
-  { id: "estado", header: "Estado", accessorFn: (m) => etiquetaEstado(m.estado) },
+  {
+    id: "estado",
+    header: "Estado",
+    accessorFn: (m) => etiquetaEstado(m.estado),
+    cell: ({ row }) => <PildoraEstado estado={row.original.estado} />,
+  },
 ];
 
 export function DiaAnterior() {
@@ -64,6 +70,7 @@ export function DiaAnterior() {
               idFila={(m) => String(m.id)}
               tamanoPagina={15}
               clase="tabla-kg"
+              apilar
             />
           ) : (
             <p className="vacio">No hubo movimientos el día anterior.</p>

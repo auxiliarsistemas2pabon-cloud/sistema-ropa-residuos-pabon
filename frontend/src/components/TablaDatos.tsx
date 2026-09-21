@@ -45,6 +45,8 @@ interface Props<T> {
   /** Cuando cambia (filtros, búsqueda) la tabla vuelve a la primera página. Los cambios de
    * datos que no son de filtro (p. ej. activar un servicio) conservan la página actual. */
   claveFiltro?: string;
+  /** En teléfono cada fila se apila como una ficha (etiqueta: valor) en vez de una tabla ancha. */
+  apilar?: boolean;
 }
 
 /** La clase de celda (alineación, cifras) viaja en `meta.clase` de cada columna. */
@@ -64,6 +66,7 @@ export function TablaDatos<T>({
   pie,
   claveFiltro = "",
   ordenable = true,
+  apilar = false,
 }: Props<T>) {
   const [orden, setOrden] = useState<SortingState>(ordenInicial);
   const [cuerpoRef] = useListaAnimada<HTMLTableSectionElement>();
@@ -107,7 +110,7 @@ export function TablaDatos<T>({
   return (
     <>
       <div className="tabla-envoltura">
-        <table className={`tabla ${clase}`.trim()} aria-label={etiqueta}>
+        <table className={`tabla ${apilar ? "tabla--apilada" : ""} ${clase}`.trim().replace(/\s+/g, " ")} aria-label={etiqueta}>
           <thead>
             {tabla.getHeaderGroups().map((grupo) => (
               <tr key={grupo.id}>
@@ -141,7 +144,11 @@ export function TablaDatos<T>({
             {tabla.getRowModel().rows.map((fila) => (
               <tr key={fila.id} className={claseFila?.(fila.original)}>
                 {fila.getVisibleCells().map((celda) => (
-                  <td key={celda.id} className={claseDe(celda.column.columnDef.meta)}>
+                  <td
+                    key={celda.id}
+                    className={claseDe(celda.column.columnDef.meta)}
+                    data-etiqueta={typeof celda.column.columnDef.header === "string" ? celda.column.columnDef.header : undefined}
+                  >
                     {flexRender(celda.column.columnDef.cell, celda.getContext())}
                   </td>
                 ))}

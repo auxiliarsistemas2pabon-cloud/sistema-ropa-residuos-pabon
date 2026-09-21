@@ -163,6 +163,7 @@ export function Novedades() {
               columnas={COLUMNAS}
               idFila={(n) => String(n.id)}
               ordenable={!hasNextPage}
+              apilar
             />
             {hasNextPage && (
               <button

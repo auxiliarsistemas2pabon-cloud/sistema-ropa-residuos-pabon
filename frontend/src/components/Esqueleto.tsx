@@ -1,11 +1,13 @@
 import type { CSSProperties } from "react";
+import Skeleton from "react-loading-skeleton";
 
 /** Anchos de las "palabras" de un esqueleto: variados a propósito, para que se lea
  * como contenido real y no como una rejilla de barras iguales. */
 const ANCHOS = ["72%", "48%", "62%", "36%", "56%", "44%"];
 const ancho = (fila: number, columna: number) => ANCHOS[(fila * 3 + columna * 2) % ANCHOS.length];
 
-/** Una barra o bloque con brillo animado: la pieza básica de todo esqueleto. */
+/** Una barra o bloque con brillo animado: la pieza básica de todo esqueleto (react-loading-skeleton;
+ * los colores y la duración vienen de SkeletonTheme en ProveedorAnimacion, y respeta "reducir movimiento"). */
 export function Esqueleto({
   ancho: anchoBarra = "100%",
   alto = 14,
@@ -17,8 +19,11 @@ export function Esqueleto({
   radio?: string | number;
   className?: string;
 }) {
-  const estilo: CSSProperties = { width: anchoBarra, height: alto, borderRadius: radio };
-  return <span className={`esqueleto ${className}`.trim()} style={estilo} aria-hidden="true" />;
+  return (
+    <span className={`esqueleto-envoltura ${className}`.trim()} aria-hidden="true">
+      <Skeleton width={anchoBarra} height={alto} borderRadius={radio} />
+    </span>
+  );
 }
 
 /** Envoltura accesible: un lector de pantalla oye "Cargando…" una sola vez, no cada barra. */

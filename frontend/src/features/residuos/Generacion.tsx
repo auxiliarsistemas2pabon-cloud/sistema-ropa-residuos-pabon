@@ -11,6 +11,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { listarCategoriasResiduo, listarSedes, listarServicios, listarUsuariosActivos } from "../../api/catalogos";
 import { crearGeneracionResiduo } from "../../api/residuos";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { toast } from "sonner";
 
 const GRUPOS: [string, string][] = [
   ["NO_PELIGROSO", "No peligroso"],
@@ -95,7 +96,10 @@ export function Generacion() {
 
   const mutacion = useMutation({
     mutationFn: crearGeneracionResiduo,
-    onSuccess: (mov) => navigate(`/movimiento/${mov.id}`),
+    onSuccess: (mov) => {
+      toast.success("Generación de residuos registrada");
+      navigate(`/movimiento/${mov.id}`);
+    },
     onError: (error) => setErroresServidor(erroresDeCampo(error)),
   });
 

@@ -6,6 +6,7 @@ import { ErrorCampo } from "../../components/ErrorCampo";
 import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { registrarPeso, type MovimientoDetalle } from "../../api/movimientos";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { toast } from "sonner";
 
 interface DatosFormulario {
   peso_total: string;
@@ -46,6 +47,7 @@ function FormularioPesoRopa({ movimientoId, onCancelar }: { movimientoId: number
         ...(datos.cantidad_bolsas ? { cantidad_bolsas: Number(datos.cantidad_bolsas) } : {}),
       }),
     onSuccess: () => {
+      toast.success("Peso registrado");
       void queryClient.invalidateQueries({ queryKey: ["movimiento", String(movimientoId)] });
       void queryClient.invalidateQueries({ queryKey: ["movimientos"] });
       void queryClient.invalidateQueries({ queryKey: ["entregas-recibidas"] });
@@ -132,6 +134,7 @@ function FormularioPesoResiduos({ movimiento, onCancelar }: { movimiento: Movimi
       return registrarPeso(movimiento.id, { ...pesos, ...(bolsas ? { cantidad_bolsas: Number(bolsas) } : {}) });
     },
     onSuccess: () => {
+      toast.success("Pesos registrados");
       void queryClient.invalidateQueries({ queryKey: ["movimiento", String(movimiento.id)] });
       void queryClient.invalidateQueries({ queryKey: ["movimientos"] });
       void queryClient.invalidateQueries({ queryKey: ["residuos-recibidos"] });

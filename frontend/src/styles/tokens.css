@@ -5,11 +5,20 @@
   --tinta: #000000;
   --tinta-suave: #40454B;
   --linea: #D8DCE0;
-  --acento: #0F5C4A;
-  --acento-suave: #E6F0ED;
+  --acento: #D80000;          /* rojo institucional (manual 2023): acento de marca */
+  --acento-suave: #FBE9E9;    /* tinte del rojo: selección, insignias */
   --alerta: #8A4B0F;
   --alerta-suave: #F5EBE0;
   --blanco: #FFFFFF;
+
+  /* Paleta institucional de la interfaz: rojo de marca, negro/tinta y grises. El rojo se usa con
+     discreción (banner, insignias, pestaña activa, acentos); el botón principal es negro, como en el login. */
+  --acento-claro: #EA3A34;
+  --acento-oscuro: #9E1A17;   /* = --marca-rojo-oscuro */
+  --tinta-2: #2B3036;         /* carbón: botón principal, estados cerrados */
+  --gris: #5B6470;
+  --gris-claro: #7C8592;
+  --gris-suave: #F3F4F6;      /* relleno neutro: campos fijos, filas al pasar el cursor */
 
   /* Rojo institucional oficial (Manual de Identidad Corporativa Clínica
      Pabón, 2023 — RGB 193/39/34, HEX #d80000). Reservado para marca: el
@@ -23,7 +32,10 @@
   /* ---- elevación (tarjetas sobre --fondo-pagina) ---- */
   --sombra-header: 0 1px 2px rgba(26, 29, 33, 0.06);
   --sombra-tarjeta: 0 1px 2px rgba(26, 29, 33, 0.04), 0 8px 24px rgba(26, 29, 33, 0.07);
-  --radio-tarjeta: 12px;
+  --radio-tarjeta: 16px;
+  --radio-campo: 10px;
+  --sombra-suave: 0 1px 2px rgba(16, 19, 32, 0.05), 0 4px 14px rgba(16, 32, 28, 0.06);
+  --sombra-elevada: 0 2px 4px rgba(16, 32, 28, 0.06), 0 18px 36px rgba(216, 0, 0, 0.16);
 
   /* ---- tipografía ---- */
   --fuente: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

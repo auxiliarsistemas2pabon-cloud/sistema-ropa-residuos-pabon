@@ -3,11 +3,17 @@ import { useAuth } from "../auth/AuthContext";
 import { AvisoConsultasFallidas } from "./AvisoConsultasFallidas";
 import { TransicionPagina } from "./Animacion";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { IconoSalir } from "./Iconos";
 
 const ETIQUETA_ROL: Record<string, string> = {
   USUARIO: "Usuario",
   SERVICIO: "Personal de servicio",
 };
+
+function iniciales(usuario: { first_name?: string; last_name?: string; username: string }): string {
+  const letras = `${usuario.first_name?.[0] ?? ""}${usuario.last_name?.[0] ?? ""}`;
+  return (letras || usuario.username.slice(0, 2)).toUpperCase();
+}
 
 /** Layout de todas las pantallas autenticadas — el login usa LayoutLogin. */
 export function Layout() {
@@ -34,13 +40,15 @@ export function Layout() {
         {usuario && (
           <>
             <span className="barra-superior__usuario">
+              <span className="avatar" aria-hidden="true">{iniciales(usuario)}</span>
               <span className="barra-superior__nombre">{usuario.first_name || usuario.username}</span>
               <span className={`insignia-rol ${esAdministradora ? "insignia-rol--admin" : ""}`}>
                 {esAdministradora ? "Administradora" : ETIQUETA_ROL[usuario.rol] ?? "Usuario"}
               </span>
             </span>
-            <button type="button" className="boton boton--texto" onClick={() => void cerrarSesion()}>
-              Cerrar sesión
+            <button type="button" className="boton-salir" onClick={() => void cerrarSesion()}>
+              <IconoSalir />
+              <span className="boton-salir__texto">Cerrar sesión</span>
             </button>
           </>
         )}
