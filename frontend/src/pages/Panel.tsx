@@ -153,7 +153,7 @@ export function Panel() {
   const ayuda = esAdministradora
     ? "Consulta consolidados, facturación y novedades de todas las sedes."
     : esPersonalDeServicio
-      ? "Cuenta las prendas y marca los tipos de residuo: el peso lo registra quien recibe."
+      ? "Cuenta las prendas que entregas: el peso lo registra quien las recibe."
       : "Registra la ropa y los residuos de tu turno.";
 
   return (
@@ -215,27 +215,13 @@ export function Panel() {
           </>
         ) : esPersonalDeServicio ? (
           <>
-            {/* Solo cuenta prendas: nada de lo que exige pesar. */}
+            {/* Su única función en el panel: contar las prendas que entrega (no se pesa). */}
             <ContenedorAccesos>
               <Acceso to="/ropa/entrega-sucia" tono="rojo">
                 <span className="acceso__icono"><IconoCesto /></span>
                 <span className="acceso__texto">
                   Entregar ropa sucia
                   <small>Cuenta las prendas por servicio; no se pesa</small>
-                </span>
-              </Acceso>
-              <Acceso to="/ropa/limpia/distribucion" tono="tinta">
-                <span className="acceso__icono"><IconoPila /></span>
-                <span className="acceso__texto">
-                  Distribuir ropa limpia
-                  <small>Prendas y cantidades por servicio</small>
-                </span>
-              </Acceso>
-              <Acceso to="/residuos" tono="vino">
-                <span className="acceso__icono"><IconoResiduo /></span>
-                <span className="acceso__texto">
-                  Entregar residuos
-                  <small>Marca los tipos que entregas; no se pesa</small>
                 </span>
               </Acceso>
             </ContenedorAccesos>

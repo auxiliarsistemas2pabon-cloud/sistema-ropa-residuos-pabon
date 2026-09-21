@@ -70,6 +70,8 @@
 /* Con cuatro accesos: 2x2 en anchos medios y una fila de cuatro en pantalla ancha (sin tarjeta huérfana). */
 .accesos:has(> :nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 900px) { .accesos:has(> :nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* Un solo acceso (Personal de servicio): tarjeta de ancho normal, no estirada a toda la fila. */
+.accesos:has(> :only-child) { grid-template-columns: minmax(0, 380px); }
 .acceso {
   position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--espacio-4);
   min-height: 176px; padding: 24px 22px 22px; overflow: hidden; color: var(--tinta); text-decoration: none; text-align: left;
