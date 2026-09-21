@@ -8,6 +8,7 @@ import { listarSedes } from "../../api/catalogos";
 import { listarEntregasRopaSuciaDeHoy } from "../../api/movimientos";
 import { crearRotulo, listarRotulosDeMovimiento } from "../../api/ropa";
 import { erroresDeCampo, type ErroresDeCampo } from "../../api/client";
+import { useListaAnimada } from "../../components/useListaAnimada";
 
 interface DatosFormulario {
   sede: string;
@@ -25,6 +26,7 @@ function fechaDeHoy(): string {
 }
 
 export function Rotulos() {
+  const [listaRef] = useListaAnimada<HTMLUListElement>();
   const queryClient = useQueryClient();
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
   const fecha = fechaDeHoy();
@@ -145,7 +147,7 @@ export function Rotulos() {
       {movimientoId && rotulosDeLaEntrega && rotulosDeLaEntrega.length > 0 && (
         <section className="seccion">
           <h2>Rótulos ya registrados para esta entrega</h2>
-          <ul className="lista-novedades">
+          <ul className="lista-novedades" ref={listaRef}>
             {rotulosDeLaEntrega.map((r) => (
               <li key={r.id}>
                 {r.rotulada ? `Código ${r.codigo_rotulo || "s/n"}` : <strong>Sin rotular</strong>}

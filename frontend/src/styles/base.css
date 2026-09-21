@@ -772,17 +772,17 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--acento); }
 .estado-vacio strong { color: var(--tinta); font-size: var(--texto-base); }
 
 /* Configuración agrupada */
-.config-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--espacio-4); align-items: start; }
+.config-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: var(--espacio-4); align-items: start; }
 .config-grupo--ancho { grid-column: 1 / -1; }
 .config-grupo { padding: var(--espacio-4) var(--espacio-5); border: var(--grosor-borde) solid var(--linea); border-radius: 8px; background: var(--fondo); }
 .config-grupo h3 { margin: 0; font-size: var(--texto-base); }
 .config-grupo__ayuda { margin: var(--espacio-1) 0 var(--espacio-4); color: var(--tinta-suave); font-size: var(--texto-xs); line-height: 1.5; }
 .config-grupo .campo { margin: 0; }
-.config-grupo .campo input { max-width: none; }
-.config-jornadas { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--espacio-4); }
-.config-jornada { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espacio-2) var(--espacio-3); padding: var(--espacio-3) var(--espacio-4); border-radius: 8px; background: var(--fondo-pagina); }
+.config-grupo .campo input { max-width: none; min-width: 0; }
+.config-jornadas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: var(--espacio-4); }
+.config-jornada { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espacio-2) var(--espacio-3); padding: var(--espacio-3) var(--espacio-4); border-radius: 8px; background: var(--fondo-pagina); }
 .config-jornada__nombre { grid-column: 1 / -1; font-weight: var(--peso-semibold); font-size: var(--texto-sm); }
-.config-doble { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espacio-3); margin-bottom: var(--espacio-4); }
+.config-doble { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espacio-3); margin-bottom: var(--espacio-4); }
 .config-interruptor { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--espacio-4); padding-top: var(--espacio-3); border-top: var(--grosor-borde) solid var(--linea); }
 .config-interruptor strong { display: block; font-size: var(--texto-sm); }
 .config-interruptor div span { display: block; margin-top: 2px; color: var(--tinta-suave); font-size: var(--texto-xs); line-height: 1.5; }
@@ -846,3 +846,26 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--acento); }
 
 .esqueleto-pagina { gap: var(--espacio-4); }
 .esqueleto-pagina__tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--espacio-4); margin: var(--espacio-2) 0; }
+
+/* ===================================================================
+   Tablas con orden y paginación (TanStack Table)
+   =================================================================== */
+.tabla th .orden {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; font-weight: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer;
+}
+.tabla th .orden:hover { color: var(--acento); }
+.tabla th .orden:focus-visible { outline: var(--grosor-foco) solid var(--acento); outline-offset: 3px; border-radius: 2px; }
+.orden__flecha { font-size: 0.7rem; color: var(--linea); transition: color 0.15s; }
+.tabla th .orden:hover .orden__flecha { color: var(--tinta-suave); }
+.orden__flecha.is-activo { color: var(--acento); }
+.tabla th.num .orden { flex-direction: row-reverse; }
+.tabla th[aria-sort="ascending"], .tabla th[aria-sort="descending"] { color: var(--acento); }
+
+.paginacion {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-3); flex-wrap: wrap;
+  margin-top: var(--espacio-3); padding-top: var(--espacio-3); border-top: var(--grosor-borde) solid var(--linea);
+  color: var(--tinta-suave); font-size: var(--texto-sm);
+}
+.paginacion__botones { display: flex; align-items: center; gap: var(--espacio-2); }
+.paginacion__pagina { min-width: 110px; text-align: center; color: var(--tinta); font-weight: var(--peso-medio); }

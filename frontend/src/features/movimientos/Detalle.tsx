@@ -9,6 +9,8 @@ import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { obtenerMovimiento, reportarNovedad } from "../../api/movimientos";
 import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/client";
 import { EsqueletoDetalle } from "../../components/Esqueleto";
+import { Despliega } from "../../components/Animacion";
+import { useListaAnimada } from "../../components/useListaAnimada";
 
 const NOVEDADES_ROPA: [string, string][] = [
   ["FALTANTE", "Faltante de prendas"],
@@ -103,6 +105,8 @@ export function DetalleMovimiento() {
   const { id } = useParams();
   const [mostrarFormNovedad, setMostrarFormNovedad] = useState(false);
   const [mostrarFormPeso, setMostrarFormPeso] = useState(false);
+  // Antes de los retornos tempranos: los hooks van siempre en el mismo orden.
+  const [novedadesRef] = useListaAnimada<HTMLUListElement>();
   const { data: movimiento, isLoading, error } = useQuery({
     queryKey: ["movimiento", id],
     queryFn: () => obtenerMovimiento(Number(id)),
@@ -294,7 +298,7 @@ export function DetalleMovimiento() {
         )}
       </div>
       {movimiento.novedades.length > 0 ? (
-        <ul className="lista-novedades">
+        <ul className="lista-novedades" ref={novedadesRef}>
           {movimiento.novedades.map((n) => (
             <li key={n.id}>
               <strong>{n.tipo_novedad_display}</strong>
@@ -307,13 +311,13 @@ export function DetalleMovimiento() {
       ) : (
         <p className="vacio">Sin novedades.</p>
       )}
-      {mostrarFormNovedad && (
+      <Despliega abierto={mostrarFormNovedad}>
         <FormularioNovedad
           movimientoId={movimiento.id}
           esRopa={movimiento.tipo_movimiento.startsWith("ROPA")}
           onCancelar={() => setMostrarFormNovedad(false)}
         />
-      )}
+      </Despliega>
     </>
   );
 }

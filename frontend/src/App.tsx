@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { RutaProtegida } from "./auth/RutaProtegida";
 import { Layout } from "./components/Layout";
+import { ProveedorAnimacion } from "./components/Animacion";
 import { LayoutLogin } from "./components/LayoutLogin";
 import { Login } from "./pages/Login";
 import { Panel } from "./pages/Panel";
@@ -34,6 +35,7 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ProveedorAnimacion>
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -82,6 +84,7 @@ export default function App() {
           </Routes>
         </AuthProvider>
       </BrowserRouter>
+      </ProveedorAnimacion>
     </QueryClientProvider>
   );
 }

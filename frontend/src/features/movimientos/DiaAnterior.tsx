@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { obtenerDiaAnterior } from "../../api/movimientos";
-import { pesoOSinPesar } from "../../util/formatos";
+import { obtenerDiaAnterior, type MovimientoResumen } from "../../api/movimientos";
+import { etiquetaEstado, pesoOSinPesar } from "../../util/formatos";
 import { EsqueletoTabla } from "../../components/Esqueleto";
+import type { ColumnDef } from "@tanstack/react-table";
+import { TablaDatos } from "../../components/TablaDatos";
 
 function fechaLegible(iso: string): string {
   const [anio, mes, dia] = iso.split("-").map(Number);
@@ -10,6 +12,26 @@ function fechaLegible(iso: string): string {
     .format(new Date(anio, mes - 1, dia))
     .replace(",", "");
 }
+
+const COLUMNAS: ColumnDef<MovimientoResumen>[] = [
+  {
+    id: "hora",
+    header: "Hora",
+    accessorFn: (m) => m.hora,
+    cell: ({ row }) => <Link to={`/movimiento/${row.original.id}`}>{row.original.hora.slice(0, 5)}</Link>,
+  },
+  { id: "tipo", header: "Tipo", accessorFn: (m) => m.tipo_movimiento_display },
+  { id: "servicio", header: "Servicio", accessorFn: (m) => m.servicio_nombre ?? "—" },
+  {
+    id: "kg",
+    header: "kg netos",
+    accessorFn: (m) => (m.peso_neto === null ? undefined : Number(m.peso_neto)),
+    sortUndefined: "last",
+    cell: ({ row }) => pesoOSinPesar(row.original),
+    meta: { clase: "num cifra-kg" },
+  },
+  { id: "estado", header: "Estado", accessorFn: (m) => etiquetaEstado(m.estado) },
+];
 
 export function DiaAnterior() {
   const { data, isLoading, isError } = useQuery({ queryKey: ["dia-anterior"], queryFn: obtenerDiaAnterior });
@@ -35,32 +57,14 @@ export function DiaAnterior() {
         <>
           <h2>Movimientos</h2>
           {data && data.movimientos.length > 0 ? (
-            <div className="tabla-envoltura">
-              <table className="tabla tabla-kg">
-                <thead>
-                  <tr>
-                    <th>Hora</th>
-                    <th>Tipo</th>
-                    <th>Servicio</th>
-                    <th className="num">kg netos</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.movimientos.map((m) => (
-                    <tr key={m.id}>
-                      <td>
-                        <Link to={`/movimiento/${m.id}`}>{m.hora.slice(0, 5)}</Link>
-                      </td>
-                      <td>{m.tipo_movimiento_display}</td>
-                      <td>{m.servicio_nombre ?? "—"}</td>
-                      <td className="num cifra-kg">{pesoOSinPesar(m)}</td>
-                      <td>{m.estado === "CERRADO" ? "Cerrado" : m.estado === "PENDIENTE_CARGA" ? "Pendiente de carga" : "Borrador"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaDatos
+              etiqueta="Movimientos del día anterior"
+              datos={data.movimientos}
+              columnas={COLUMNAS}
+              idFila={(m) => String(m.id)}
+              tamanoPagina={15}
+              clase="tabla-kg"
+            />
           ) : (
             <p className="vacio">No hubo movimientos el día anterior.</p>
           )}

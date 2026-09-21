@@ -1,9 +1,53 @@
+import { useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { listarEntregasRecibidas, listarResiduosRecibidos } from "../../api/movimientos";
+import { listarEntregasRecibidas, listarResiduosRecibidos, type MovimientoResumen } from "../../api/movimientos";
 import { pesoOSinPesar } from "../../util/formatos";
 import { EsqueletoTabla } from "../../components/Esqueleto";
+import type { ColumnDef } from "@tanstack/react-table";
+import { TablaDatos } from "../../components/TablaDatos";
+
+const detalleRopa = (m: MovimientoResumen) =>
+  m.detalles_ropa.length > 0 ? m.detalles_ropa.map((d) => `${d.prenda_nombre} × ${d.cantidad_unidades ?? "—"}`).join(", ") : "—";
+
+const detalleResiduos = (m: MovimientoResumen) => m.detalles_residuo.map((d) => d.categoria_nombre).join(", ") || "—";
+
+/** Las dos bandejas comparten columnas; cambia solo la del contenido (prendas o tipos de residuo). */
+function columnasEntregas(
+  esPersonalDeServicio: boolean,
+  titulo: string,
+  detalle: (m: MovimientoResumen) => string,
+): ColumnDef<MovimientoResumen>[] {
+  return [
+    {
+      id: "fecha",
+      header: "Fecha",
+      accessorFn: (m) => `${m.fecha} ${m.hora}`,
+      cell: ({ row }) => (
+        <Link to={`/movimiento/${row.original.id}`}>
+          {row.original.fecha} {row.original.hora.slice(0, 5)}
+        </Link>
+      ),
+    },
+    { id: "servicio", header: "Servicio", accessorFn: (m) => m.servicio_nombre ?? "—" },
+    { id: "entrego", header: "Entregó", accessorFn: (m) => m.entrega_por?.nombre_completo ?? "—" },
+    { id: "detalle", header: titulo, accessorFn: detalle },
+    {
+      id: "kg",
+      header: "kg netos",
+      accessorFn: (m) => (m.peso_neto === null ? undefined : Number(m.peso_neto)),
+      sortUndefined: "last",
+      meta: { clase: "num cifra-kg" },
+      cell: ({ row }) =>
+        row.original.peso_neto === null && !esPersonalDeServicio ? (
+          <Link to={`/movimiento/${row.original.id}`}>Registrar peso</Link>
+        ) : (
+          pesoOSinPesar(row.original)
+        ),
+    },
+  ];
+}
 
 export function EntregasRecibidas() {
   const { usuario, esPersonalDeServicio } = useAuth();
@@ -14,7 +58,7 @@ export function EntregasRecibidas() {
     getNextPageParam: (ultima, _paginas, ultimaPagina) => (ultima.next ? ultimaPagina + 1 : undefined),
     enabled: Boolean(usuario),
   });
-  const entregas = data?.pages.flatMap((pagina) => pagina.results) ?? [];
+  const entregas = useMemo(() => data?.pages.flatMap((pagina) => pagina.results) ?? [], [data]);
 
   // Residuos que me entregaron (recolección o generación): el servicio marca los tipos, yo los peso.
   const residuosRecibidos = useInfiniteQuery({
@@ -24,7 +68,16 @@ export function EntregasRecibidas() {
     getNextPageParam: (ultima, _paginas, ultimaPagina) => (ultima.next ? ultimaPagina + 1 : undefined),
     enabled: Boolean(usuario),
   });
-  const residuos = residuosRecibidos.data?.pages.flatMap((pagina) => pagina.results) ?? [];
+  const residuos = useMemo(
+    () => residuosRecibidos.data?.pages.flatMap((pagina) => pagina.results) ?? [],
+    [residuosRecibidos.data],
+  );
+
+  const columnasRopa = useMemo(() => columnasEntregas(esPersonalDeServicio, "Prendas", detalleRopa), [esPersonalDeServicio]);
+  const columnasResiduos = useMemo(
+    () => columnasEntregas(esPersonalDeServicio, "Tipos", detalleResiduos),
+    [esPersonalDeServicio],
+  );
 
   return (
     <>
@@ -41,46 +94,14 @@ export function EntregasRecibidas() {
         <EsqueletoTabla filas={5} columnas={5} />
       ) : entregas.length > 0 ? (
         <>
-          <div className="tabla-envoltura">
-            <table className="tabla tabla-kg">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Servicio</th>
-                  <th>Entregó</th>
-                  <th>Prendas</th>
-                  <th className="num">kg netos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entregas.map((m) => (
-                  <tr key={m.id}>
-                    <td>
-                      <Link to={`/movimiento/${m.id}`}>
-                        {m.fecha} {m.hora.slice(0, 5)}
-                      </Link>
-                    </td>
-                    <td>{m.servicio_nombre ?? "—"}</td>
-                    <td>{m.entrega_por?.nombre_completo ?? "—"}</td>
-                    <td>
-                      {m.detalles_ropa.length > 0
-                        ? m.detalles_ropa
-                            .map((d) => `${d.prenda_nombre} × ${d.cantidad_unidades ?? "—"}`)
-                            .join(", ")
-                        : "—"}
-                    </td>
-                    <td className="num cifra-kg">
-                      {m.peso_neto === null && !esPersonalDeServicio ? (
-                        <Link to={`/movimiento/${m.id}`}>Registrar peso</Link>
-                      ) : (
-                        pesoOSinPesar(m)
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TablaDatos
+            etiqueta="Ropa sucia recibida"
+            datos={entregas}
+            columnas={columnasRopa}
+            idFila={(m) => String(m.id)}
+            clase="tabla-kg"
+            ordenable={!hasNextPage}
+          />
           {hasNextPage && (
             <button
               type="button"
@@ -105,40 +126,14 @@ export function EntregasRecibidas() {
         <EsqueletoTabla filas={4} columnas={5} />
       ) : residuos.length > 0 ? (
         <>
-          <div className="tabla-envoltura">
-            <table className="tabla tabla-kg">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Servicio</th>
-                  <th>Entregó</th>
-                  <th>Tipos</th>
-                  <th className="num">kg netos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {residuos.map((m) => (
-                  <tr key={m.id}>
-                    <td>
-                      <Link to={`/movimiento/${m.id}`}>
-                        {m.fecha} {m.hora.slice(0, 5)}
-                      </Link>
-                    </td>
-                    <td>{m.servicio_nombre ?? "—"}</td>
-                    <td>{m.entrega_por?.nombre_completo ?? "—"}</td>
-                    <td>{m.detalles_residuo.map((d) => d.categoria_nombre).join(", ") || "—"}</td>
-                    <td className="num cifra-kg">
-                      {m.peso_neto === null && !esPersonalDeServicio ? (
-                        <Link to={`/movimiento/${m.id}`}>Registrar peso</Link>
-                      ) : (
-                        pesoOSinPesar(m)
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TablaDatos
+            etiqueta="Residuos recibidos"
+            datos={residuos}
+            columnas={columnasResiduos}
+            idFila={(m) => String(m.id)}
+            clase="tabla-kg"
+            ordenable={!residuosRecibidos.hasNextPage}
+          />
           {residuosRecibidos.hasNextPage && (
             <button
               type="button"

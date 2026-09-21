@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { listarSedes, listarServicios } from "../../api/catalogos";
-import { listarNovedades, type FiltrosNovedades } from "../../api/movimientos";
+import { listarNovedades, type FiltrosNovedades, type Novedad } from "../../api/movimientos";
 import { urlExportarNovedades } from "../../api/reportes";
 import { EsqueletoTabla } from "../../components/Esqueleto";
+import type { ColumnDef } from "@tanstack/react-table";
+import { TablaDatos } from "../../components/TablaDatos";
 
 const TIPOS_NOVEDAD: [string, string][] = [
   ["FALTANTE", "Faltante de prendas"],
@@ -31,6 +33,28 @@ function fechaHora(iso: string): string {
     d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 }
 
+const COLUMNAS: ColumnDef<Novedad>[] = [
+  {
+    id: "fecha",
+    header: "Fecha",
+    accessorFn: (n) => Date.parse(n.registrado_en),
+    cell: ({ row }) => <Link to={`/movimiento/${row.original.movimiento}`}>{fechaHora(row.original.registrado_en)}</Link>,
+  },
+  { id: "tipo", header: "Tipo", accessorFn: (n) => n.tipo_novedad_display },
+  { id: "sede", header: "Sede", accessorFn: (n) => n.movimiento_sede },
+  { id: "servicio", header: "Servicio", accessorFn: (n) => n.movimiento_servicio ?? "—" },
+  {
+    id: "cantidad",
+    header: "Cant.",
+    accessorFn: (n) => (n.cantidad_afectada === null ? undefined : Number(n.cantidad_afectada)),
+    sortUndefined: "last",
+    cell: ({ row }) => row.original.cantidad_afectada ?? "—",
+    meta: { clase: "num cifra-kg" },
+  },
+  { id: "observacion", header: "Observación", accessorFn: (n) => n.observacion || "—" },
+  { id: "registro", header: "Registró", accessorFn: (n) => n.registrado_por.nombre_completo },
+];
+
 export function Novedades() {
   const { esAdministradora } = useAuth();
   const [filtros, setFiltros] = useState<FiltrosNovedades>({});
@@ -48,7 +72,7 @@ export function Novedades() {
     initialPageParam: 1,
     getNextPageParam: (ultima, _paginas, ultimaPagina) => (ultima.next ? ultimaPagina + 1 : undefined),
   });
-  const items = data?.pages.flatMap((pagina) => pagina.results) ?? [];
+  const items = useMemo(() => data?.pages.flatMap((pagina) => pagina.results) ?? [], [data]);
 
   return (
     <div className="panel">
@@ -133,29 +157,13 @@ export function Novedades() {
           <EsqueletoTabla filas={6} columnas={7} />
         ) : items.length > 0 ? (
           <>
-            <div className="tabla-envoltura">
-              <table className="tabla">
-                <thead>
-                  <tr>
-                    <th>Fecha</th><th>Tipo</th><th>Sede</th><th>Servicio</th>
-                    <th className="num">Cant.</th><th>Observación</th><th>Registró</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((n) => (
-                    <tr key={n.id}>
-                      <td><Link to={`/movimiento/${n.movimiento}`}>{fechaHora(n.registrado_en)}</Link></td>
-                      <td>{n.tipo_novedad_display}</td>
-                      <td>{n.movimiento_sede}</td>
-                      <td>{n.movimiento_servicio ?? "—"}</td>
-                      <td className="num cifra-kg">{n.cantidad_afectada ?? "—"}</td>
-                      <td>{n.observacion || "—"}</td>
-                      <td>{n.registrado_por.nombre_completo}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaDatos
+              etiqueta="Novedades"
+              datos={items}
+              columnas={COLUMNAS}
+              idFila={(n) => String(n.id)}
+              ordenable={!hasNextPage}
+            />
             {hasNextPage && (
               <button
                 type="button"

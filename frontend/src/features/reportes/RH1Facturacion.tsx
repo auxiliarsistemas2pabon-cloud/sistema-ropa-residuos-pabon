@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { listarSedes } from "../../api/catalogos";
@@ -10,8 +10,13 @@ import {
   urlExportarConciliacion,
   urlExportarFacturacion,
   urlExportarRH1,
+  type FilaConciliacion,
+  type FilaFacturacion,
+  type FilaRH1,
 } from "../../api/reportes";
 import { EsqueletoTabla } from "../../components/Esqueleto";
+import type { ColumnDef } from "@tanstack/react-table";
+import { TablaDatos } from "../../components/TablaDatos";
 
 function mesDeHoy(): string {
   const hoy = new Date();
@@ -25,6 +30,43 @@ function kg(valor: unknown): string {
 function fechaCorta(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
 }
+
+const COLUMNAS_FACTURACION: ColumnDef<FilaFacturacion>[] = [
+  { id: "gestor", header: "Gestor", accessorFn: (x) => x.gestor_externo__nombre },
+  {
+    id: "kg",
+    header: "kg",
+    accessorFn: (x) => Number(x.kg ?? 0),
+    cell: ({ row }) => kg(row.original.kg),
+    meta: { clase: "num cifra-kg" },
+  },
+  {
+    id: "valor",
+    header: "Valor ($)",
+    accessorFn: (x) => Number(x.valor ?? 0),
+    cell: ({ row }) => pesos(row.original.valor),
+    meta: { clase: "num cifra-kg" },
+  },
+  { id: "facturas", header: "Facturas", accessorFn: (x) => x.facturas, meta: { clase: "num" } },
+];
+
+const idFilaFacturacion = (x: FilaFacturacion, i: number) => `${x.gestor_externo__nombre}|${i}`;
+
+const columnaKgConciliacion = (id: "kg_interno" | "kg_facturado" | "diferencia", titulo: string): ColumnDef<FilaConciliacion> => ({
+  id,
+  header: titulo,
+  accessorFn: (x) => Number(x[id]),
+  cell: ({ row }) => kg(row.original[id]),
+  meta: { clase: "num cifra-kg" },
+});
+
+const COLUMNAS_CONCILIACION: ColumnDef<FilaConciliacion>[] = [
+  { id: "gestor", header: "Gestor", accessorFn: (x) => x.gestor },
+  { id: "factura", header: "Factura", accessorFn: (x) => x.factura },
+  columnaKgConciliacion("kg_interno", "kg interno"),
+  columnaKgConciliacion("kg_facturado", "kg facturado"),
+  columnaKgConciliacion("diferencia", "Diferencia"),
+];
 
 export function RH1Facturacion() {
   const [mes, setMes] = useState(mesDeHoy());
@@ -46,7 +88,36 @@ export function RH1Facturacion() {
     queryFn: () => obtenerFacturacionConciliacion(mesAplicado),
   });
 
-  const filasConDatos = (rh1?.filas ?? []).filter((f) => Number(f.total) > 0);
+  const filasConDatos = useMemo(() => (rh1?.filas ?? []).filter((f) => Number(f.total) > 0), [rh1]);
+
+  // Una columna por categoría configurada en el formato, más la fecha y el total del día.
+  const columnasRH1 = useMemo<ColumnDef<FilaRH1>[]>(
+    () => [
+      {
+        id: "fecha",
+        header: "Fecha",
+        accessorFn: (f) => f.fecha,
+        cell: ({ row }) => fechaCorta(row.original.fecha),
+      },
+      ...(rh1?.columnas ?? []).map(
+        (c, i): ColumnDef<FilaRH1> => ({
+          id: `columna-${c.id}`,
+          header: c.nombre,
+          accessorFn: (f) => Number(f.celdas[i] ?? 0),
+          cell: ({ getValue }) => kg(getValue()),
+          meta: { clase: "num cifra-kg" },
+        }),
+      ),
+      {
+        id: "total",
+        header: "Total día",
+        accessorFn: (f) => Number(f.total),
+        cell: ({ getValue }) => kg(getValue()),
+        meta: { clase: "num cifra-kg" },
+      },
+    ],
+    [rh1?.columnas],
+  );
 
   return (
     <div className="panel">
@@ -89,33 +160,20 @@ export function RH1Facturacion() {
           <EsqueletoTabla filas={6} columnas={6} />
         ) : rh1?.columnas.length ? (
           <>
-            <div className="tabla-envoltura">
-              <table className="tabla tabla-kg">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    {rh1.columnas.map((c) => <th key={c.id} className="num">{c.nombre}</th>)}
-                    <th className="num">Total día</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filasConDatos.map((f) => (
-                    <tr key={f.fecha}>
-                      <td>{fechaCorta(f.fecha)}</td>
-                      {f.celdas.map((c, i) => <td key={i} className="num cifra-kg">{kg(c)}</td>)}
-                      <td className="num cifra-kg">{kg(f.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th>Total mes</th>
-                    {rh1.totales_columna.map((t, i) => <td key={i} className="num cifra-kg">{kg(t)}</td>)}
-                    <td className="num cifra-kg">{kg(rh1.total_mes)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <TablaDatos
+              etiqueta="Formato RH1"
+              datos={filasConDatos}
+              columnas={columnasRH1}
+              idFila={(f) => f.fecha}
+              clase="tabla-kg"
+              pie={
+                <tr>
+                  <th>Total mes</th>
+                  {rh1.totales_columna.map((t, i) => <td key={i} className="num cifra-kg">{kg(t)}</td>)}
+                  <td className="num cifra-kg">{kg(rh1.total_mes)}</td>
+                </tr>
+              }
+            />
             <p className="tinta-suave">Se muestran solo los días con generación; el Excel trae el mes completo.</p>
           </>
         ) : falloRH1 ? null : (
@@ -135,42 +193,26 @@ export function RH1Facturacion() {
           <>
             <h3>Del periodo</h3>
             {facturacion?.actual.length ? (
-              <div className="tabla-envoltura">
-                <table className="tabla tabla-kg">
-                  <thead><tr><th>Gestor</th><th className="num">kg</th><th className="num">Valor ($)</th><th className="num">Facturas</th></tr></thead>
-                  <tbody>
-                    {facturacion.actual.map((x, i) => (
-                      <tr key={i}>
-                        <td>{x.gestor_externo__nombre}</td>
-                        <td className="num cifra-kg">{kg(x.kg)}</td>
-                        <td className="num cifra-kg">{pesos(x.valor)}</td>
-                        <td className="num">{x.facturas}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaDatos
+                etiqueta="Facturación del periodo"
+                datos={facturacion.actual}
+                columnas={COLUMNAS_FACTURACION}
+                idFila={idFilaFacturacion}
+                clase="tabla-kg"
+              />
             ) : (
               <p className="vacio">Sin entregas facturadas en este periodo.</p>
             )}
 
             <h3>Pendientes del mes anterior</h3>
             {facturacion?.pendientes_anteriores.length ? (
-              <div className="tabla-envoltura">
-                <table className="tabla tabla-kg">
-                  <thead><tr><th>Gestor</th><th className="num">kg</th><th className="num">Valor ($)</th><th className="num">Facturas</th></tr></thead>
-                  <tbody>
-                    {facturacion.pendientes_anteriores.map((x, i) => (
-                      <tr key={i}>
-                        <td>{x.gestor_externo__nombre}</td>
-                        <td className="num cifra-kg">{kg(x.kg)}</td>
-                        <td className="num cifra-kg">{pesos(x.valor)}</td>
-                        <td className="num">{x.facturas}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaDatos
+                etiqueta="Pendientes del mes anterior"
+                datos={facturacion.pendientes_anteriores}
+                columnas={COLUMNAS_FACTURACION}
+                idFila={idFilaFacturacion}
+                clase="tabla-kg"
+              />
             ) : (
               <p className="vacio">Nada pendiente del mes anterior.</p>
             )}
@@ -191,22 +233,13 @@ export function RH1Facturacion() {
         {cargandoConciliacion ? (
           <EsqueletoTabla filas={2} columnas={5} />
         ) : conciliacion?.length ? (
-          <div className="tabla-envoltura">
-            <table className="tabla tabla-kg">
-              <thead><tr><th>Gestor</th><th>Factura</th><th className="num">kg interno</th><th className="num">kg facturado</th><th className="num">Diferencia</th></tr></thead>
-              <tbody>
-                {conciliacion.map((x, i) => (
-                  <tr key={i}>
-                    <td>{x.gestor}</td>
-                    <td>{x.factura}</td>
-                    <td className="num cifra-kg">{kg(x.kg_interno)}</td>
-                    <td className="num cifra-kg">{kg(x.kg_facturado)}</td>
-                    <td className="num cifra-kg">{kg(x.diferencia)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TablaDatos
+            etiqueta="Conciliación con el gestor"
+            datos={conciliacion}
+            columnas={COLUMNAS_CONCILIACION}
+            idFila={(x, i) => `${x.gestor}|${x.factura}|${i}`}
+            clase="tabla-kg"
+          />
         ) : falloConciliacion ? null : (
           <p className="vacio">Sin entregas al gestor en este periodo.</p>
         )}

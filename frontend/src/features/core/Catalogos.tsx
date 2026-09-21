@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
 import { Interruptor } from "../../components/Interruptor";
 import { IconoBuscar, IconoLapiz } from "../../components/Iconos";
 import { EstadoVacio, SeccionCatalogo } from "../../components/SeccionCatalogo";
+import { Despliega } from "../../components/Animacion";
+import { useListaAnimada } from "../../components/useListaAnimada";
 import { useAuth } from "../../auth/AuthContext";
 import { pesos } from "../../util/formatos";
 import { erroresDeCampo, mensajeDeError, type ErroresDeCampo } from "../../api/client";
@@ -30,6 +32,8 @@ import {
   type Usuario,
 } from "../../api/catalogos";
 import { EsqueletoFormulario, EsqueletoTabla } from "../../components/Esqueleto";
+import type { ColumnDef } from "@tanstack/react-table";
+import { TablaDatos } from "../../components/TablaDatos";
 
 const cantidad = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
 
@@ -40,6 +44,7 @@ function SedesSeccion() {
   const [errores, setErrores] = useState<ErroresDeCampo>({});
   const [editando, setEditando] = useState<{ id: number; nombre: string } | null>(null);
   const { data: sedes, isLoading } = useQuery({ queryKey: ["catalogo-sedes"], queryFn: listarTodasLasSedes });
+  const [cuerpoRef] = useListaAnimada<HTMLTableSectionElement>();
 
   const crear = useMutation({
     mutationFn: () => crearSede(nombre),
@@ -79,7 +84,7 @@ function SedesSeccion() {
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {renombrar.isError && <Aviso error>{mensajeDeError(renombrar.error)}</Aviso>}
 
-      {abierto && (
+      <Despliega abierto={abierto}>
         <form
           className="panel-formulario"
           onSubmit={(e) => {
@@ -101,7 +106,7 @@ function SedesSeccion() {
             <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
           </div>
         </form>
-      )}
+      </Despliega>
 
       {isLoading ? (
         <EsqueletoTabla filas={3} columnas={3} />
@@ -115,7 +120,7 @@ function SedesSeccion() {
                 <th className="col-acciones">Acciones</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody ref={cuerpoRef}>
               {sedes?.map((s: Sede) => (
                 <tr key={s.id} className={s.activo ? undefined : "fila-inactiva"}>
                   <td>
@@ -189,7 +194,6 @@ function ServiciosSeccion() {
   const [errores, setErrores] = useState<ErroresDeCampo>({});
   const { data: sedes } = useQuery({ queryKey: ["catalogo-sedes"], queryFn: listarTodasLasSedes });
   const { data: servicios, isLoading } = useQuery({ queryKey: ["catalogo-servicios"], queryFn: listarTodosLosServicios });
-  const nombreSede = (id: number) => sedes?.find((s) => s.id === id)?.nombre ?? "—";
 
   const crear = useMutation({
     mutationFn: () => crearServicio({
@@ -208,12 +212,51 @@ function ServiciosSeccion() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-servicios"] }),
   });
 
-  const visibles = (servicios ?? []).filter(
-    (s) =>
-      (!sedeFiltro || s.sede === Number(sedeFiltro)) &&
-      s.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()),
+  const visibles = useMemo(
+    () =>
+      (servicios ?? []).filter(
+      (s) =>
+        (!sedeFiltro || s.sede === Number(sedeFiltro)) &&
+        s.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()),
+      ),
+    [servicios, sedeFiltro, busqueda],
   );
   const activos = (servicios ?? []).filter((s) => s.activo).length;
+
+  const alternar = toggle.mutate;
+  const columnas = useMemo<ColumnDef<AreaServicio>[]>(
+    () => [
+      { id: "nombre", header: "Servicio", accessorFn: (s) => s.nombre, cell: ({ row }) => <span className="celda-principal">{row.original.nombre}</span> },
+      { id: "sede", header: "Sede", accessorFn: (s) => sedes?.find((x) => x.id === s.sede)?.nombre ?? "—" },
+      {
+        id: "genera",
+        header: "Genera",
+        enableSorting: false,
+        meta: { clase: "col-oculta-movil" },
+        cell: ({ row }) => (
+          <span className="etiquetas">
+            {row.original.genera_ropa && <span className="etiqueta etiqueta--ok">Ropa</span>}
+            {row.original.genera_residuos && <span className="etiqueta etiqueta--ok">Residuos</span>}
+            {!row.original.genera_ropa && !row.original.genera_residuos && <span className="etiqueta etiqueta--nula">Ninguno</span>}
+          </span>
+        ),
+      },
+      {
+        id: "estado",
+        header: "Estado",
+        accessorFn: (s) => (s.activo ? "Activo" : "Inactivo"),
+        meta: { clase: "col-estado" },
+        cell: ({ row }) => (
+          <Interruptor
+            marcado={row.original.activo}
+            etiqueta={`Servicio ${row.original.nombre}: activo`}
+            onCambiar={(activo) => alternar({ id: row.original.id, activo })}
+          />
+        ),
+      },
+    ],
+    [sedes, alternar],
+  );
 
   return (
     <SeccionCatalogo
@@ -227,7 +270,7 @@ function ServiciosSeccion() {
     >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
 
-      {abierto && (
+      <Despliega abierto={abierto}>
         <form
           className="panel-formulario"
           onSubmit={(e) => {
@@ -266,7 +309,7 @@ function ServiciosSeccion() {
             <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
           </div>
         </form>
-      )}
+      </Despliega>
 
       <div className="barra-herramientas">
         <select aria-label="Filtrar por sede" value={sedeFiltro} onChange={(e) => setSedeFiltro(e.target.value)}>
@@ -290,40 +333,16 @@ function ServiciosSeccion() {
       ) : visibles.length === 0 ? (
         <EstadoVacio titulo="Ningún servicio coincide" detalle="Prueba con otra sede o borra la búsqueda." />
       ) : (
-        <div className="tabla-envoltura">
-          <table className="tabla tabla--catalogo">
-            <thead>
-              <tr>
-                <th>Servicio</th>
-                <th>Sede</th>
-                <th>Genera</th>
-                <th className="col-estado">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibles.map((s: AreaServicio) => (
-                <tr key={s.id} className={s.activo ? undefined : "fila-inactiva"}>
-                  <td><span className="celda-principal">{s.nombre}</span></td>
-                  <td>{nombreSede(s.sede)}</td>
-                  <td>
-                    <span className="etiquetas">
-                      {s.genera_ropa && <span className="etiqueta etiqueta--ok">Ropa</span>}
-                      {s.genera_residuos && <span className="etiqueta etiqueta--ok">Residuos</span>}
-                      {!s.genera_ropa && !s.genera_residuos && <span className="etiqueta etiqueta--nula">Ninguno</span>}
-                    </span>
-                  </td>
-                  <td className="col-estado">
-                    <Interruptor
-                      marcado={s.activo}
-                      etiqueta={`Servicio ${s.nombre}: activo`}
-                      onCambiar={(activo) => toggle.mutate({ id: s.id, activo })}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TablaDatos
+          etiqueta="Servicios"
+          datos={visibles}
+          columnas={columnas}
+          idFila={(s) => String(s.id)}
+          tamanoPagina={10}
+          clase="tabla--catalogo"
+          claveFiltro={`${sedeFiltro}|${busqueda}`}
+          claseFila={(s) => (s.activo ? undefined : "fila-inactiva")}
+        />
       )}
     </SeccionCatalogo>
   );
@@ -351,6 +370,36 @@ function GestoresSeccion() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-gestores"] }),
   });
 
+  const alternar = toggle.mutate;
+  const columnas = useMemo<ColumnDef<GestorExterno>[]>(
+    () => [
+      { id: "nombre", header: "Gestor", accessorFn: (g) => g.nombre, cell: ({ row }) => <span className="celda-principal">{row.original.nombre}</span> },
+      { id: "nit", header: "NIT", accessorFn: (g) => g.nit },
+      {
+        id: "tarifa",
+        header: "Tarifa por kg",
+        accessorFn: (g) => (g.tarifa_kg_vigente ? Number(g.tarifa_kg_vigente) : undefined),
+        sortUndefined: "last",
+        meta: { clase: "num cifra-kg" },
+        cell: ({ row }) => (row.original.tarifa_kg_vigente ? pesos(row.original.tarifa_kg_vigente) : "—"),
+      },
+      {
+        id: "estado",
+        header: "Estado",
+        accessorFn: (g) => (g.activo ? "Activo" : "Inactivo"),
+        meta: { clase: "col-estado" },
+        cell: ({ row }) => (
+          <Interruptor
+            marcado={row.original.activo}
+            etiqueta={`Gestor ${row.original.nombre}: activo`}
+            onCambiar={(activo) => alternar({ id: row.original.id, activo })}
+          />
+        ),
+      },
+    ],
+    [alternar],
+  );
+
   return (
     <SeccionCatalogo
       id="gestores"
@@ -363,7 +412,7 @@ function GestoresSeccion() {
     >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
 
-      {abierto && (
+      <Despliega abierto={abierto}>
         <form
           className="panel-formulario"
           onSubmit={(e) => {
@@ -395,7 +444,7 @@ function GestoresSeccion() {
             <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
           </div>
         </form>
-      )}
+      </Despliega>
 
       {isLoading ? (
         <EsqueletoTabla filas={2} columnas={4} />
@@ -407,34 +456,14 @@ function GestoresSeccion() {
           />
         )
       ) : (
-        <div className="tabla-envoltura">
-          <table className="tabla tabla--catalogo">
-            <thead>
-              <tr>
-                <th>Gestor</th>
-                <th>NIT</th>
-                <th className="num">Tarifa por kg</th>
-                <th className="col-estado">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {gestores.map((g: GestorExterno) => (
-                <tr key={g.id} className={g.activo ? undefined : "fila-inactiva"}>
-                  <td><span className="celda-principal">{g.nombre}</span></td>
-                  <td>{g.nit}</td>
-                  <td className="num cifra-kg">{g.tarifa_kg_vigente ? pesos(g.tarifa_kg_vigente) : "—"}</td>
-                  <td className="col-estado">
-                    <Interruptor
-                      marcado={g.activo}
-                      etiqueta={`Gestor ${g.nombre}: activo`}
-                      onCambiar={(activo) => toggle.mutate({ id: g.id, activo })}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TablaDatos
+          etiqueta="Gestores externos"
+          datos={gestores}
+          columnas={columnas}
+          idFila={(g) => String(g.id)}
+          clase="tabla--catalogo"
+          claseFila={(g) => (g.activo ? undefined : "fila-inactiva")}
+        />
       )}
     </SeccionCatalogo>
   );
@@ -478,6 +507,72 @@ function UsuariosSeccion() {
 
   const activos = (usuarios ?? []).filter((u) => u.activo).length;
 
+  const alternar = toggle.mutate;
+  const cambiarRolDe = cambiarRol.mutate;
+  const columnas = useMemo<ColumnDef<Usuario>[]>(
+    () => [
+      {
+        id: "persona",
+        header: "Persona",
+        accessorFn: (u) => `${u.first_name} ${u.last_name}`.trim() || u.username,
+        cell: ({ row }) => {
+          const u = row.original;
+          const nombreCompleto = `${u.first_name} ${u.last_name}`.trim();
+          return (
+            <>
+              <span className="celda-principal">
+                {nombreCompleto || u.username} {u.id === yo?.id && <span className="etiqueta etiqueta--tu">Tú</span>}
+              </span>
+              <span className="celda-secundaria">{nombreCompleto ? `@${u.username}` : "Sin nombre registrado"}</span>
+            </>
+          );
+        },
+      },
+      { id: "documento", header: "Documento", accessorFn: (u) => u.documento ?? "—", meta: { clase: "col-oculta-movil" } },
+      {
+        id: "rol",
+        header: "Rol",
+        accessorFn: (u) => ROLES.find(([valor]) => valor === u.rol)?.[1] ?? u.rol,
+        cell: ({ row }) => {
+          const u = row.original;
+          const esYo = u.id === yo?.id;
+          return (
+            <select
+              className="selector-tabla"
+              value={u.rol}
+              disabled={esYo}
+              title={esYo ? "No puedes cambiar tu propio rol; pídeselo a otra Administradora." : undefined}
+              aria-label={`Rol de ${u.username}`}
+              onChange={(e) => cambiarRolDe({ id: u.id, rol: e.target.value as Rol })}
+            >
+              {ROLES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
+            </select>
+          );
+        },
+      },
+      {
+        id: "estado",
+        header: "Estado",
+        accessorFn: (u) => (u.activo ? "Activo" : "Inactivo"),
+        meta: { clase: "col-estado" },
+        cell: ({ row }) => {
+          const u = row.original;
+          const esYo = u.id === yo?.id;
+          return (
+            <Interruptor
+              marcado={u.activo}
+              deshabilitado={esYo}
+              titulo={esYo ? "No puedes desactivar tu propia cuenta." : undefined}
+              etiqueta={`Usuario ${u.username}: activo`}
+              onCambiar={(activo) => alternar({ id: u.id, activo })}
+            />
+          );
+        },
+      },
+    ],
+    [yo?.id, cambiarRolDe, alternar],
+  );
+
   return (
     <SeccionCatalogo
       id="usuarios"
@@ -491,7 +586,7 @@ function UsuariosSeccion() {
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {cambiarRol.isError && <Aviso error>{mensajeDeError(cambiarRol.error)}</Aviso>}
 
-      {abierto && (
+      <Despliega abierto={abierto}>
         <form
           className="panel-formulario"
           onSubmit={(e) => {
@@ -537,63 +632,19 @@ function UsuariosSeccion() {
             <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
           </div>
         </form>
-      )}
+      </Despliega>
 
       {isLoading ? (
         <EsqueletoTabla filas={5} columnas={4} />
       ) : (
-        <div className="tabla-envoltura">
-          <table className="tabla tabla--catalogo">
-            <thead>
-              <tr>
-                <th>Persona</th>
-                <th className="col-oculta-movil">Documento</th>
-                <th>Rol</th>
-                <th className="col-estado">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios?.map((u: Usuario) => {
-                const esYo = u.id === yo?.id;
-                const nombreCompleto = `${u.first_name} ${u.last_name}`.trim();
-                return (
-                  <tr key={u.id} className={u.activo ? undefined : "fila-inactiva"}>
-                    <td>
-                      <span className="celda-principal">
-                        {nombreCompleto || u.username} {esYo && <span className="etiqueta etiqueta--tu">Tú</span>}
-                      </span>
-                      <span className="celda-secundaria">
-                        {nombreCompleto ? `@${u.username}` : "Sin nombre registrado"}
-                      </span>
-                    </td>
-                    <td className="col-oculta-movil">{u.documento ?? "—"}</td>
-                    <td>
-                      <select
-                        className="selector-tabla"
-                        value={u.rol}
-                        disabled={esYo}
-                        title={esYo ? "No puedes cambiar tu propio rol; pídeselo a otra Administradora." : undefined}
-                        aria-label={`Rol de ${u.username}`}
-                        onChange={(e) => cambiarRol.mutate({ id: u.id, rol: e.target.value as Rol })}
-                      >
-                        {ROLES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
-                      </select>
-                    </td>
-                    <td className="col-estado">
-                      <Interruptor
-                        marcado={u.activo}
-                        deshabilitado={esYo}
-                        titulo={esYo ? "No puedes desactivar tu propia cuenta." : undefined}
-                        etiqueta={`Usuario ${u.username}: activo`}
-                        onCambiar={(activo) => toggle.mutate({ id: u.id, activo })}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <TablaDatos
+          etiqueta="Usuarios"
+          datos={usuarios ?? []}
+          columnas={columnas}
+          idFila={(u) => String(u.id)}
+          clase="tabla--catalogo"
+          claseFila={(u) => (u.activo ? undefined : "fila-inactiva")}
+        />
       )}
     </SeccionCatalogo>
   );

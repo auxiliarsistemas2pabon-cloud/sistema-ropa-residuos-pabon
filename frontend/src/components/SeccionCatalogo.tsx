@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { TarjetaAnimada } from "./Animacion";
 import { IconoMas } from "./Iconos";
 
 interface Props {
@@ -27,7 +28,7 @@ export function SeccionCatalogo({
   children,
 }: Props) {
   return (
-    <section className="tarjeta-panel seccion-catalogo" id={id} aria-labelledby={`${id}-titulo`}>
+    <TarjetaAnimada className="tarjeta-panel seccion-catalogo" id={id} aria-labelledby={`${id}-titulo`}>
       <header className="seccion-catalogo__cabecera">
         <div className="seccion-catalogo__titulo">
           <h2 id={`${id}-titulo`}>
@@ -48,7 +49,7 @@ export function SeccionCatalogo({
         )}
       </header>
       {children}
-    </section>
+    </TarjetaAnimada>
   );
 }
 

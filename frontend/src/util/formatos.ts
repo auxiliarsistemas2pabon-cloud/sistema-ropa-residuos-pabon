@@ -14,6 +14,11 @@ export function etiquetaGrupo(codigo: string | undefined): string {
  * solo cuenta o marca tipos) y quien los recibe pesa después. */
 export const TIPOS_QUE_SE_PESAN_DESPUES = ["ROPA_SUCIA_ENTREGA", "RESIDUO_GENERACION", "RESIDUO_RECOLECCION"];
 
+/** Estado de un movimiento como lo lee una persona. */
+export function etiquetaEstado(estado: string): string {
+  return estado === "CERRADO" ? "Cerrado" : estado === "PENDIENTE_CARGA" ? "Pendiente de carga" : "Borrador";
+}
+
 /** Peso neto de un movimiento para una tabla: las entregas de ropa sucia que
  * registró el Personal de servicio (que solo cuenta prendas) llegan sin pesar
  * hasta que quien las recibe registra el peso. */

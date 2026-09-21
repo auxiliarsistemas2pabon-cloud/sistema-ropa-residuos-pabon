@@ -6,9 +6,12 @@ import {
   obtenerConsolidado,
   urlExportarConsolidado,
   type ClaveConsolidado,
+  type FilaConsolidado,
   type FiltrosConsolidado,
 } from "../../api/reportes";
 import { EsqueletoTabla } from "../../components/Esqueleto";
+import type { ColumnDef } from "@tanstack/react-table";
+import { TablaDatos } from "../../components/TablaDatos";
 
 const REPORTES: { clave: ClaveConsolidado; titulo: string }[] = [
   { clave: "ropa_por_servicio", titulo: "Ropa por servicio" },
@@ -22,6 +25,59 @@ const REPORTES: { clave: ClaveConsolidado; titulo: string }[] = [
 function kg(valor: unknown): string {
   return Number(valor ?? 0).toFixed(2);
 }
+
+type CampoKg = "kg" | "ropa_kg" | "residuos_kg";
+
+function columnaKg(titulo: string, campo: CampoKg = "kg"): ColumnDef<FilaConsolidado> {
+  return {
+    id: campo,
+    header: titulo,
+    accessorFn: (f) => Number(f[campo] ?? 0),
+    cell: ({ getValue }) => kg(getValue()),
+    meta: { clase: "num cifra-kg" },
+  };
+}
+
+const colSede: ColumnDef<FilaConsolidado> = { id: "sede", header: "Sede", accessorFn: (f) => f.movimiento__sede__nombre };
+const colServicio: ColumnDef<FilaConsolidado> = {
+  id: "servicio",
+  header: "Servicio",
+  accessorFn: (f) => f.movimiento__area_origen__nombre ?? "—",
+};
+const colsResiduosPorCategoria: ColumnDef<FilaConsolidado>[] = [
+  { id: "grupo", header: "Grupo", accessorFn: (f) => etiquetaGrupo(f.categoria_residuo__grupo) },
+  { id: "categoria", header: "Categoría", accessorFn: (f) => f.categoria_residuo__nombre },
+  columnaKg("kg"),
+];
+
+const COLUMNAS: Record<ClaveConsolidado, ColumnDef<FilaConsolidado>[]> = {
+  ropa_por_servicio: [
+    colSede,
+    colServicio,
+    columnaKg("kg netos"),
+    { id: "movimientos", header: "Movimientos", accessorFn: (f) => f.movimientos, meta: { clase: "num" } },
+  ],
+  ropa_por_sede: [colSede, columnaKg("kg netos")],
+  residuos_por_categoria: colsResiduosPorCategoria,
+  corte_peligrosos: colsResiduosPorCategoria,
+  residuos_por_servicio: [colSede, colServicio, columnaKg("kg")],
+  por_jornada: [
+    { id: "jornada", header: "Jornada", accessorFn: (f) => f.jornada },
+    columnaKg("Ropa kg", "ropa_kg"),
+    columnaKg("Residuos kg", "residuos_kg"),
+  ],
+};
+
+/** Fila de total al pie de los reportes que lo llevan; `columnas` es lo que ocupa el título. */
+const PIES: Partial<Record<ClaveConsolidado, { titulo: string; columnas: number }>> = {
+  ropa_por_sede: { titulo: "Total institucional", columnas: 1 },
+  residuos_por_categoria: { titulo: "Total no peligrosos", columnas: 2 },
+  corte_peligrosos: { titulo: "Total del corte", columnas: 2 },
+};
+
+/** Cada fila es un grupo distinto del ORM; el índice cubre cualquier coincidencia de llaves. */
+const idFilaConsolidado = (f: FilaConsolidado, i: number) =>
+  [f.movimiento__sede__nombre, f.movimiento__area_origen__nombre, f.categoria_residuo__grupo, f.categoria_residuo__nombre, f.jornada, i].join("|");
 
 function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidado; titulo: string; filtros: FiltrosConsolidado }) {
   const { data, isLoading, isError } = useQuery({
@@ -42,84 +98,21 @@ function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidad
       ) : isError ? null : !data?.filas.length ? (
         <p className="vacio">Sin datos para este filtro.</p>
       ) : (
-        <div className="tabla-envoltura">
-          <table className="tabla tabla-kg">
-            {clave === "ropa_por_servicio" && (
-              <>
-                <thead><tr><th>Sede</th><th>Servicio</th><th className="num">kg netos</th><th className="num">Movimientos</th></tr></thead>
-                <tbody>
-                  {data.filas.map((f, i) => (
-                    <tr key={i}>
-                      <td>{f.movimiento__sede__nombre}</td>
-                      <td>{f.movimiento__area_origen__nombre ?? "—"}</td>
-                      <td className="num cifra-kg">{kg(f.kg)}</td>
-                      <td className="num">{f.movimientos}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </>
-            )}
-            {clave === "ropa_por_sede" && (
-              <>
-                <thead><tr><th>Sede</th><th className="num">kg netos</th></tr></thead>
-                <tbody>
-                  {data.filas.map((f, i) => (
-                    <tr key={i}><td>{f.movimiento__sede__nombre}</td><td className="num cifra-kg">{kg(f.kg)}</td></tr>
-                  ))}
-                  <tr><th>Total institucional</th><td className="num cifra-kg">{kg(data.total)}</td></tr>
-                </tbody>
-              </>
-            )}
-            {(clave === "residuos_por_categoria" || clave === "corte_peligrosos") && (
-              <>
-                <thead><tr><th>Grupo</th><th>Categoría</th><th className="num">kg</th></tr></thead>
-                <tbody>
-                  {data.filas.map((f, i) => (
-                    <tr key={i}>
-                      <td>{etiquetaGrupo(f.categoria_residuo__grupo)}</td>
-                      <td>{f.categoria_residuo__nombre}</td>
-                      <td className="num cifra-kg">{kg(f.kg)}</td>
-                    </tr>
-                  ))}
-                  {clave === "corte_peligrosos" && (
-                    <tr><th colSpan={2}>Total del corte</th><td className="num cifra-kg">{kg(data.total)}</td></tr>
-                  )}
-                  {clave === "residuos_por_categoria" && (
-                    <tr><th colSpan={2}>Total no peligrosos</th><td className="num cifra-kg">{kg(data.total)}</td></tr>
-                  )}
-                </tbody>
-              </>
-            )}
-            {clave === "residuos_por_servicio" && (
-              <>
-                <thead><tr><th>Sede</th><th>Servicio</th><th className="num">kg</th></tr></thead>
-                <tbody>
-                  {data.filas.map((f, i) => (
-                    <tr key={i}>
-                      <td>{f.movimiento__sede__nombre}</td>
-                      <td>{f.movimiento__area_origen__nombre ?? "—"}</td>
-                      <td className="num cifra-kg">{kg(f.kg)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </>
-            )}
-            {clave === "por_jornada" && (
-              <>
-                <thead><tr><th>Jornada</th><th className="num">Ropa kg</th><th className="num">Residuos kg</th></tr></thead>
-                <tbody>
-                  {data.filas.map((f, i) => (
-                    <tr key={i}>
-                      <td>{f.jornada}</td>
-                      <td className="num cifra-kg">{kg(f.ropa_kg)}</td>
-                      <td className="num cifra-kg">{kg(f.residuos_kg)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </>
-            )}
-          </table>
-        </div>
+        <TablaDatos
+          etiqueta={tituloCompleto}
+          datos={data.filas}
+          columnas={COLUMNAS[clave]}
+          idFila={idFilaConsolidado}
+          clase="tabla-kg"
+          pie={
+            PIES[clave] && (
+              <tr>
+                <th colSpan={PIES[clave].columnas}>{PIES[clave].titulo}</th>
+                <td className="num cifra-kg">{kg(data.total)}</td>
+              </tr>
+            )
+          }
+        />
       )}
     </section>
   );

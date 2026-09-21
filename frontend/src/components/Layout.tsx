@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { AvisoConsultasFallidas } from "./AvisoConsultasFallidas";
+import { TransicionPagina } from "./Animacion";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 const ETIQUETA_ROL: Record<string, string> = {
@@ -52,7 +53,9 @@ export function Layout() {
         )}
         <AvisoConsultasFallidas />
         <ErrorBoundary key={location.pathname}>
-          <Outlet />
+          <TransicionPagina clave={location.pathname}>
+            <Outlet />
+          </TransicionPagina>
         </ErrorBoundary>
       </main>
     </>

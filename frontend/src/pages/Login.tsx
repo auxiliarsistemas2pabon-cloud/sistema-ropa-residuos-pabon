@@ -4,6 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Aviso } from "../components/Aviso";
 import { IconoCandado, IconoPersona } from "../components/Iconos";
+import { Aparece } from "../components/Animacion";
 
 interface DatosLogin {
   username: string;
@@ -36,7 +37,7 @@ export function Login() {
 
   return (
     <div className="login-escena">
-      <div className="login-marca">
+      <Aparece className="login-marca">
         <div className="login-marca__logo-tarjeta">
           <img className="login-marca__logo" src="/img/logo-clinica-pabon.jpg" alt="Clínica Cardioneurovascular Pabón" />
           <span className="login-marca__divisor" aria-hidden="true" />
@@ -54,9 +55,9 @@ export function Login() {
         </div>
 
         <p className="login-marca__ciudad">Pasto, Nariño · Colombia</p>
-      </div>
+      </Aparece>
 
-      <div className="login-tarjeta">
+      <Aparece className="login-tarjeta" retraso={0.12}>
         <h1>Iniciar sesión</h1>
         <p className="login-tarjeta__subtitulo">Ingresa tus credenciales de acceso</p>
 
@@ -87,7 +88,7 @@ export function Login() {
             {isSubmitting ? "Entrando…" : "Entrar"}
           </button>
         </form>
-      </div>
+      </Aparece>
     </div>
   );
 }
