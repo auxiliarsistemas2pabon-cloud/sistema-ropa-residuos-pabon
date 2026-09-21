@@ -12,6 +12,7 @@ import {
   type MovimientoDetalle,
 } from "../../api/movimientos";
 import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/client";
+import { EsqueletoDetalle } from "../../components/Esqueleto";
 
 interface DatosFormulario {
   peso_total: string;
@@ -166,7 +167,7 @@ export function EditarMovimiento() {
     enabled: Boolean(id),
   });
 
-  if (isLoading) return <p className="estado-carga">Cargando…</p>;
+  if (isLoading) return <EsqueletoDetalle />;
   if (!movimiento) return esNoEncontrado(error) ? <p className="vacio">No se encontró el movimiento.</p> : null;
 
   return (

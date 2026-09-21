@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerDiaAnterior } from "../../api/movimientos";
 import { pesoOSinPesar } from "../../util/formatos";
+import { EsqueletoTabla } from "../../components/Esqueleto";
 
 function fechaLegible(iso: string): string {
   const [anio, mes, dia] = iso.split("-").map(Number);
@@ -29,7 +30,7 @@ export function DiaAnterior() {
       )}
 
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={6} columnas={5} />
       ) : isError ? null : (
         <>
           <h2>Movimientos</h2>

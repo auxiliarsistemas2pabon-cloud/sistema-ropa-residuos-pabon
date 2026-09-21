@@ -11,6 +11,7 @@ import {
   urlExportarFacturacion,
   urlExportarRH1,
 } from "../../api/reportes";
+import { EsqueletoTabla } from "../../components/Esqueleto";
 
 function mesDeHoy(): string {
   const hoy = new Date();
@@ -85,7 +86,7 @@ export function RH1Facturacion() {
           Generación por día calendario, con las columnas del formato oficial FR-SIG-193.
         </p>
         {cargandoRH1 ? (
-          <p className="estado-carga">Cargando…</p>
+          <EsqueletoTabla filas={6} columnas={6} />
         ) : rh1?.columnas.length ? (
           <>
             <div className="tabla-envoltura">
@@ -129,7 +130,7 @@ export function RH1Facturacion() {
         </div>
 
         {cargandoFacturacion ? (
-          <p className="estado-carga">Cargando…</p>
+          <EsqueletoTabla filas={2} columnas={4} />
         ) : falloFacturacion ? null : (
           <>
             <h3>Del periodo</h3>
@@ -188,7 +189,7 @@ export function RH1Facturacion() {
           </span>
         </div>
         {cargandoConciliacion ? (
-          <p className="estado-carga">Cargando…</p>
+          <EsqueletoTabla filas={2} columnas={5} />
         ) : conciliacion?.length ? (
           <div className="tabla-envoltura">
             <table className="tabla tabla-kg">

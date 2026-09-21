@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { EsqueletoPagina } from "../components/Esqueleto";
 
 /**
  * Bloqueo real de rutas por rol (3. del prompt de desarrollo): nunca se
@@ -18,7 +19,7 @@ export function RutaProtegida({
   const { usuario, cargando, sesionExpirada, esAdministradora, esPersonalDeServicio } = useAuth();
   const location = useLocation();
 
-  if (cargando) return <div className="estado-carga">Cargando…</div>;
+  if (cargando) return <EsqueletoPagina />;
   if (!usuario) {
     // Solo si la sesión venció se recuerda a dónde volver; quien cierra sesión
     // por su cuenta empieza de cero en el panel.

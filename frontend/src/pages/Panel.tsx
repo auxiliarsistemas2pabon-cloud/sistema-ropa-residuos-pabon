@@ -17,6 +17,7 @@ import {
   IconoResiduo,
   IconoTijeras,
 } from "../components/Iconos";
+import { Esqueleto, EsqueletoTabla } from "../components/Esqueleto";
 
 const TIPOS: [TipoMovimiento, string][] = [
   ["ROPA_SUCIA_ENTREGA", "Entrega de ropa sucia"],
@@ -221,17 +222,17 @@ export function Panel() {
           <h2>Movimientos de hoy</h2>
           <div className="resumen-cifras">
             <div className="cifra">
-              <span className="cifra__valor">{totalMovimientos}</span>
+              <span className="cifra__valor">{isLoading ? <Esqueleto ancho={40} alto={28} radio={6} /> : totalMovimientos}</span>
               <span className="cifra__etiqueta">Movimientos</span>
             </div>
             {!esPersonalDeServicio && (
               <div className="cifra">
-                <span className="cifra__valor cifra-kg">{totalKg.toFixed(2)}</span>
+                <span className="cifra__valor cifra-kg">{isLoading ? <Esqueleto ancho={64} alto={28} radio={6} /> : totalKg.toFixed(2)}</span>
                 <span className="cifra__etiqueta">Kg netos</span>
               </div>
             )}
             <div className="cifra">
-              <span className="cifra__valor">{totalPendientes}</span>
+              <span className="cifra__valor">{isLoading ? <Esqueleto ancho={40} alto={28} radio={6} /> : totalPendientes}</span>
               <span className="cifra__etiqueta">Pendientes</span>
             </div>
           </div>
@@ -300,7 +301,7 @@ export function Panel() {
           )}
         </div>
         {isLoading ? (
-          <p className="estado-carga">Cargando…</p>
+          <EsqueletoTabla filas={5} columnas={5} />
         ) : visibles.length > 0 ? (
           <table className="tabla tabla-kg">
             <thead>

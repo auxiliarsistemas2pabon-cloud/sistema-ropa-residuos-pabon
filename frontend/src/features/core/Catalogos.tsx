@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
+import { Interruptor } from "../../components/Interruptor";
+import { IconoBuscar, IconoLapiz } from "../../components/Iconos";
+import { EstadoVacio, SeccionCatalogo } from "../../components/SeccionCatalogo";
 import { useAuth } from "../../auth/AuthContext";
 import { pesos } from "../../util/formatos";
 import { erroresDeCampo, mensajeDeError, type ErroresDeCampo } from "../../api/client";
@@ -26,9 +29,13 @@ import {
   type Sede,
   type Usuario,
 } from "../../api/catalogos";
+import { EsqueletoFormulario, EsqueletoTabla } from "../../components/Esqueleto";
+
+const cantidad = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
 
 function SedesSeccion() {
   const qc = useQueryClient();
+  const [abierto, setAbierto] = useState(false);
   const [nombre, setNombre] = useState("");
   const [errores, setErrores] = useState<ErroresDeCampo>({});
   const [editando, setEditando] = useState<{ id: number; nombre: string } | null>(null);
@@ -36,7 +43,12 @@ function SedesSeccion() {
 
   const crear = useMutation({
     mutationFn: () => crearSede(nombre),
-    onSuccess: () => { setNombre(""); setErrores({}); void qc.invalidateQueries({ queryKey: ["catalogo-sedes"] }); },
+    onSuccess: () => {
+      setNombre("");
+      setErrores({});
+      setAbierto(false);
+      void qc.invalidateQueries({ queryKey: ["catalogo-sedes"] });
+    },
     onError: (e) => setErrores(erroresDeCampo(e)),
   });
   const toggle = useMutation({
@@ -55,22 +67,61 @@ function SedesSeccion() {
   });
 
   return (
-    <section className="tarjeta-panel">
-      <h2>Sedes</h2>
+    <SeccionCatalogo
+      id="sedes"
+      titulo="Sedes"
+      descripcion="Lugares donde se registra la ropa y los residuos. Renombrar una sede se refleja en todos sus registros."
+      contador={sedes ? cantidad(sedes.length, "sede", "sedes") : undefined}
+      textoAgregar="Agregar sede"
+      formularioAbierto={abierto}
+      onAlternarFormulario={() => setAbierto((a) => !a)}
+    >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {renombrar.isError && <Aviso error>{mensajeDeError(renombrar.error)}</Aviso>}
+
+      {abierto && (
+        <form
+          className="panel-formulario"
+          onSubmit={(e) => {
+            e.preventDefault();
+            crear.mutate();
+          }}
+        >
+          <h3>Nueva sede</h3>
+          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
+          <div className="rejilla-campos">
+            <div className="campo">
+              <label htmlFor="sede-nombre">Nombre de la sede</label>
+              <input id="sede-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+              {errores.nombre && <p className="campo__error">{errores.nombre[0]}</p>}
+            </div>
+          </div>
+          <div className="acciones-formulario">
+            <button type="submit" className="boton" disabled={crear.isPending}>Guardar sede</button>
+            <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
+          </div>
+        </form>
+      )}
+
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={3} columnas={3} />
       ) : (
         <div className="tabla-envoltura">
-          <table className="tabla">
-            <thead><tr><th>Nombre</th><th>Activa</th></tr></thead>
+          <table className="tabla tabla--catalogo">
+            <thead>
+              <tr>
+                <th>Sede</th>
+                <th className="col-estado">Estado</th>
+                <th className="col-acciones">Acciones</th>
+              </tr>
+            </thead>
             <tbody>
               {sedes?.map((s: Sede) => (
-                <tr key={s.id}>
+                <tr key={s.id} className={s.activo ? undefined : "fila-inactiva"}>
                   <td>
                     {editando?.id === s.id ? (
                       <form
+                        className="edicion-nombre"
                         onSubmit={(e) => {
                           e.preventDefault();
                           if (editando.nombre.trim()) renombrar.mutate({ id: s.id, nombre: editando.nombre.trim() });
@@ -83,33 +134,41 @@ function SedesSeccion() {
                           required
                           aria-label={`Nuevo nombre de ${s.nombre}`}
                           onChange={(e) => setEditando({ id: s.id, nombre: e.target.value })}
-                        />{" "}
-                        <button type="submit" className="boton boton--texto" disabled={renombrar.isPending}>
+                        />
+                        <button type="submit" className="boton-accion boton-accion--primaria" disabled={renombrar.isPending}>
                           Guardar
                         </button>
-                        <button type="button" className="boton boton--texto" onClick={() => setEditando(null)}>
+                        <button type="button" className="boton-accion" onClick={() => setEditando(null)}>
                           Cancelar
                         </button>
                       </form>
                     ) : (
-                      <>
-                        {s.nombre}{" "}
-                        <button
-                          type="button"
-                          className="boton boton--texto"
-                          aria-label={`Renombrar ${s.nombre}`}
-                          onClick={() => {
-                            renombrar.reset();
-                            setEditando({ id: s.id, nombre: s.nombre });
-                          }}
-                        >
-                          Renombrar
-                        </button>
-                      </>
+                      <span className="celda-principal">{s.nombre}</span>
                     )}
                   </td>
-                  <td>
-                    <input type="checkbox" checked={s.activo} onChange={(e) => toggle.mutate({ id: s.id, activo: e.target.checked })} />
+                  <td className="col-estado">
+                    <Interruptor
+                      marcado={s.activo}
+                      textoActivo="Activa"
+                      textoInactivo="Inactiva"
+                      etiqueta={`Sede ${s.nombre}: activa`}
+                      onCambiar={(activo) => toggle.mutate({ id: s.id, activo })}
+                    />
+                  </td>
+                  <td className="col-acciones">
+                    {editando?.id !== s.id && (
+                      <button
+                        type="button"
+                        className="boton-accion"
+                        aria-label={`Renombrar ${s.nombre}`}
+                        onClick={() => {
+                          renombrar.reset();
+                          setEditando({ id: s.id, nombre: s.nombre });
+                        }}
+                      >
+                        <IconoLapiz /> <span className="texto-accion">Renombrar</span>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -117,24 +176,15 @@ function SedesSeccion() {
           </table>
         </div>
       )}
-      <details className="carga-diferida">
-        <summary>+ Agregar sede</summary>
-        <form onSubmit={(e) => { e.preventDefault(); crear.mutate(); }}>
-          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
-          <div className="campo">
-            <label htmlFor="sede-nombre">Nombre</label>
-            <input id="sede-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
-            {errores.nombre && <p className="campo__error">{errores.nombre[0]}</p>}
-          </div>
-          <button type="submit" className="boton" disabled={crear.isPending}>Guardar sede</button>
-        </form>
-      </details>
-    </section>
+    </SeccionCatalogo>
   );
 }
 
 function ServiciosSeccion() {
   const qc = useQueryClient();
+  const [abierto, setAbierto] = useState(false);
+  const [sedeFiltro, setSedeFiltro] = useState("");
+  const [busqueda, setBusqueda] = useState("");
   const [form, setForm] = useState({ sede: "", nombre: "", genera_ropa: true, genera_residuos: false });
   const [errores, setErrores] = useState<ErroresDeCampo>({});
   const { data: sedes } = useQuery({ queryKey: ["catalogo-sedes"], queryFn: listarTodasLasSedes });
@@ -145,7 +195,12 @@ function ServiciosSeccion() {
     mutationFn: () => crearServicio({
       sede: Number(form.sede), nombre: form.nombre, genera_ropa: form.genera_ropa, genera_residuos: form.genera_residuos,
     }),
-    onSuccess: () => { setForm({ sede: "", nombre: "", genera_ropa: true, genera_residuos: false }); setErrores({}); void qc.invalidateQueries({ queryKey: ["catalogo-servicios"] }); },
+    onSuccess: () => {
+      setForm({ sede: "", nombre: "", genera_ropa: true, genera_residuos: false });
+      setErrores({});
+      setAbierto(false);
+      void qc.invalidateQueries({ queryKey: ["catalogo-servicios"] });
+    },
     onError: (e) => setErrores(erroresDeCampo(e)),
   });
   const toggle = useMutation({
@@ -153,25 +208,116 @@ function ServiciosSeccion() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-servicios"] }),
   });
 
+  const visibles = (servicios ?? []).filter(
+    (s) =>
+      (!sedeFiltro || s.sede === Number(sedeFiltro)) &&
+      s.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()),
+  );
+  const activos = (servicios ?? []).filter((s) => s.activo).length;
+
   return (
-    <section className="tarjeta-panel">
-      <h2>Servicios</h2>
+    <SeccionCatalogo
+      id="servicios"
+      titulo="Servicios"
+      descripcion="Áreas de cada sede desde las que se entrega ropa o se generan residuos."
+      contador={servicios ? `${cantidad(servicios.length, "servicio", "servicios")} · ${cantidad(activos, "activo", "activos")}` : undefined}
+      textoAgregar="Agregar servicio"
+      formularioAbierto={abierto}
+      onAlternarFormulario={() => setAbierto((a) => !a)}
+    >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
+
+      {abierto && (
+        <form
+          className="panel-formulario"
+          onSubmit={(e) => {
+            e.preventDefault();
+            crear.mutate();
+          }}
+        >
+          <h3>Nuevo servicio</h3>
+          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
+          <div className="rejilla-campos">
+            <div className="campo">
+              <label htmlFor="serv-sede">Sede</label>
+              <select id="serv-sede" value={form.sede} onChange={(e) => setForm((f) => ({ ...f, sede: e.target.value }))} required>
+                <option value="">Seleccionar…</option>
+                {sedes?.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
+            </div>
+            <div className="campo">
+              <label htmlFor="serv-nombre">Nombre del servicio</label>
+              <input id="serv-nombre" value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} required />
+              {errores.nombre && <p className="campo__error">{errores.nombre[0]}</p>}
+            </div>
+            <div className="campo campo--casillas">
+              <label className="casilla" htmlFor="serv-ropa">
+                <input id="serv-ropa" type="checkbox" checked={form.genera_ropa} onChange={(e) => setForm((f) => ({ ...f, genera_ropa: e.target.checked }))} />
+                Genera ropa
+              </label>
+              <label className="casilla" htmlFor="serv-residuos">
+                <input id="serv-residuos" type="checkbox" checked={form.genera_residuos} onChange={(e) => setForm((f) => ({ ...f, genera_residuos: e.target.checked }))} />
+                Genera residuos
+              </label>
+            </div>
+          </div>
+          <div className="acciones-formulario">
+            <button type="submit" className="boton" disabled={crear.isPending}>Guardar servicio</button>
+            <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
+          </div>
+        </form>
+      )}
+
+      <div className="barra-herramientas">
+        <select aria-label="Filtrar por sede" value={sedeFiltro} onChange={(e) => setSedeFiltro(e.target.value)}>
+          <option value="">Todas las sedes</option>
+          {sedes?.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+        </select>
+        <div className="barra-herramientas__buscar">
+          <IconoBuscar />
+          <input
+            type="search"
+            aria-label="Buscar servicio"
+            placeholder="Buscar servicio…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
+      </div>
+
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={8} columnas={4} />
+      ) : visibles.length === 0 ? (
+        <EstadoVacio titulo="Ningún servicio coincide" detalle="Prueba con otra sede o borra la búsqueda." />
       ) : (
         <div className="tabla-envoltura">
-          <table className="tabla">
-            <thead><tr><th>Sede</th><th>Nombre</th><th>Ropa</th><th>Residuos</th><th>Activo</th></tr></thead>
+          <table className="tabla tabla--catalogo">
+            <thead>
+              <tr>
+                <th>Servicio</th>
+                <th>Sede</th>
+                <th>Genera</th>
+                <th className="col-estado">Estado</th>
+              </tr>
+            </thead>
             <tbody>
-              {servicios?.map((s: AreaServicio) => (
-                <tr key={s.id}>
+              {visibles.map((s: AreaServicio) => (
+                <tr key={s.id} className={s.activo ? undefined : "fila-inactiva"}>
+                  <td><span className="celda-principal">{s.nombre}</span></td>
                   <td>{nombreSede(s.sede)}</td>
-                  <td>{s.nombre}</td>
-                  <td>{s.genera_ropa ? "Sí" : "—"}</td>
-                  <td>{s.genera_residuos ? "Sí" : "—"}</td>
                   <td>
-                    <input type="checkbox" checked={s.activo} onChange={(e) => toggle.mutate({ id: s.id, activo: e.target.checked })} />
+                    <span className="etiquetas">
+                      {s.genera_ropa && <span className="etiqueta etiqueta--ok">Ropa</span>}
+                      {s.genera_residuos && <span className="etiqueta etiqueta--ok">Residuos</span>}
+                      {!s.genera_ropa && !s.genera_residuos && <span className="etiqueta etiqueta--nula">Ninguno</span>}
+                    </span>
+                  </td>
+                  <td className="col-estado">
+                    <Interruptor
+                      marcado={s.activo}
+                      etiqueta={`Servicio ${s.nombre}: activo`}
+                      onCambiar={(activo) => toggle.mutate({ id: s.id, activo })}
+                    />
                   </td>
                 </tr>
               ))}
@@ -179,46 +325,25 @@ function ServiciosSeccion() {
           </table>
         </div>
       )}
-      <details className="carga-diferida">
-        <summary>+ Agregar servicio</summary>
-        <form onSubmit={(e) => { e.preventDefault(); crear.mutate(); }}>
-          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
-          <div className="campo">
-            <label htmlFor="serv-sede">Sede</label>
-            <select id="serv-sede" value={form.sede} onChange={(e) => setForm((f) => ({ ...f, sede: e.target.value }))} required>
-              <option value="">Seleccionar…</option>
-              {sedes?.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-          </div>
-          <div className="campo">
-            <label htmlFor="serv-nombre">Nombre</label>
-            <input id="serv-nombre" value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} required />
-            {errores.nombre && <p className="campo__error">{errores.nombre[0]}</p>}
-          </div>
-          <div className="campo campo--casilla">
-            <input id="serv-ropa" type="checkbox" checked={form.genera_ropa} onChange={(e) => setForm((f) => ({ ...f, genera_ropa: e.target.checked }))} />
-            <label htmlFor="serv-ropa">Genera ropa</label>
-          </div>
-          <div className="campo campo--casilla">
-            <input id="serv-residuos" type="checkbox" checked={form.genera_residuos} onChange={(e) => setForm((f) => ({ ...f, genera_residuos: e.target.checked }))} />
-            <label htmlFor="serv-residuos">Genera residuos</label>
-          </div>
-          <button type="submit" className="boton" disabled={crear.isPending}>Guardar servicio</button>
-        </form>
-      </details>
-    </section>
+    </SeccionCatalogo>
   );
 }
 
 function GestoresSeccion() {
   const qc = useQueryClient();
+  const [abierto, setAbierto] = useState(false);
   const [form, setForm] = useState({ nombre: "", nit: "", tarifa_kg_vigente: "" });
   const [errores, setErrores] = useState<ErroresDeCampo>({});
   const { data: gestores, isLoading, isError } = useQuery({ queryKey: ["catalogo-gestores"], queryFn: listarTodosLosGestores });
 
   const crear = useMutation({
     mutationFn: () => crearGestor({ nombre: form.nombre, nit: form.nit, tarifa_kg_vigente: form.tarifa_kg_vigente }),
-    onSuccess: () => { setForm({ nombre: "", nit: "", tarifa_kg_vigente: "" }); setErrores({}); void qc.invalidateQueries({ queryKey: ["catalogo-gestores"] }); },
+    onSuccess: () => {
+      setForm({ nombre: "", nit: "", tarifa_kg_vigente: "" });
+      setErrores({});
+      setAbierto(false);
+      void qc.invalidateQueries({ queryKey: ["catalogo-gestores"] });
+    },
     onError: (e) => setErrores(erroresDeCampo(e)),
   });
   const toggle = useMutation({
@@ -227,25 +352,83 @@ function GestoresSeccion() {
   });
 
   return (
-    <section className="tarjeta-panel">
-      <h2>Gestores externos</h2>
+    <SeccionCatalogo
+      id="gestores"
+      titulo="Gestores externos"
+      descripcion="Empresas que recogen los residuos y facturan por kg. Su tarifa se usa en la conciliación."
+      contador={gestores ? cantidad(gestores.length, "gestor", "gestores") : undefined}
+      textoAgregar="Agregar gestor"
+      formularioAbierto={abierto}
+      onAlternarFormulario={() => setAbierto((a) => !a)}
+    >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
+
+      {abierto && (
+        <form
+          className="panel-formulario"
+          onSubmit={(e) => {
+            e.preventDefault();
+            crear.mutate();
+          }}
+        >
+          <h3>Nuevo gestor externo</h3>
+          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
+          <div className="rejilla-campos">
+            <div className="campo">
+              <label htmlFor="gestor-nombre">Nombre o razón social</label>
+              <input id="gestor-nombre" value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} required />
+              {errores.nombre && <p className="campo__error">{errores.nombre[0]}</p>}
+            </div>
+            <div className="campo">
+              <label htmlFor="gestor-nit">NIT</label>
+              <input id="gestor-nit" value={form.nit} onChange={(e) => setForm((f) => ({ ...f, nit: e.target.value }))} required />
+              {errores.nit && <p className="campo__error">{errores.nit[0]}</p>}
+            </div>
+            <div className="campo">
+              <label htmlFor="gestor-tarifa">Tarifa por kg ($)</label>
+              <input id="gestor-tarifa" type="number" step="0.01" min="0" value={form.tarifa_kg_vigente} onChange={(e) => setForm((f) => ({ ...f, tarifa_kg_vigente: e.target.value }))} required />
+              {errores.tarifa_kg_vigente && <p className="campo__error">{errores.tarifa_kg_vigente[0]}</p>}
+            </div>
+          </div>
+          <div className="acciones-formulario">
+            <button type="submit" className="boton" disabled={crear.isPending}>Guardar gestor</button>
+            <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
+          </div>
+        </form>
+      )}
+
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={2} columnas={4} />
       ) : !gestores?.length ? (
-        isError ? null : <p className="vacio">Todavía no hay gestores externos registrados.</p>
+        isError ? null : (
+          <EstadoVacio
+            titulo="Aún no hay gestores externos"
+            detalle="Registra el primero con «Agregar gestor»: nombre, NIT y tarifa por kg."
+          />
+        )
       ) : (
         <div className="tabla-envoltura">
-          <table className="tabla tabla-kg">
-            <thead><tr><th>Nombre</th><th>NIT</th><th className="num">Tarifa/kg</th><th>Activo</th></tr></thead>
+          <table className="tabla tabla--catalogo">
+            <thead>
+              <tr>
+                <th>Gestor</th>
+                <th>NIT</th>
+                <th className="num">Tarifa por kg</th>
+                <th className="col-estado">Estado</th>
+              </tr>
+            </thead>
             <tbody>
               {gestores.map((g: GestorExterno) => (
-                <tr key={g.id}>
-                  <td>{g.nombre}</td>
+                <tr key={g.id} className={g.activo ? undefined : "fila-inactiva"}>
+                  <td><span className="celda-principal">{g.nombre}</span></td>
                   <td>{g.nit}</td>
                   <td className="num cifra-kg">{g.tarifa_kg_vigente ? pesos(g.tarifa_kg_vigente) : "—"}</td>
-                  <td>
-                    <input type="checkbox" checked={g.activo} onChange={(e) => toggle.mutate({ id: g.id, activo: e.target.checked })} />
+                  <td className="col-estado">
+                    <Interruptor
+                      marcado={g.activo}
+                      etiqueta={`Gestor ${g.nombre}: activo`}
+                      onCambiar={(activo) => toggle.mutate({ id: g.id, activo })}
+                    />
                   </td>
                 </tr>
               ))}
@@ -253,29 +436,7 @@ function GestoresSeccion() {
           </table>
         </div>
       )}
-      <details className="carga-diferida">
-        <summary>+ Agregar gestor externo</summary>
-        <form onSubmit={(e) => { e.preventDefault(); crear.mutate(); }}>
-          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
-          <div className="campo">
-            <label htmlFor="gestor-nombre">Nombre</label>
-            <input id="gestor-nombre" value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} required />
-            {errores.nombre && <p className="campo__error">{errores.nombre[0]}</p>}
-          </div>
-          <div className="campo">
-            <label htmlFor="gestor-nit">NIT</label>
-            <input id="gestor-nit" value={form.nit} onChange={(e) => setForm((f) => ({ ...f, nit: e.target.value }))} required />
-            {errores.nit && <p className="campo__error">{errores.nit[0]}</p>}
-          </div>
-          <div className="campo">
-            <label htmlFor="gestor-tarifa">Tarifa por kg</label>
-            <input id="gestor-tarifa" type="number" step="0.01" min="0" value={form.tarifa_kg_vigente} onChange={(e) => setForm((f) => ({ ...f, tarifa_kg_vigente: e.target.value }))} required />
-            {errores.tarifa_kg_vigente && <p className="campo__error">{errores.tarifa_kg_vigente[0]}</p>}
-          </div>
-          <button type="submit" className="boton" disabled={crear.isPending}>Guardar gestor</button>
-        </form>
-      </details>
-    </section>
+    </SeccionCatalogo>
   );
 }
 
@@ -288,6 +449,7 @@ const ROLES: [Rol, string][] = [
 function UsuariosSeccion() {
   const qc = useQueryClient();
   const { usuario: yo } = useAuth();
+  const [abierto, setAbierto] = useState(false);
   const [form, setForm] = useState({ username: "", first_name: "", last_name: "", documento: "", rol: "USUARIO" as Rol, password: "" });
   const [errores, setErrores] = useState<ErroresDeCampo>({});
   const { data: usuarios, isLoading } = useQuery({ queryKey: ["catalogo-usuarios"], queryFn: listarTodosLosUsuarios });
@@ -297,7 +459,12 @@ function UsuariosSeccion() {
       username: form.username, first_name: form.first_name, last_name: form.last_name,
       documento: form.documento || undefined, rol: form.rol, password: form.password,
     }),
-    onSuccess: () => { setForm({ username: "", first_name: "", last_name: "", documento: "", rol: "USUARIO", password: "" }); setErrores({}); void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] }); },
+    onSuccess: () => {
+      setForm({ username: "", first_name: "", last_name: "", documento: "", rol: "USUARIO", password: "" });
+      setErrores({});
+      setAbierto(false);
+      void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] });
+    },
     onError: (e) => setErrores(erroresDeCampo(e)),
   });
   const toggle = useMutation({
@@ -309,87 +476,126 @@ function UsuariosSeccion() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] }),
   });
 
+  const activos = (usuarios ?? []).filter((u) => u.activo).length;
+
   return (
-    <section className="tarjeta-panel">
-      <h2>Usuarios</h2>
+    <SeccionCatalogo
+      id="usuarios"
+      titulo="Usuarios"
+      descripcion="Personas con acceso al sistema y su rol. Nadie se elimina: se desactiva para conservar su historial."
+      contador={usuarios ? `${cantidad(usuarios.length, "usuario", "usuarios")} · ${cantidad(activos, "activo", "activos")}` : undefined}
+      textoAgregar="Agregar usuario"
+      formularioAbierto={abierto}
+      onAlternarFormulario={() => setAbierto((a) => !a)}
+    >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {cambiarRol.isError && <Aviso error>{mensajeDeError(cambiarRol.error)}</Aviso>}
+
+      {abierto && (
+        <form
+          className="panel-formulario"
+          onSubmit={(e) => {
+            e.preventDefault();
+            crear.mutate();
+          }}
+        >
+          <h3>Nuevo usuario</h3>
+          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
+          <div className="rejilla-campos">
+            <div className="campo">
+              <label htmlFor="us-username">Usuario (para iniciar sesión)</label>
+              <input id="us-username" autoComplete="off" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
+              {errores.username && <p className="campo__error">{errores.username[0]}</p>}
+            </div>
+            <div className="campo">
+              <label htmlFor="us-nombres">Nombres</label>
+              <input id="us-nombres" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required />
+            </div>
+            <div className="campo">
+              <label htmlFor="us-apellidos">Apellidos</label>
+              <input id="us-apellidos" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required />
+            </div>
+            <div className="campo">
+              <label htmlFor="us-documento">Documento (opcional)</label>
+              <input id="us-documento" inputMode="numeric" value={form.documento} onChange={(e) => setForm((f) => ({ ...f, documento: e.target.value }))} />
+              {errores.documento && <p className="campo__error">{errores.documento[0]}</p>}
+            </div>
+            <div className="campo">
+              <label htmlFor="us-rol">Rol</label>
+              <select id="us-rol" value={form.rol} onChange={(e) => setForm((f) => ({ ...f, rol: e.target.value as Rol }))}>
+                {ROLES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
+              </select>
+            </div>
+            <div className="campo">
+              <label htmlFor="us-password">Contraseña inicial</label>
+              <input id="us-password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
+              {errores.password && <p className="campo__error">{errores.password[0]}</p>}
+            </div>
+          </div>
+          <div className="acciones-formulario">
+            <button type="submit" className="boton" disabled={crear.isPending}>Guardar usuario</button>
+            <button type="button" className="boton-accion" onClick={() => setAbierto(false)}>Cancelar</button>
+          </div>
+        </form>
+      )}
+
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={5} columnas={4} />
       ) : (
         <div className="tabla-envoltura">
-          <table className="tabla">
-            <thead><tr><th>Usuario</th><th>Nombre</th><th>Documento</th><th>Rol</th><th>Activo</th></tr></thead>
+          <table className="tabla tabla--catalogo">
+            <thead>
+              <tr>
+                <th>Persona</th>
+                <th className="col-oculta-movil">Documento</th>
+                <th>Rol</th>
+                <th className="col-estado">Estado</th>
+              </tr>
+            </thead>
             <tbody>
-              {usuarios?.map((u: Usuario) => (
-                <tr key={u.id}>
-                  <td>{u.username}</td>
-                  <td>{u.first_name} {u.last_name}</td>
-                  <td>{u.documento ?? "—"}</td>
-                  <td>
-                    <select
-                      value={u.rol}
-                      disabled={u.id === yo?.id}
-                      title={u.id === yo?.id ? "No puedes cambiar tu propio rol; pídeselo a otra Administradora." : undefined}
-                      aria-label={`Rol de ${u.username}`}
-                      onChange={(e) => cambiarRol.mutate({ id: u.id, rol: e.target.value as Rol })}
-                    >
-                      {ROLES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={u.activo}
-                      disabled={u.id === yo?.id}
-                      title={u.id === yo?.id ? "No puedes desactivar tu propia cuenta." : undefined}
-                      aria-label={`Activo: ${u.username}`}
-                      onChange={(e) => toggle.mutate({ id: u.id, activo: e.target.checked })}
-                    />
-                  </td>
-                </tr>
-              ))}
+              {usuarios?.map((u: Usuario) => {
+                const esYo = u.id === yo?.id;
+                const nombreCompleto = `${u.first_name} ${u.last_name}`.trim();
+                return (
+                  <tr key={u.id} className={u.activo ? undefined : "fila-inactiva"}>
+                    <td>
+                      <span className="celda-principal">
+                        {nombreCompleto || u.username} {esYo && <span className="etiqueta etiqueta--tu">Tú</span>}
+                      </span>
+                      <span className="celda-secundaria">
+                        {nombreCompleto ? `@${u.username}` : "Sin nombre registrado"}
+                      </span>
+                    </td>
+                    <td className="col-oculta-movil">{u.documento ?? "—"}</td>
+                    <td>
+                      <select
+                        className="selector-tabla"
+                        value={u.rol}
+                        disabled={esYo}
+                        title={esYo ? "No puedes cambiar tu propio rol; pídeselo a otra Administradora." : undefined}
+                        aria-label={`Rol de ${u.username}`}
+                        onChange={(e) => cambiarRol.mutate({ id: u.id, rol: e.target.value as Rol })}
+                      >
+                        {ROLES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
+                      </select>
+                    </td>
+                    <td className="col-estado">
+                      <Interruptor
+                        marcado={u.activo}
+                        deshabilitado={esYo}
+                        titulo={esYo ? "No puedes desactivar tu propia cuenta." : undefined}
+                        etiqueta={`Usuario ${u.username}: activo`}
+                        onCambiar={(activo) => toggle.mutate({ id: u.id, activo })}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
-      <details className="carga-diferida">
-        <summary>+ Agregar usuario</summary>
-        <form onSubmit={(e) => { e.preventDefault(); crear.mutate(); }}>
-          {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
-          <div className="campo">
-            <label htmlFor="us-username">Usuario</label>
-            <input id="us-username" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
-            {errores.username && <p className="campo__error">{errores.username[0]}</p>}
-          </div>
-          <div className="campo">
-            <label htmlFor="us-nombres">Nombres</label>
-            <input id="us-nombres" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required />
-          </div>
-          <div className="campo">
-            <label htmlFor="us-apellidos">Apellidos</label>
-            <input id="us-apellidos" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required />
-          </div>
-          <div className="campo">
-            <label htmlFor="us-documento">Documento (opcional)</label>
-            <input id="us-documento" value={form.documento} onChange={(e) => setForm((f) => ({ ...f, documento: e.target.value }))} />
-            {errores.documento && <p className="campo__error">{errores.documento[0]}</p>}
-          </div>
-          <div className="campo">
-            <label htmlFor="us-rol">Rol</label>
-            <select id="us-rol" value={form.rol} onChange={(e) => setForm((f) => ({ ...f, rol: e.target.value as Rol }))}>
-              {ROLES.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
-            </select>
-          </div>
-          <div className="campo">
-            <label htmlFor="us-password">Contraseña inicial</label>
-            <input id="us-password" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
-            {errores.password && <p className="campo__error">{errores.password[0]}</p>}
-          </div>
-          <button type="submit" className="boton" disabled={crear.isPending}>Guardar usuario</button>
-        </form>
-      </details>
-    </section>
+    </SeccionCatalogo>
   );
 }
 
@@ -414,10 +620,13 @@ function ConfiguracionSeccion() {
   }
 
   return (
-    <section className="tarjeta-panel">
-      <h2>Configuración</h2>
+    <SeccionCatalogo
+      id="configuracion"
+      titulo="Configuración"
+      descripcion="Parámetros que gobiernan las jornadas, la corrección de registros y las diferencias de peso."
+    >
       {isLoading || !actual ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoFormulario campos={4} />
       ) : (
         <form
           onSubmit={(e) => {
@@ -426,62 +635,140 @@ function ConfiguracionSeccion() {
           }}
         >
           {errores.non_field_errors && <Aviso error>{errores.non_field_errors[0]}</Aviso>}
-          {guardado && <Aviso>Configuración guardada.</Aviso>}
-          <div className="fila-filtro">
-            <div className="campo">
-              <label htmlFor="cfg-ventana">Ventana de edición del Usuario (min)</label>
-              <input id="cfg-ventana" type="number" min="1" value={actual.VENTANA_EDICION_USUARIO_MINUTOS}
-                onChange={(e) => campo("VENTANA_EDICION_USUARIO_MINUTOS", Number(e.target.value))} />
+          <div className="config-grupos">
+            <div className="config-grupo">
+              <h3>Corrección de registros</h3>
+              <p className="config-grupo__ayuda">
+                Tiempo durante el cual una persona puede corregir un registro que ella misma creó. La
+                Administradora puede corregir siempre.
+              </p>
+              <div className="campo">
+                <label htmlFor="cfg-ventana">Ventana de edición (minutos)</label>
+                <input id="cfg-ventana" type="number" min="1" value={actual.VENTANA_EDICION_USUARIO_MINUTOS}
+                  onChange={(e) => campo("VENTANA_EDICION_USUARIO_MINUTOS", Number(e.target.value))} />
+              </div>
             </div>
-            <div className="campo">
-              <label htmlFor="cfg-manana-inicio">Jornada mañana — inicio</label>
-              <input id="cfg-manana-inicio" type="time" value={actual.JORNADA_MANANA_INICIO}
-                onChange={(e) => campo("JORNADA_MANANA_INICIO", e.target.value)} />
+
+            <div className="config-grupo">
+              <h3>Diferencias de peso</h3>
+              <p className="config-grupo__ayuda">
+                Diferencia máxima aceptada entre el total contado a mano y el que suma el sistema.
+                Con 0 el umbral queda desactivado.
+              </p>
+              <div className="config-doble">
+                <div className="campo">
+                  <label htmlFor="cfg-umbral-kg">Umbral (kg)</label>
+                  <input id="cfg-umbral-kg" type="number" step="0.01" min="0" value={actual.UMBRAL_DIFERENCIA_KG}
+                    onChange={(e) => campo("UMBRAL_DIFERENCIA_KG", e.target.value)} />
+                </div>
+                <div className="campo">
+                  <label htmlFor="cfg-umbral-pct">Umbral (%)</label>
+                  <input id="cfg-umbral-pct" type="number" step="0.01" min="0" value={actual.UMBRAL_DIFERENCIA_PORCENTAJE}
+                    onChange={(e) => campo("UMBRAL_DIFERENCIA_PORCENTAJE", e.target.value)} />
+                </div>
+              </div>
+              <div className="config-interruptor">
+                <div>
+                  <strong>Exigir explicación de la diferencia</strong>
+                  <span>
+                    Si está activado y la diferencia supera un umbral, la validación no se guarda sin una
+                    observación. Desactivado, la diferencia solo se registra.
+                  </span>
+                </div>
+                <Interruptor
+                  marcado={actual.BLOQUEO_DIFERENCIA_ACTIVO}
+                  textoActivo="Activado"
+                  textoInactivo="Desactivado"
+                  etiqueta="Exigir explicación de la diferencia de peso"
+                  onCambiar={(v) => campo("BLOQUEO_DIFERENCIA_ACTIVO", v)}
+                />
+              </div>
             </div>
-            <div className="campo">
-              <label htmlFor="cfg-manana-fin">Jornada mañana — fin</label>
-              <input id="cfg-manana-fin" type="time" value={actual.JORNADA_MANANA_FIN}
-                onChange={(e) => campo("JORNADA_MANANA_FIN", e.target.value)} />
-            </div>
-            <div className="campo">
-              <label htmlFor="cfg-tarde-inicio">Jornada tarde — inicio</label>
-              <input id="cfg-tarde-inicio" type="time" value={actual.JORNADA_TARDE_INICIO}
-                onChange={(e) => campo("JORNADA_TARDE_INICIO", e.target.value)} />
-            </div>
-            <div className="campo">
-              <label htmlFor="cfg-tarde-fin">Jornada tarde — fin</label>
-              <input id="cfg-tarde-fin" type="time" value={actual.JORNADA_TARDE_FIN}
-                onChange={(e) => campo("JORNADA_TARDE_FIN", e.target.value)} />
-            </div>
-            <div className="campo">
-              <label htmlFor="cfg-umbral-kg">Umbral de diferencia (kg)</label>
-              <input id="cfg-umbral-kg" type="number" step="0.01" min="0" value={actual.UMBRAL_DIFERENCIA_KG}
-                onChange={(e) => campo("UMBRAL_DIFERENCIA_KG", e.target.value)} />
-            </div>
-            <div className="campo">
-              <label htmlFor="cfg-umbral-pct">Umbral de diferencia (%)</label>
-              <input id="cfg-umbral-pct" type="number" step="0.01" min="0" value={actual.UMBRAL_DIFERENCIA_PORCENTAJE}
-                onChange={(e) => campo("UMBRAL_DIFERENCIA_PORCENTAJE", e.target.value)} />
-            </div>
-            <div className="campo campo--casilla">
-              <input id="cfg-bloqueo" type="checkbox" checked={actual.BLOQUEO_DIFERENCIA_ACTIVO}
-                onChange={(e) => campo("BLOQUEO_DIFERENCIA_ACTIVO", e.target.checked)} />
-              <label htmlFor="cfg-bloqueo">Bloquear por diferencia</label>
+            <div className="config-grupo config-grupo--ancho">
+              <h3>Jornadas</h3>
+              <p className="config-grupo__ayuda">
+                Horario de cada jornada: define en cuál cae un registro según su hora.
+              </p>
+              <div className="config-jornadas">
+                <div className="config-jornada">
+                  <span className="config-jornada__nombre">Jornada mañana</span>
+                  <div className="campo">
+                    <label htmlFor="cfg-manana-inicio">Inicio</label>
+                    <input id="cfg-manana-inicio" type="time" value={actual.JORNADA_MANANA_INICIO}
+                      onChange={(e) => campo("JORNADA_MANANA_INICIO", e.target.value)} />
+                  </div>
+                  <div className="campo">
+                    <label htmlFor="cfg-manana-fin">Fin</label>
+                    <input id="cfg-manana-fin" type="time" value={actual.JORNADA_MANANA_FIN}
+                      onChange={(e) => campo("JORNADA_MANANA_FIN", e.target.value)} />
+                  </div>
+                </div>
+                <div className="config-jornada">
+                  <span className="config-jornada__nombre">Jornada tarde</span>
+                  <div className="campo">
+                    <label htmlFor="cfg-tarde-inicio">Inicio</label>
+                    <input id="cfg-tarde-inicio" type="time" value={actual.JORNADA_TARDE_INICIO}
+                      onChange={(e) => campo("JORNADA_TARDE_INICIO", e.target.value)} />
+                  </div>
+                  <div className="campo">
+                    <label htmlFor="cfg-tarde-fin">Fin</label>
+                    <input id="cfg-tarde-fin" type="time" value={actual.JORNADA_TARDE_FIN}
+                      onChange={(e) => campo("JORNADA_TARDE_FIN", e.target.value)} />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <button type="submit" className="boton" disabled={guardar.isPending}>Guardar configuración</button>
+
+          <div className="barra-guardar">
+            <button type="submit" className="boton" disabled={guardar.isPending}>
+              {guardar.isPending ? "Guardando…" : "Guardar configuración"}
+            </button>
+            {guardado && <Aviso>Configuración guardada.</Aviso>}
+          </div>
         </form>
       )}
-    </section>
+    </SeccionCatalogo>
   );
 }
+
+const SECCIONES: [string, string][] = [
+  ["sedes", "Sedes"],
+  ["servicios", "Servicios"],
+  ["gestores", "Gestores externos"],
+  ["usuarios", "Usuarios"],
+  ["configuracion", "Configuración"],
+];
 
 export function Catalogos() {
   return (
     <div className="panel">
       <header className="panel__encabezado">
-        <h1>Catálogos y parámetros</h1>
+        <div>
+          <h1>Catálogos y parámetros</h1>
+          <p className="subtitulo-pantalla">
+            Administra lo que alimenta los formularios y reportes: sedes, servicios, gestores, personas y reglas.
+          </p>
+        </div>
       </header>
+      <nav aria-label="Secciones de catálogos">
+        <ul className="catalogo-nav">
+          {SECCIONES.map(([id, etiqueta]) => (
+            <li key={id}>
+              <a
+                href={`#${id}`}
+                onClick={(e) => {
+                  // Desplaza sin sumar entradas al historial: "← Volver" sigue saliendo de la pantalla.
+                  e.preventDefault();
+                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                {etiqueta}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
       <SedesSeccion />
       <ServiciosSeccion />
       <GestoresSeccion />

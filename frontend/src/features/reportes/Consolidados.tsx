@@ -8,6 +8,7 @@ import {
   type ClaveConsolidado,
   type FiltrosConsolidado,
 } from "../../api/reportes";
+import { EsqueletoTabla } from "../../components/Esqueleto";
 
 const REPORTES: { clave: ClaveConsolidado; titulo: string }[] = [
   { clave: "ropa_por_servicio", titulo: "Ropa por servicio" },
@@ -37,7 +38,7 @@ function ReporteConsolidado({ clave, titulo, filtros }: { clave: ClaveConsolidad
         <a className="boton boton--texto" href={urlExportarConsolidado(clave, filtros)}>Exportar a Excel</a>
       </div>
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={3} columnas={3} />
       ) : isError ? null : !data?.filas.length ? (
         <p className="vacio">Sin datos para este filtro.</p>
       ) : (

@@ -381,6 +381,8 @@ a:focus-visible {
 .tabla-envoltura { overflow-x: auto; }
 /* Celdas de tabla que son su propio <form> (alternar activo, cambiar rol):
    no deben romper el flujo de la fila a un bloque de ancho completo. */
+/* Casillas y opciones con el verde institucional (no el azul del navegador). */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--acento); }
 .form-en-linea { display: inline; }
 .form-en-linea input[type="checkbox"] { min-height: auto; width: 20px; height: 20px; }
 

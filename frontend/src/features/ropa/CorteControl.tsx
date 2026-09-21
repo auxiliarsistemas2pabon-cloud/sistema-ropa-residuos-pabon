@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerCorteControlRopaSucia } from "../../api/ropa";
 import { pesoOSinPesar } from "../../util/formatos";
+import { EsqueletoTabla } from "../../components/Esqueleto";
 
 export function CorteControl() {
   const { data, isLoading, isError } = useQuery({
@@ -19,7 +20,7 @@ export function CorteControl() {
       </p>
 
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={5} columnas={5} />
       ) : data && data.entregas.length > 0 ? (
         <div className="tabla-envoltura">
           <table className="tabla tabla-kg">

@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { listarSedes, listarServicios } from "../../api/catalogos";
 import { listarNovedades, type FiltrosNovedades } from "../../api/movimientos";
 import { urlExportarNovedades } from "../../api/reportes";
+import { EsqueletoTabla } from "../../components/Esqueleto";
 
 const TIPOS_NOVEDAD: [string, string][] = [
   ["FALTANTE", "Faltante de prendas"],
@@ -129,7 +130,7 @@ export function Novedades() {
         </form>
 
         {isLoading ? (
-          <p className="estado-carga">Cargando…</p>
+          <EsqueletoTabla filas={6} columnas={7} />
         ) : items.length > 0 ? (
           <>
             <div className="tabla-envoltura">

@@ -8,6 +8,7 @@ import { TIPOS_QUE_SE_PESAN_DESPUES } from "../../util/formatos";
 import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { obtenerMovimiento, reportarNovedad } from "../../api/movimientos";
 import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/client";
+import { EsqueletoDetalle } from "../../components/Esqueleto";
 
 const NOVEDADES_ROPA: [string, string][] = [
   ["FALTANTE", "Faltante de prendas"],
@@ -108,7 +109,7 @@ export function DetalleMovimiento() {
     enabled: Boolean(id),
   });
 
-  if (isLoading) return <p className="estado-carga">Cargando…</p>;
+  if (isLoading) return <EsqueletoDetalle />;
   // Si falló por otra causa, el aviso general de la pantalla ya lo explica.
   if (!movimiento) return esNoEncontrado(error) ? <p className="vacio">No se encontró el movimiento.</p> : null;
 

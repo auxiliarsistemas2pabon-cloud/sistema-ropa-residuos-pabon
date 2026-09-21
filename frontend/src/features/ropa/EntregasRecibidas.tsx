@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { listarEntregasRecibidas, listarResiduosRecibidos } from "../../api/movimientos";
 import { pesoOSinPesar } from "../../util/formatos";
+import { EsqueletoTabla } from "../../components/Esqueleto";
 
 export function EntregasRecibidas() {
   const { usuario, esPersonalDeServicio } = useAuth();
@@ -37,7 +38,7 @@ export function EntregasRecibidas() {
       </p>
 
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={5} columnas={5} />
       ) : entregas.length > 0 ? (
         <>
           <div className="tabla-envoltura">
@@ -101,7 +102,7 @@ export function EntregasRecibidas() {
         tipos y no pesa: el peso de cada tipo lo registras tú desde el detalle.
       </p>
       {residuosRecibidos.isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={4} columnas={5} />
       ) : residuos.length > 0 ? (
         <>
           <div className="tabla-envoltura">

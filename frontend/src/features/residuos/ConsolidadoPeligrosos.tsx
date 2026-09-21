@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { obtenerCortePeligrosos } from "../../api/residuos";
 import { etiquetaGrupo } from "../../util/formatos";
+import { EsqueletoTabla } from "../../components/Esqueleto";
 
 export function ConsolidadoPeligrosos() {
   const { data, isLoading, isError } = useQuery({
@@ -17,7 +18,7 @@ export function ConsolidadoPeligrosos() {
       </p>
 
       {isLoading ? (
-        <p className="estado-carga">Cargando…</p>
+        <EsqueletoTabla filas={5} columnas={5} />
       ) : data && data.detalles.length > 0 ? (
         <div className="tabla-envoltura">
           <table className="tabla tabla-kg">
