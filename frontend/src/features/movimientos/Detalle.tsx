@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Aviso } from "../../components/Aviso";
 import { FormularioPeso } from "./FormularioPeso";
+import { TIPOS_QUE_SE_PESAN_DESPUES } from "../../util/formatos";
 import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
 import { obtenerMovimiento, reportarNovedad } from "../../api/movimientos";
 import { erroresDeCampo, esNoEncontrado, type ErroresDeCampo } from "../../api/client";
@@ -187,13 +188,13 @@ export function DetalleMovimiento() {
         </div>
       )}
 
-      {movimiento.pesajes.length === 0 && movimiento.tipo_movimiento === "ROPA_SUCIA_ENTREGA" && (
+      {movimiento.pesajes.length === 0 && TIPOS_QUE_SE_PESAN_DESPUES.includes(movimiento.tipo_movimiento) && (
         <Aviso>
-          <strong>Sin pesar.</strong> El personal de servicio cuenta las prendas y no pesa: el peso lo registra
+          <strong>Sin pesar.</strong> El personal de servicio cuenta las prendas o marca los tipos y no pesa: el peso lo registra
           quien recibe la entrega.
         </Aviso>
       )}
-      {mostrarFormPeso && <FormularioPeso movimientoId={movimiento.id} onCancelar={() => setMostrarFormPeso(false)} />}
+      {mostrarFormPeso && <FormularioPeso movimiento={movimiento} onCancelar={() => setMostrarFormPeso(false)} />}
 
       {movimiento.pesajes.length > 0 && (
         <>
@@ -260,7 +261,7 @@ export function DetalleMovimiento() {
               {movimiento.detalles_residuo.map((d) => (
                 <tr key={d.id}>
                   <td>{d.categoria_nombre}</td>
-                  <td className="num cifra-kg">{d.peso_kg}</td>
+                  <td className="num cifra-kg">{d.peso_kg ?? "Sin pesar"}</td>
                   <td className="num">{d.cantidad_bolsas ?? "—"}</td>
                 </tr>
               ))}

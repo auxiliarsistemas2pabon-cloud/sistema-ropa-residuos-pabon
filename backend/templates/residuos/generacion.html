@@ -5,19 +5,29 @@
 {% block contenido %}
 <h1>Generación de residuos</h1>
 
-{% include "componentes/_stepper.html" %}
+{% include "componentes/_stepper.html" with paso2=form.cuenta_tipos|yesno:"Tipos," %}
 
 <form method="post" class="formulario-pasos" data-formulario-pasos novalidate>
   {% csrf_token %}
   {{ form.non_field_errors }}
 
   <section class="paso" data-paso>
-    <p class="paso__titulo">Paso 1 de 3 · Origen y categoría</p>
+    <p class="paso__titulo">Paso 1 de 3 · {% if form.cuenta_tipos %}Origen{% else %}Origen y categoría{% endif %}</p>
     {% include "componentes/_campo.html" with campo=form.sede %}
     {% include "componentes/_campo.html" with campo=form.servicio %}
-    {% include "residuos/_cascada.html" %}
+    {% if not form.cuenta_tipos %}{% include "residuos/_cascada.html" %}{% endif %}
     <button type="button" class="boton" data-siguiente>Continuar →</button>
   </section>
+
+  {% if form.cuenta_tipos %}
+  {# --- Paso 2 (Personal de servicio): solo marca los tipos de residuo, no pesa --- #}
+  <section class="paso" data-paso hidden>
+    <p class="paso__titulo">Paso 2 de 3 · Tipos de residuo</p>
+    {% include "residuos/_tipos_residuo.html" %}
+    <button type="button" class="boton" data-siguiente data-requiere-tipos>Continuar →</button>
+    <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
+  </section>
+  {% else %}
 
   <section class="paso" data-paso hidden>
     <p class="paso__titulo">Paso 2 de 3 · Pesaje</p>
@@ -33,6 +43,7 @@
     <button type="button" class="boton" data-siguiente data-requiere-peso-valido>Continuar →</button>
     <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
   </section>
+  {% endif %}
 
   <section class="paso" data-paso hidden>
     <p class="paso__titulo">Paso 3 de 3 · Cierre</p>
@@ -41,6 +52,7 @@
       <div><dt>Jornada</dt><dd>la calcula el sistema</dd></div>
       <div><dt>Responsable</dt><dd>{{ form.usuario|default:"—" }}</dd></div>
     </dl>
+    {% if form.cuenta_tipos %}{% include "componentes/_campo.html" with campo=form.recibe_por %}{% endif %}
     {% include "componentes/_campo.html" with campo=form.observaciones %}
     {% include "componentes/_carga_diferida.html" %}
     <button type="submit" class="boton" data-requiere-peso-valido>Guardar generación</button>

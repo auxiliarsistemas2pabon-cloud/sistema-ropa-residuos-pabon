@@ -73,7 +73,11 @@ class EdicionMovimientoForm(forms.Form):
         self.detalle_ropa = movimiento.detalles_ropa.first()
         super().__init__(*args, **kwargs)
 
-        if not self.pesaje:
+        # Con varios tipos de residuo el peso es de cada tipo (no un total que se
+        # pueda reemplazar): solo se corrigen las observaciones.
+        varios_tipos = movimiento.detalles_residuo.count() > 1
+        if not self.pesaje or varios_tipos:
+            self.pesaje = None
             del self.fields["peso_total"]
             del self.fields["tara"]
         if not self.detalle_ropa or self.detalle_ropa.cantidad_unidades is None:

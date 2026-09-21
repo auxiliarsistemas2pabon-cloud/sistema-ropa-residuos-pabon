@@ -22,8 +22,7 @@ class _CapturaResiduoAPIView(APIView):
     (cascada grupo→categoría→tipo, carga diferida) es la única fuente de la
     regla de negocio."""
 
-    # Los residuos se pesan: el Personal de servicio solo cuenta prendas de ropa.
-    permission_classes = [IsAuthenticated, DjangoModelPermissions, IsOperario]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
     queryset = Movimiento.objects.none()
 
     def get_queryset(self):

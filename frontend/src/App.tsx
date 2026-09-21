@@ -56,6 +56,10 @@ export default function App() {
                 <Route path="/ropa/entrega-sucia" element={<EntregaSucia />} />
                 <Route path="/ropa/limpia/distribucion" element={<DistribucionLimpia />} />
                 <Route path="/ropa/entregas-recibidas" element={<EntregasRecibidas />} />
+                {/* El servicio entrega residuos marcando tipos, sin pesar; el consolidado de peligrosos sí exige pesos. */}
+                <Route path="/residuos" element={<ResiduosMenu />} />
+                <Route path="/residuos/generacion" element={<Generacion />} />
+                <Route path="/residuos/recoleccion" element={<Recoleccion />} />
               </Route>
 
               {/* Lo que exige pesar es del operario: el Personal de servicio solo cuenta prendas. */}
@@ -64,9 +68,6 @@ export default function App() {
                 <Route path="/ropa/limpia/recepcion" element={<RecepcionLimpia />} />
                 <Route path="/ropa/rotulos" element={<Rotulos />} />
                 <Route path="/validacion" element={<Validacion />} />
-                <Route path="/residuos" element={<ResiduosMenu />} />
-                <Route path="/residuos/generacion" element={<Generacion />} />
-                <Route path="/residuos/recoleccion" element={<Recoleccion />} />
                 <Route path="/residuos/consolidado-peligrosos" element={<ConsolidadoPeligrosos />} />
               </Route>
 

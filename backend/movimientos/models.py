@@ -25,6 +25,14 @@ class TipoMovimiento(models.TextChoices):
     RESIDUO_RECOLECCION = "RESIDUO_RECOLECCION", "Recolección de residuos"
 
 
+# Movimientos que pueden llegar sin pesar (los registra el Personal de servicio,
+# que solo cuenta o marca tipos) y que quien los recibe pesa después.
+TIPOS_QUE_SE_PESAN_DESPUES = (
+    TipoMovimiento.ROPA_SUCIA_ENTREGA,
+    TipoMovimiento.RESIDUO_GENERACION,
+    TipoMovimiento.RESIDUO_RECOLECCION,
+)
+
 PROCESO_POR_TIPO = {
     TipoMovimiento.ROPA_SUCIA_ENTREGA: Proceso.ROPA,
     TipoMovimiento.ROPA_LIMPIA_RECEPCION: Proceso.ROPA,
@@ -165,6 +173,12 @@ class Movimiento(models.Model):
         if not self.periodo_facturacion:
             self.periodo_facturacion = self.fecha.replace(day=1)
         super().save(*args, **kwargs)
+
+    @property
+    def puede_llegar_sin_pesar(self):
+        """Entrega de ropa sucia o de residuos que el Personal de servicio registra
+        sin pesar (solo cuenta o marca tipos) y que quien recibe pesa después."""
+        return self.tipo_movimiento in TIPOS_QUE_SE_PESAN_DESPUES
 
     def delete(self, *args, **kwargs):
         raise NotImplementedError("Los movimientos no se eliminan jamás (6.8: inmutabilidad).")

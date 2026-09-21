@@ -73,8 +73,8 @@
       {% endfor %}
     </tbody>
   </table>
-{% elif movimiento.tipo_movimiento == "ROPA_SUCIA_ENTREGA" %}
-  <p class="novedad"><strong>Sin pesar.</strong> El personal de servicio cuenta las prendas y no pesa: el peso lo registra quien recibe la entrega.</p>
+{% elif movimiento.puede_llegar_sin_pesar %}
+  <p class="novedad"><strong>Sin pesar.</strong> El personal de servicio cuenta las prendas o marca los tipos y no pesa: el peso lo registra quien recibe la entrega.</p>
 {% endif %}
 
 {% if detalles_ropa %}
@@ -95,7 +95,7 @@
     <thead><tr><th>Categoría</th><th class="num">kg</th><th class="num">Bolsas</th></tr></thead>
     <tbody>
       {% for d in detalles_residuo %}
-        <tr><td>{{ d.categoria_residuo.nombre }}</td><td class="num cifra-kg">{{ d.peso_kg }}</td><td class="num">{{ d.cantidad_bolsas|default:"—" }}</td></tr>
+        <tr><td>{{ d.categoria_residuo.nombre }}</td><td class="num cifra-kg">{% if d.peso_kg is not None %}{{ d.peso_kg }}{% else %}Sin pesar{% endif %}</td><td class="num">{{ d.cantidad_bolsas|default:"—" }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -9,6 +9,11 @@ class DetalleResiduoQuerySet(models.QuerySet):
 
         return self.filter(movimiento__tipo_movimiento=TipoMovimiento.RESIDUO_GENERACION)
 
+    def pesados(self):
+        """Solo lo que ya tiene peso: lo que entregó el Personal de servicio sin
+        pesar entra a los reportes cuando quien recibe lo pesa."""
+        return self.filter(peso_kg__isnull=False)
+
     def peligrosos(self):
         from .models import PELIGROSOS
 
@@ -43,7 +48,7 @@ class DetalleResiduoQuerySet(models.QuerySet):
         )
         if sede is not None:
             qs = qs.filter(movimiento__sede=sede)
-        return qs
+        return qs.filter(peso_kg__isnull=False)  # lo que llegó sin pesar entra al pesarse
 
 
 DetalleResiduoManager = models.Manager.from_queryset(DetalleResiduoQuerySet)

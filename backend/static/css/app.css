@@ -384,6 +384,9 @@ a:focus-visible {
 .form-en-linea { display: inline; }
 .form-en-linea input[type="checkbox"] { min-height: auto; width: 20px; height: 20px; }
 
+/* Encabezado de grupo en el checklist de tipos de residuo (Personal de servicio). */
+.tipos-grupo { margin: var(--espacio-3) 0 var(--espacio-1); font-weight: 600; color: var(--tinta); font-size: var(--texto-sm); }
+
 /* Nombre editable dentro de la celda (renombrar sede). */
 .entrada-en-tabla { width: 20rem; max-width: 100%; min-height: 40px; padding: var(--espacio-1) var(--espacio-2); border: var(--grosor-borde) solid var(--linea); border-radius: var(--radio); font: inherit; color: var(--tinta); background: #fff; }
 .entrada-en-tabla:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }

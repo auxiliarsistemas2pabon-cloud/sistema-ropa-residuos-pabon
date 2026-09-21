@@ -8,7 +8,7 @@ from constance import config
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import ConfiguracionJornada, Jornada, Movimiento, TipoMovimiento
+from .models import ConfiguracionJornada, Jornada, Movimiento, TIPOS_QUE_SE_PESAN_DESPUES, TipoMovimiento
 
 
 def calcular_jornada(*, sede, proceso, hora):
@@ -184,12 +184,12 @@ def motivo_no_pesable(usuario, movimiento):
     """None si `usuario` puede registrar ahora el peso de `movimiento`; si no,
     el motivo en español (mismo estilo que motivo_no_editable).
 
-    El Personal de servicio solo cuenta prendas: cuando entrega ropa sucia no
-    pesa, y el peso lo registra quien la recibe (el operario asignado como
+    El Personal de servicio solo cuenta prendas y marca tipos de residuo: no
+    pesa, y el peso de su entrega (ropa sucia o residuos) lo registra quien la recibe (el operario asignado como
     «Recibe»). Una entrega ya pesada no se vuelve a pesar: si el peso quedó
     mal, se corrige (RF-041), no se duplica."""
-    if movimiento.tipo_movimiento != TipoMovimiento.ROPA_SUCIA_ENTREGA:
-        return "Solo las entregas de ropa sucia se pesan después de registrarlas."
+    if movimiento.tipo_movimiento not in TIPOS_QUE_SE_PESAN_DESPUES:
+        return "Solo las entregas de ropa sucia y de residuos se pesan después de registrarlas."
     if movimiento.pesajes.exists():
         return "Esta entrega ya tiene su peso registrado. Si hay un error, la Administradora puede corregirlo."
     if usuario.rol != usuario.__class__.Rol.USUARIO:

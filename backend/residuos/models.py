@@ -47,7 +47,12 @@ class CategoriaResiduo(models.Model):
 class DetalleResiduo(models.Model):
     movimiento = models.ForeignKey("movimientos.Movimiento", on_delete=models.PROTECT, related_name="detalles_residuo")
     categoria_residuo = models.ForeignKey(CategoriaResiduo, on_delete=models.PROTECT, related_name="detalles")
-    peso_kg = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
+    # Vacío = sin pesar: el Personal de servicio solo marca los tipos que entrega
+    # y quien recibe registra el peso de cada uno después.
+    peso_kg = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
     cantidad_bolsas = models.PositiveIntegerField(null=True, blank=True)
 
     history = HistoricalRecords()
@@ -62,7 +67,8 @@ class DetalleResiduo(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.categoria_residuo} · {self.peso_kg} kg"
+        peso = f"{self.peso_kg} kg" if self.peso_kg is not None else "sin pesar"
+        return f"{self.categoria_residuo} · {peso}"
 
 
 class EntregaGestor(models.Model):

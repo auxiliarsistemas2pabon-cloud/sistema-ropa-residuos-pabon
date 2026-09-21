@@ -6,14 +6,32 @@
 <h1>Registrar peso de la entrega</h1>
 <p class="tinta-suave">
   {{ movimiento.get_tipo_movimiento_display }} · {{ movimiento.fecha|date:"d M" }} {{ movimiento.hora|time:"H:i" }}
-  · {{ movimiento.area_origen.nombre|default:"—" }}. El personal de servicio cuenta las prendas y no
-  pesa: el peso lo registras tú, que recibes la entrega.
+  · {{ movimiento.area_origen.nombre|default:"—" }}. El personal de servicio
+  {% if es_residuo %}marca los tipos de residuo{% else %}cuenta las prendas{% endif %} y no pesa:
+  el peso lo registras tú, que recibes la entrega.
 </p>
 <dl class="calculado">
   <div><dt>Entrega</dt><dd>{{ movimiento.entrega_por|default:"—" }}</dd></div>
   <div><dt>Recibe</dt><dd>{{ movimiento.recibe_por|default:"—" }}</dd></div>
 </dl>
 
+{% if es_residuo %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <h2>Pesa cada tipo de residuo que marcó el servicio</h2>
+  {% for detalle, campo in form.campos_de_peso %}
+    {% include "componentes/_campo.html" with campo=campo %}
+  {% endfor %}
+  {% include "componentes/_campo.html" with campo=form.cantidad_bolsas %}
+  <p class="campo__ayuda">
+    Si algo no coincide con lo que te entregaron, reporta la diferencia con
+    <a href="{% url 'movimientos:registrar_novedad' movimiento.pk %}">Reportar novedad</a>.
+  </p>
+  <button type="submit" class="boton">Guardar peso</button>
+  <a class="boton boton--texto" href="{% url 'movimientos:detalle_movimiento' movimiento.pk %}">Cancelar</a>
+</form>
+{% else %}
 <h2>Prendas que registró el servicio</h2>
 {% if detalles_ropa %}
   <table class="tabla">
@@ -49,4 +67,5 @@
   <button type="submit" class="boton" data-requiere-peso-valido>Guardar peso</button>
   <a class="boton boton--texto" href="{% url 'movimientos:detalle_movimiento' movimiento.pk %}">Cancelar</a>
 </form>
+{% endif %}
 {% endblock %}

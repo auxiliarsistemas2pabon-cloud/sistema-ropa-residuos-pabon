@@ -1,11 +1,14 @@
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth import get_user_model
+from django.db import transaction
 
 from core.models import AreaServicio, GestorExterno, Sede
 from movimientos.forms import RegistroDiferidoMixin
 from movimientos.models import Movimiento, Pesaje, TipoMovimiento
 
-from .models import CategoriaResiduo, EntregaGestor, GrupoResiduo
+from .models import CategoriaResiduo, DetalleResiduo, EntregaGestor, GrupoResiduo
 
 Usuario = get_user_model()
 
@@ -65,6 +68,51 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
         if not self.is_bound and sede:
             self.fields["sede"].initial = sede
 
+        # El Personal de servicio no pesa ni cuenta bolsas: solo marca los TIPOS de
+        # residuo que entrega (varios a la vez) y queda asignado quien los recibe,
+        # que es quien los pesa después (RegistroPesoResiduosForm).
+        self.cuenta_tipos = bool(usuario is not None and usuario.es_personal_de_servicio)
+        if self.cuenta_tipos:
+            for campo in ("grupo", "categoria", "tipo_especifico", "peso_total", "tara", "cantidad_bolsas"):
+                self.fields.pop(campo, None)
+            self.fields["categorias"] = forms.ModelMultipleChoiceField(
+                queryset=CategoriaResiduo.objects.filter(activo=True).order_by("grupo", "nombre"),
+                label="Tipos de residuo que entregas",
+                error_messages={
+                    "required": "Marca al menos un tipo de residuo.",
+                    "invalid_choice": "Uno de los tipos elegidos ya no existe o está inactivo.",
+                },
+            )
+            receptor = self.fields.get("recibe_por") or forms.ModelChoiceField(
+                queryset=Usuario.objects.none(), label="Recibe",
+            )
+            receptor.queryset = Usuario.objects.filter(
+                activo=True, rol=Usuario.Rol.USUARIO,
+            ).order_by("first_name", "username")
+            receptor.label = "Recibe (quien lo pesa)"
+            self.fields["recibe_por"] = receptor
+
+    def tipos_agrupados(self):
+        """Los tipos de residuo por grupo, para el checklist del Personal de
+        servicio; conserva lo marcado si el formulario vuelve con errores."""
+        if not self.cuenta_tipos:
+            return []
+        if self.is_bound:
+            datos = self.data
+            crudo = datos.getlist("categorias") if hasattr(datos, "getlist") else datos.get("categorias") or []
+            marcados = {str(v) for v in crudo}
+        else:
+            marcados = set()
+        grupos = []
+        for valor, etiqueta in GrupoResiduo.choices:
+            tipos = self.fields["categorias"].queryset.filter(grupo=valor)
+            if tipos:
+                grupos.append({
+                    "etiqueta": etiqueta,
+                    "tipos": [{"pk": t.pk, "nombre": t.nombre, "marcado": str(t.pk) in marcados} for t in tipos],
+                })
+        return grupos
+
     def _sede_seleccionada(self):
         if self.is_bound:
             candidato = self.data.get("sede")
@@ -122,8 +170,6 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
         raise NotImplementedError
 
     def guardar(self, *, creado_por):
-        from .models import DetalleResiduo
-
         fecha, hora, estado = self.momento()
         movimiento = Movimiento.objects.create(
             tipo_movimiento=self.tipo_movimiento,
@@ -136,6 +182,11 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
             creado_por=creado_por,
             **self._responsables(creado_por),
         )
+        if self.cuenta_tipos:
+            # Sin pesaje ni peso por tipo: quien recibe los registra después.
+            for categoria in self.cleaned_data["categorias"]:
+                DetalleResiduo.objects.create(movimiento=movimiento, categoria_residuo=categoria, peso_kg=None)
+            return movimiento
         pesaje = Pesaje.objects.create(
             movimiento=movimiento,
             peso_total=self.cleaned_data["peso_total"],
@@ -155,7 +206,9 @@ class GeneracionResiduoForm(_ResiduoBaseForm):
     tipo_movimiento = TipoMovimiento.RESIDUO_GENERACION
 
     def _responsables(self, creado_por):
-        return {"entrega_por": creado_por, "recibe_por": None}
+        # Generación no tiene receptor, salvo cuando la registra el Personal de
+        # servicio: entonces queda asignado quien la pesa.
+        return {"entrega_por": creado_por, "recibe_por": self.cleaned_data.get("recibe_por")}
 
 
 class RecoleccionResiduoForm(_ResiduoBaseForm):
@@ -227,3 +280,45 @@ class EntregaGestorForm(forms.Form):
             kg_facturados=self.cleaned_data["kg_facturados"],
             valor_facturado=self.cleaned_data["valor_facturado"],
         )
+
+
+class RegistroPesoResiduosForm(forms.Form):
+    """Peso de cada tipo de una entrega de residuos que llegó sin pesar: la
+    registró el Personal de servicio (solo marca los tipos) y quien la recibe
+    pesa cada uno. Deja un pesaje con el total y a nombre de quien pesó."""
+
+    cantidad_bolsas = forms.IntegerField(
+        label="Cantidad de bolsas o recipientes (opcional)", min_value=0, required=False,
+    )
+
+    def __init__(self, *args, movimiento, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.movimiento = movimiento
+        self.detalles = list(
+            movimiento.detalles_residuo.select_related("categoria_residuo").order_by(
+                "categoria_residuo__grupo", "categoria_residuo__nombre",
+            )
+        )
+        for detalle in self.detalles:
+            self.fields[f"peso_{detalle.pk}"] = forms.DecimalField(
+                label=f"Peso de {detalle.categoria_residuo.nombre} (kg)",
+                max_digits=8, decimal_places=2, min_value=Decimal("0.01"), localize=False,
+                widget=_peso_widget(),
+                error_messages={"min_value": "El peso debe ser mayor a 0."},
+            )
+
+    def campos_de_peso(self):
+        """(detalle, campo) por cada tipo, para pintar el formulario."""
+        return [(detalle, self[f"peso_{detalle.pk}"]) for detalle in self.detalles]
+
+    def guardar(self, *, pesado_por):
+        with transaction.atomic():
+            total = Decimal("0.00")
+            for detalle in self.detalles:
+                detalle.peso_kg = self.cleaned_data[f"peso_{detalle.pk}"]
+                detalle.save(update_fields=["peso_kg"])
+                total += detalle.peso_kg
+            return Pesaje.objects.create(
+                movimiento=self.movimiento, peso_total=total, tara=0,
+                cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"), pesado_por=pesado_por,
+            )

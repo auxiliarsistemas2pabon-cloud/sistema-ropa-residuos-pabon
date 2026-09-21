@@ -6,6 +6,10 @@ from core.models import AreaServicio, Sede
 from .models import Movimiento, Novedad, TipoMovimiento, TipoNovedad
 
 
+class _EnTipos(django_filters.BaseInFilter, django_filters.CharFilter):
+    """`?tipos=A,B` — varios tipos de movimiento a la vez (separados por coma)."""
+
+
 class MovimientoFilter(django_filters.FilterSet):
     fecha = django_filters.DateFilter(field_name="fecha")
     desde = django_filters.DateFilter(field_name="fecha", lookup_expr="gte")
@@ -15,6 +19,7 @@ class MovimientoFilter(django_filters.FilterSet):
         field_name="area_origen", queryset=AreaServicio.objects.order_by("nombre"),
     )
     tipo = django_filters.ChoiceFilter(field_name="tipo_movimiento", choices=TipoMovimiento.choices)
+    tipos = _EnTipos(field_name="tipo_movimiento", lookup_expr="in")
     recibe_por = django_filters.NumberFilter(field_name="recibe_por")
 
     class Meta:

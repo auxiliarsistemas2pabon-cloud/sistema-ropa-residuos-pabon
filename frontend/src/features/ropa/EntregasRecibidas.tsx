@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { listarEntregasRecibidas } from "../../api/movimientos";
+import { listarEntregasRecibidas, listarResiduosRecibidos } from "../../api/movimientos";
 import { pesoOSinPesar } from "../../util/formatos";
 
 export function EntregasRecibidas() {
@@ -14,6 +14,16 @@ export function EntregasRecibidas() {
     enabled: Boolean(usuario),
   });
   const entregas = data?.pages.flatMap((pagina) => pagina.results) ?? [];
+
+  // Residuos que me entregaron (recolección o generación): el servicio marca los tipos, yo los peso.
+  const residuosRecibidos = useInfiniteQuery({
+    queryKey: ["residuos-recibidos", usuario?.id],
+    queryFn: ({ pageParam }) => listarResiduosRecibidos(usuario!.id, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (ultima, _paginas, ultimaPagina) => (ultima.next ? ultimaPagina + 1 : undefined),
+    enabled: Boolean(usuario),
+  });
+  const residuos = residuosRecibidos.data?.pages.flatMap((pagina) => pagina.results) ?? [];
 
   return (
     <>
@@ -83,6 +93,64 @@ export function EntregasRecibidas() {
         </>
       ) : isError ? null : (
         <p className="vacio">Todavía no te han asignado ninguna entrega de ropa sucia.</p>
+      )}
+
+      <h2>Residuos que me entregaron</h2>
+      <p className="tinta-suave">
+        Entregas de residuos donde quedaste como quien recibe. El personal de servicio marca los
+        tipos y no pesa: el peso de cada tipo lo registras tú desde el detalle.
+      </p>
+      {residuosRecibidos.isLoading ? (
+        <p className="estado-carga">Cargando…</p>
+      ) : residuos.length > 0 ? (
+        <>
+          <div className="tabla-envoltura">
+            <table className="tabla tabla-kg">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Servicio</th>
+                  <th>Entregó</th>
+                  <th>Tipos</th>
+                  <th className="num">kg netos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {residuos.map((m) => (
+                  <tr key={m.id}>
+                    <td>
+                      <Link to={`/movimiento/${m.id}`}>
+                        {m.fecha} {m.hora.slice(0, 5)}
+                      </Link>
+                    </td>
+                    <td>{m.servicio_nombre ?? "—"}</td>
+                    <td>{m.entrega_por?.nombre_completo ?? "—"}</td>
+                    <td>{m.detalles_residuo.map((d) => d.categoria_nombre).join(", ") || "—"}</td>
+                    <td className="num cifra-kg">
+                      {m.peso_neto === null && !esPersonalDeServicio ? (
+                        <Link to={`/movimiento/${m.id}`}>Registrar peso</Link>
+                      ) : (
+                        pesoOSinPesar(m)
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {residuosRecibidos.hasNextPage && (
+            <button
+              type="button"
+              className="boton boton--texto"
+              onClick={() => void residuosRecibidos.fetchNextPage()}
+              disabled={residuosRecibidos.isFetchingNextPage}
+            >
+              {residuosRecibidos.isFetchingNextPage ? "Cargando…" : "Cargar más"}
+            </button>
+          )}
+        </>
+      ) : residuosRecibidos.isError ? null : (
+        <p className="vacio">Todavía no te han asignado ninguna entrega de residuos.</p>
       )}
     </>
   );

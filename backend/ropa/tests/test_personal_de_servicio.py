@@ -133,10 +133,12 @@ def test_el_operario_sin_peso_sigue_rechazado(api_client, usuario, sede, area):
 # --- Lo que el Personal de servicio no puede hacer -----------------------------------
 
 PANTALLAS_CON_PESAJE = [
-    "ropa:recepcion_limpia", "ropa:rotulos", "ropa:validacion",
-    "residuos:generacion", "residuos:recoleccion", "residuos:consolidado_peligrosos",
+    "ropa:recepcion_limpia", "ropa:rotulos", "ropa:validacion", "residuos:consolidado_peligrosos",
 ]
-PANTALLAS_DE_CONTEO = ["ropa:entrega_sucia", "ropa:distribucion_limpia", "ropa:entregas_recibidas"]
+PANTALLAS_SIN_PESAR = [  # solo cuenta prendas o marca tipos de residuo; no pesa
+    "ropa:entrega_sucia", "ropa:distribucion_limpia", "ropa:entregas_recibidas",
+    "residuos:menu", "residuos:generacion", "residuos:recoleccion",
+]
 
 
 @pytest.mark.parametrize("nombre", PANTALLAS_CON_PESAJE)
@@ -151,7 +153,7 @@ def test_operario_si_entra_a_lo_que_exige_pesar(client, usuario, nombre):
     assert client.get(reverse(nombre)).status_code == 200
 
 
-@pytest.mark.parametrize("nombre", PANTALLAS_DE_CONTEO)
+@pytest.mark.parametrize("nombre", PANTALLAS_SIN_PESAR)
 def test_servicio_entra_a_lo_que_solo_cuenta(client, servicio, nombre):
     client.force_login(servicio)
     assert client.get(reverse(nombre)).status_code == 200
@@ -159,8 +161,7 @@ def test_servicio_entra_a_lo_que_solo_cuenta(client, servicio, nombre):
 
 def test_servicio_tampoco_captura_pesos_por_la_api(api_client, servicio, sede, area, usuario):
     api_client.force_authenticate(user=servicio)
-    for nombre in ("api-recepcion-ropa-limpia", "api-generacion-residuo", "api-recoleccion-residuo"):
-        assert api_client.post(reverse(nombre), {"sede": sede.pk}).status_code == 403, nombre
+    assert api_client.post(reverse("api-recepcion-ropa-limpia"), {"sede": sede.pk}).status_code == 403
     assert api_client.get(reverse("api-corte-peligrosos")).status_code == 403
     assert api_client.get(reverse("api-ciclo-retorno"), {"sede": sede.pk}).status_code == 403
     assert api_client.post(reverse("api-rotulo-list"), {"sede": sede.pk}).status_code == 403
@@ -173,6 +174,7 @@ def test_panel_del_servicio_solo_ofrece_ropa_por_conteo(client, servicio):
     assert "Entregar ropa sucia" in cuerpo
     assert "Distribuir ropa limpia" in cuerpo
     assert "Ropa sucia que me entregaron" in cuerpo
+    assert "Entregar residuos" in cuerpo
     for ausente in ("Registrar residuos", "Recepción de lavandería", "Kg netos", "kg netos"):
         assert ausente not in cuerpo
 

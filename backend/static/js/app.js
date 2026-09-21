@@ -271,7 +271,23 @@
     });
   }
 
+  // --- Personal de servicio: el paso de tipos de residuo exige marcar al menos uno ---
+  function iniciarTiposResiduo() {
+    document.querySelectorAll("[data-tipos-residuo]").forEach(function (contenedor) {
+      var paso = contenedor.closest("[data-paso]");
+      var botones = paso ? paso.querySelectorAll("[data-requiere-tipos]") : [];
+      var checks = contenedor.querySelectorAll("[data-tipo-residuo]");
+      function actualizar() {
+        var alguno = Array.prototype.some.call(checks, function (c) { return c.checked; });
+        botones.forEach(function (b) { b.disabled = !alguno; });
+      }
+      checks.forEach(function (c) { c.addEventListener("change", actualizar); });
+      actualizar();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    iniciarTiposResiduo();
     iniciarPesoNeto();
     iniciarDetallePrendas();
     iniciarFirma();

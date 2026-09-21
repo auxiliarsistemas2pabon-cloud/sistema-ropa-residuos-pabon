@@ -4,18 +4,24 @@ import type { MovimientoDetalle } from "./movimientos";
 interface DatosResiduoBase {
   sede: number;
   servicio: number;
-  grupo: string;
-  categoria: number;
+  grupo?: string;
+  categoria?: number;
   tipo_especifico?: number;
-  peso_total: string;
+  peso_total?: string;
   tara?: string;
+  /** Personal de servicio: marca varios tipos de residuo y no manda grupo, categoría,
+   * peso ni bolsas — quien recibe pesa cada tipo después. */
+  categorias?: number[];
   observaciones?: string;
   fecha?: string;
   hora?: string;
 }
 
 // "Responsable"/"Entrega" los fija el backend al usuario logueado — no se envían.
-export type DatosGeneracionResiduo = DatosResiduoBase;
+export interface DatosGeneracionResiduo extends DatosResiduoBase {
+  /** Solo lo manda el Personal de servicio: quien la recibe y la pesa. */
+  recibe_por?: number;
+}
 
 export async function crearGeneracionResiduo(datos: DatosGeneracionResiduo): Promise<MovimientoDetalle> {
   const { data } = await api.post<MovimientoDetalle>("/movimientos/generacion-residuo/", datos);

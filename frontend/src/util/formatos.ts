@@ -10,12 +10,16 @@ export function etiquetaGrupo(codigo: string | undefined): string {
   return codigo ? (ETIQUETAS_GRUPO[codigo] ?? codigo) : "";
 }
 
+/** Movimientos que pueden llegar sin pesar: los registra el Personal de servicio (que
+ * solo cuenta o marca tipos) y quien los recibe pesa después. */
+export const TIPOS_QUE_SE_PESAN_DESPUES = ["ROPA_SUCIA_ENTREGA", "RESIDUO_GENERACION", "RESIDUO_RECOLECCION"];
+
 /** Peso neto de un movimiento para una tabla: las entregas de ropa sucia que
  * registró el Personal de servicio (que solo cuenta prendas) llegan sin pesar
  * hasta que quien las recibe registra el peso. */
 export function pesoOSinPesar(m: { peso_neto: string | null; tipo_movimiento: string }): string {
   if (m.peso_neto !== null) return m.peso_neto;
-  return m.tipo_movimiento === "ROPA_SUCIA_ENTREGA" ? "Sin pesar" : "—";
+  return TIPOS_QUE_SE_PESAN_DESPUES.includes(m.tipo_movimiento) ? "Sin pesar" : "—";
 }
 
 // Mismo criterio numérico del resto de la aplicación (punto decimal, coma de

@@ -161,6 +161,13 @@ export function Panel() {
                   <small>Prendas y cantidades por servicio</small>
                 </span>
               </Link>
+              <Link className="acceso" to="/residuos">
+                <span className="acceso__icono"><IconoResiduo /></span>
+                <span className="acceso__texto">
+                  Entregar residuos
+                  <small>Marca los tipos que entregas; no se pesa</small>
+                </span>
+              </Link>
             </div>
             <p className="enlaces-secundarios">
               <Link to="/ropa/entregas-recibidas">

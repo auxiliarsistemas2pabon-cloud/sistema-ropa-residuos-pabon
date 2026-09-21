@@ -22,6 +22,13 @@ def _registrar(request, form_class, plantilla, url_exito):
         form = form_class(request.POST, usuario=request.user)
         if form.is_valid():
             movimiento = form.guardar(creado_por=request.user)
+            if form.cuenta_tipos:  # Personal de servicio: tipos sin peso, pesa quien recibe
+                tipos = ", ".join(d.categoria_residuo.nombre for d in movimiento.detalles_residuo.all())
+                messages.success(
+                    request,
+                    f"Guardado · {tipos} · el peso lo registra quien recibe · {movimiento.hora:%H:%M}",
+                )
+                return redirect(url_exito)
             detalle = movimiento.detalles_residuo.first()
             messages.success(
                 request,
@@ -36,7 +43,6 @@ def _registrar(request, form_class, plantilla, url_exito):
 
 
 @login_required
-@solo_operario
 @permission_required("movimientos.add_movimiento", raise_exception=True)
 def generacion_residuo(request):
     return _registrar(
@@ -45,7 +51,6 @@ def generacion_residuo(request):
 
 
 @login_required
-@solo_operario
 @permission_required("movimientos.add_movimiento", raise_exception=True)
 def recoleccion_residuo(request):
     return _registrar(

@@ -63,7 +63,7 @@ def residuos_por_categoria(filtros):
     """Por grupo y categoría, más el total de no peligrosos (RF-021:
     aprovechables + no aprovechables) — el resto de grupos ya se puede leer
     fila por fila, pero este es el único que el lineamiento pide sumado."""
-    qs = _filtrar_por_movimiento(DetalleResiduo.objects.de_generacion(), filtros)
+    qs = _filtrar_por_movimiento(DetalleResiduo.objects.de_generacion().pesados(), filtros)
     filas = list(
         qs.values("categoria_residuo__grupo", "categoria_residuo__nombre")
         .annotate(kg=Sum("peso_kg"))
@@ -77,7 +77,7 @@ def residuos_por_categoria(filtros):
 
 
 def residuos_por_servicio(filtros):
-    qs = _filtrar_por_movimiento(DetalleResiduo.objects.de_generacion(), filtros)
+    qs = _filtrar_por_movimiento(DetalleResiduo.objects.de_generacion().pesados(), filtros)
     return list(
         qs.values("movimiento__sede__nombre", "movimiento__area_origen__nombre")
         .annotate(kg=Sum("peso_kg"))
@@ -95,7 +95,7 @@ def por_jornada(filtros):
         .annotate(kg=Sum("peso_neto"))
     )
     residuos = dict(
-        _filtrar_por_movimiento(DetalleResiduo.objects.de_generacion(), filtros)
+        _filtrar_por_movimiento(DetalleResiduo.objects.de_generacion().pesados(), filtros)
         .values_list("movimiento__jornada")
         .annotate(kg=Sum("peso_kg"))
     )
@@ -133,7 +133,7 @@ def rh1_del_mes(anio, mes, sede=None):
     (el RH1 es un reporte externo por fecha, no el corte interno)."""
     columnas = list(ColumnaRH1.objects.filter(activo=True).prefetch_related("categorias"))
     ultimo_dia = calendar.monthrange(anio, mes)[1]
-    base = DetalleResiduo.objects.de_generacion()
+    base = DetalleResiduo.objects.de_generacion().pesados()
     if sede:
         base = base.filter(movimiento__sede=sede)
 

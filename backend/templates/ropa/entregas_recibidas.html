@@ -48,4 +48,40 @@
 {% else %}
   <p class="vacio">Todavía no te han asignado ninguna entrega de ropa sucia.</p>
 {% endif %}
+
+<h2>Residuos que me entregaron</h2>
+<p class="tinta-suave">
+  Entregas de residuos donde quedaste como quien recibe. El personal de servicio marca los
+  tipos y no pesa: el peso de cada tipo lo registras tú con «Registrar peso».
+</p>
+{% if residuos %}
+  <div class="tabla-envoltura">
+    <table class="tabla tabla-kg">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Servicio</th><th>Entregó</th><th>Tipos</th><th class="num">kg netos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in residuos %}
+          {% with p=m.pesajes.all|first %}
+            <tr>
+              <td><a href="{% url 'movimientos:detalle_movimiento' m.pk %}">{{ m.fecha|date:"d M" }} {{ m.hora|time:"H:i" }}</a></td>
+              <td>{{ m.area_origen.nombre|default:"—" }}</td>
+              <td>{{ m.entrega_por|default:"—" }}</td>
+              <td>{% for d in m.detalles_residuo.all %}{{ d.categoria_residuo.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+              <td class="num cifra-kg">
+                {% if p %}{{ p.peso_neto }}
+                {% elif m.puede_pesar %}<a href="{% url 'movimientos:registrar_peso' m.pk %}">Registrar peso</a>
+                {% else %}Sin pesar{% endif %}
+              </td>
+            </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="vacio">Todavía no te han asignado ninguna entrega de residuos.</p>
+{% endif %}
 {% endblock %}

@@ -13,7 +13,9 @@ from reportes.exportadores import libro_de_tabla
 
 from .filters import NovedadFilter
 from .forms import EdicionMovimientoForm, NovedadForm, RegistroPesoForm
-from .models import EstadoMovimiento, Movimiento, Novedad
+from residuos.forms import RegistroPesoResiduosForm
+
+from .models import EstadoMovimiento, Movimiento, Novedad, TipoMovimiento
 from .services import motivo_no_editable, motivo_no_pesable, puede_editar, puede_pesar, puede_reportar_novedad
 
 
@@ -190,19 +192,25 @@ def registrar_peso(request, pk):
     if motivo:
         raise PermissionDenied(motivo)
 
+    # Ropa sucia: un peso total. Residuos: el peso de cada tipo que marcó el servicio.
+    es_residuo = movimiento.tipo_movimiento != TipoMovimiento.ROPA_SUCIA_ENTREGA
+    Formulario = RegistroPesoResiduosForm if es_residuo else RegistroPesoForm
     if request.method == "POST":
-        form = RegistroPesoForm(request.POST, movimiento=movimiento)
+        form = Formulario(request.POST, movimiento=movimiento)
         if form.is_valid():
             pesaje = form.guardar(pesado_por=request.user)
             messages.success(request, f"Peso registrado · {pesaje.peso_neto:.2f} kg netos.")
             return redirect("movimientos:detalle_movimiento", pk=movimiento.pk)
     else:
-        form = RegistroPesoForm(movimiento=movimiento)
+        form = Formulario(movimiento=movimiento)
 
     return render(
         request,
         "movimientos/registrar_peso.html",
-        {"form": form, "movimiento": movimiento, "detalles_ropa": movimiento.detalles_ropa.select_related("prenda")},
+        {
+            "form": form, "movimiento": movimiento, "es_residuo": es_residuo,
+            "detalles_ropa": movimiento.detalles_ropa.select_related("prenda"),
+        },
     )
 
 

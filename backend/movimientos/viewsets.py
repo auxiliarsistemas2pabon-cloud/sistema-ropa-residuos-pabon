@@ -10,9 +10,11 @@ from rest_framework.viewsets import GenericViewSet
 from core.api_errors import form_errors_response
 from core.permissions import IsAdministradora
 
+from residuos.forms import RegistroPesoResiduosForm
+
 from .filters import MovimientoFilter, NovedadFilter
 from .forms import EdicionMovimientoForm, NovedadForm, RegistroPesoForm
-from .models import EstadoMovimiento, Movimiento, Novedad
+from .models import EstadoMovimiento, Movimiento, Novedad, TipoMovimiento
 from .permissions import PuedeEditarMovimiento, PuedePesarMovimiento, PuedeReportarNovedad
 from .serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer, NovedadSerializer
 from .services import motivo_no_editable
@@ -69,11 +71,16 @@ class MovimientoViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, Generi
         permission_classes=[IsAuthenticated, PuedePesarMovimiento],
     )
     def pesar(self, request, pk=None):
-        """Peso de una entrega de ropa sucia que llegó sin pesar (la del
-        Personal de servicio, que solo cuenta prendas): lo registra quien la
-        recibe, una sola vez."""
+        """Peso de una entrega (de ropa sucia o de residuos) que llegó sin pesar
+        (la del Personal de servicio, que solo cuenta prendas o marca tipos): lo
+        registra quien la recibe, una sola vez. Ropa: `peso_total` (+ tara,
+        bolsas). Residuos: `peso_<id del detalle>` por cada tipo (+ bolsas)."""
         movimiento = self.get_object()
-        form = RegistroPesoForm(data=request.data, movimiento=movimiento)
+        Formulario = (
+            RegistroPesoForm if movimiento.tipo_movimiento == TipoMovimiento.ROPA_SUCIA_ENTREGA
+            else RegistroPesoResiduosForm
+        )
+        form = Formulario(data=request.data, movimiento=movimiento)
         if not form.is_valid():
             return form_errors_response(form)
         form.guardar(pesado_por=request.user)

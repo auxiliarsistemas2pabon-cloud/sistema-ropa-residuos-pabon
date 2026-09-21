@@ -25,7 +25,7 @@
             <td><a href="{% url 'movimientos:detalle_movimiento' m.pk %}">{{ m.hora|time:"H:i" }}</a></td>
             <td>{{ m.get_tipo_movimiento_display }}</td>
             <td>{{ m.area_origen.nombre|default:"—" }}</td>
-            <td class="num cifra-kg">{% if m.pesajes.all %}{{ m.pesajes.all.0.peso_neto }}{% elif m.tipo_movimiento == "ROPA_SUCIA_ENTREGA" %}Sin pesar{% else %}—{% endif %}</td>
+            <td class="num cifra-kg">{% if m.pesajes.all %}{{ m.pesajes.all.0.peso_neto }}{% elif m.puede_llegar_sin_pesar %}Sin pesar{% else %}—{% endif %}</td>
             <td>{{ m.get_estado_display }}</td>
           </tr>
         {% endfor %}

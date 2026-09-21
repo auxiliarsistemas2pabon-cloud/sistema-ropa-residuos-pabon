@@ -30,7 +30,9 @@ function FormularioCorreccion({ movimiento }: { movimiento: MovimientoDetalle })
 
   // El backend corrige el primer pesaje / la primera prenda: solo se ofrece
   // cuando no hay ambigüedad (uno solo), para no cambiar un dato por otro.
-  const pesaje = movimiento.pesajes.length === 1 ? movimiento.pesajes[0] : undefined;
+  // Con varios tipos de residuo el peso es de cada tipo, no un total que se pueda reemplazar.
+  const pesaje =
+    movimiento.pesajes.length === 1 && movimiento.detalles_residuo.length <= 1 ? movimiento.pesajes[0] : undefined;
   const detalle = movimiento.detalles_ropa.length === 1 ? movimiento.detalles_ropa[0] : undefined;
   const conCantidad = detalle !== undefined && detalle.cantidad_unidades !== null;
 

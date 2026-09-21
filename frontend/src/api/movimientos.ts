@@ -32,6 +32,7 @@ export interface MovimientoResumen {
   creado_por: UsuarioMinimo;
   creado_en: string;
   detalles_ropa: DetalleRopa[];
+  detalles_residuo: DetalleResiduo[];
 }
 
 export interface Paginado<T> {
@@ -114,7 +115,8 @@ export interface DetalleResiduo {
   categoria_residuo: number;
   categoria_nombre: string;
   grupo: string;
-  peso_kg: string;
+  /** null = sin pesar (lo entregó el Personal de servicio; pesa quien recibe). */
+  peso_kg: string | null;
   cantidad_bolsas: number | null;
 }
 
@@ -190,11 +192,9 @@ export async function consultarPuedeEditar(movimientoId: number): Promise<{ pued
   return data;
 }
 
-export interface DatosPeso {
-  peso_total: string;
-  tara?: string;
-  cantidad_bolsas?: number;
-}
+/** Ropa sucia: `peso_total` (+ tara, bolsas). Residuos: `peso_<id del detalle>` por
+ * cada tipo que marcó el servicio (+ bolsas). */
+export type DatosPeso = Record<string, string | number | undefined>;
 
 /** El Personal de servicio solo cuenta prendas y no pesa: quien recibe la
  * entrega registra su peso, una sola vez (403 con el motivo si no puede). */
@@ -213,6 +213,15 @@ export interface DatosNovedad {
  * reportarla — ver movimientos.services.puede_reportar_novedad. */
 export async function reportarNovedad(movimientoId: number, datos: DatosNovedad): Promise<MovimientoDetalle> {
   const { data } = await api.post<MovimientoDetalle>(`/movimientos/${movimientoId}/novedad/`, datos);
+  return data;
+}
+
+/** Entregas de residuos (recolección o generación) donde el usuario quedó como
+ * quien recibe: las que llegaron sin pesar las pesa él. */
+export async function listarResiduosRecibidos(usuarioId: number, pagina = 1): Promise<Paginado<MovimientoResumen>> {
+  const { data } = await api.get<Paginado<MovimientoResumen>>("/movimientos/", {
+    params: { tipos: "RESIDUO_RECOLECCION,RESIDUO_GENERACION", recibe_por: usuarioId, page: pagina },
+  });
   return data;
 }
 

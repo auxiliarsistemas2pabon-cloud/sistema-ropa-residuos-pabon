@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stepper } from "../../components/Stepper";
 import { Aviso } from "../../components/Aviso";
+import { TiposResiduo } from "../../components/TiposResiduo";
 import { Firma } from "../../components/Firma";
 import { ErrorCampo } from "../../components/ErrorCampo";
 import { ErroresCampoServidor } from "../../components/ErroresCampoServidor";
@@ -35,6 +36,13 @@ interface DatosFormulario {
   hora: string;
 }
 
+// El Personal de servicio no pesa: su paso 2 es marcar los tipos de residuo que entrega.
+const PASOS_SOLO_TIPOS = [
+  { numero: 1, nombre: "Origen" },
+  { numero: 2, nombre: "Tipos" },
+  { numero: 3, nombre: "Cierre" },
+];
+
 const PASOS = [
   { numero: 1, nombre: "Origen y categoría" },
   { numero: 2, nombre: "Pesaje" },
@@ -43,8 +51,10 @@ const PASOS = [
 
 export function Recoleccion() {
   const navigate = useNavigate();
-  const { usuario } = useAuth();
+  const { usuario, esPersonalDeServicio: cuentaTipos } = useAuth();
   const [paso, setPaso] = useState(1);
+  const [tipos, setTipos] = useState<number[]>([]);
+  const [errorTipos, setErrorTipos] = useState("");
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
   const [firmaRecibe, setFirmaRecibe] = useState("");
 
@@ -71,7 +81,11 @@ export function Recoleccion() {
     enabled: Boolean(sedeId),
   });
   const { data: categorias } = useQuery({ queryKey: ["categorias-residuo"], queryFn: listarCategoriasResiduo });
-  const { data: usuarios } = useQuery({ queryKey: ["usuarios-activos"], queryFn: () => listarUsuariosActivos() });
+  // Quien solo marca tipos elige a quien recibe entre quienes pueden pesar.
+  const { data: usuarios } = useQuery({
+    queryKey: ["usuarios-activos", cuentaTipos],
+    queryFn: () => listarUsuariosActivos(cuentaTipos),
+  });
 
   const categoriasDelGrupo = categorias?.filter((c) => c.categoria_padre === null && c.grupo === grupo) ?? [];
   const tiposDeLaCategoria = categorias?.filter((c) => c.categoria_padre === Number(categoriaId)) ?? [];
@@ -89,8 +103,14 @@ export function Recoleccion() {
   });
 
   async function irSiguiente() {
+    if (cuentaTipos && paso === 2) {
+      const problema = tipos.length === 0 ? "Marca al menos un tipo de residuo." : "";
+      setErrorTipos(problema);
+      if (!problema) setPaso(3);
+      return;
+    }
     const camposDelPaso: Record<number, (keyof DatosFormulario)[]> = {
-      1: ["sede", "servicio", "grupo", "categoria"],
+      1: cuentaTipos ? ["sede", "servicio"] : ["sede", "servicio", "grupo", "categoria"],
       2: ["peso_total"],
     };
     const validos = await trigger(camposDelPaso[paso] ?? [], { shouldFocus: true });
@@ -105,6 +125,23 @@ export function Recoleccion() {
 
   function onSubmit(datos: DatosFormulario) {
     setErroresServidor({});
+    if (cuentaTipos) {
+      if (tipos.length === 0) {
+        setErrorTipos("Marca al menos un tipo de residuo.");
+        return;
+      }
+      // Solo marca tipos: sin grupo, categoría, peso ni bolsas; quien recibe pesa cada tipo.
+      mutacion.mutate({
+        sede: Number(datos.sede),
+        servicio: Number(datos.servicio),
+        categorias: tipos,
+        recibe_por: Number(datos.recibe_por),
+        ...(firmaRecibe ? { firma_recibe: firmaRecibe } : {}),
+        observaciones: datos.observaciones,
+        ...(datos.cargaDiferida ? { fecha: datos.fecha, hora: datos.hora } : {}),
+      });
+      return;
+    }
     mutacion.mutate({
       sede: Number(datos.sede),
       servicio: Number(datos.servicio),
@@ -134,7 +171,7 @@ export function Recoleccion() {
   return (
     <>
       <h1>Recolección de residuos</h1>
-      <Stepper pasos={PASOS} actual={paso} />
+      <Stepper pasos={cuentaTipos ? PASOS_SOLO_TIPOS : PASOS} actual={paso} />
       <form onSubmit={alEnviar} noValidate>
         {erroresServidor.non_field_errors?.map((mensaje) => (
           <Aviso error key={mensaje}>
@@ -143,7 +180,7 @@ export function Recoleccion() {
         ))}
 
         <section hidden={paso !== 1}>
-          <p className="paso__titulo">Paso 1 de 3 · Origen y categoría</p>
+          <p className="paso__titulo">Paso 1 de 3 · {cuentaTipos ? "Origen" : "Origen y categoría"}</p>
           <div className="campo">
             <label htmlFor="sede">Sede</label>
             <select id="sede" {...register("sede", { required: "Selecciona la sede.", onChange: () => setValue("servicio", "") })}>
@@ -168,96 +205,121 @@ export function Recoleccion() {
             </select>
             <ErrorCampo error={errors.servicio} />
           </div>
-          <div className="campo">
-            <label htmlFor="grupo">Grupo</label>
-            <select id="grupo" {...register("grupo", {
-                required: "Selecciona el grupo de residuo.",
-                onChange: () => {
-                  setValue("categoria", "");
-                  setValue("tipo_especifico", "");
-                },
-              })}>
-              <option value="">Seleccionar grupo</option>
-              {GRUPOS.map(([valor, etiqueta]) => (
-                <option key={valor} value={valor}>
-                  {etiqueta}
-                </option>
-              ))}
-            </select>
-            <ErrorCampo error={errors.grupo} />
-          </div>
-          <div className="campo">
-            <label htmlFor="categoria">Categoría</label>
-            <select id="categoria" disabled={!grupo} {...register("categoria", {
-                required: "Selecciona la categoría.",
-                onChange: () => setValue("tipo_especifico", ""),
-              })}>
-              <option value="">Seleccionar…</option>
-              {categoriasDelGrupo.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-            <ErrorCampo error={errors.categoria} />
-          </div>
-          <div className="campo">
-            <label htmlFor="tipo_especifico">Tipo específico (opcional)</label>
-            <select id="tipo_especifico" disabled={!categoriaId} {...register("tipo_especifico")}>
-              <option value="">Seleccionar…</option>
-              {tiposDeLaCategoria.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!cuentaTipos && (
+            <>
+              <div className="campo">
+                <label htmlFor="grupo">Grupo</label>
+                <select id="grupo" {...register("grupo", {
+                    required: "Selecciona el grupo de residuo.",
+                    onChange: () => {
+                      setValue("categoria", "");
+                      setValue("tipo_especifico", "");
+                    },
+                  })}>
+                  <option value="">Seleccionar grupo</option>
+                  {GRUPOS.map(([valor, etiqueta]) => (
+                    <option key={valor} value={valor}>
+                      {etiqueta}
+                    </option>
+                  ))}
+                </select>
+                <ErrorCampo error={errors.grupo} />
+              </div>
+              <div className="campo">
+                <label htmlFor="categoria">Categoría</label>
+                <select id="categoria" disabled={!grupo} {...register("categoria", {
+                    required: "Selecciona la categoría.",
+                    onChange: () => setValue("tipo_especifico", ""),
+                  })}>
+                  <option value="">Seleccionar…</option>
+                  {categoriasDelGrupo.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+                <ErrorCampo error={errors.categoria} />
+              </div>
+              <div className="campo">
+                <label htmlFor="tipo_especifico">Tipo específico (opcional)</label>
+                <select id="tipo_especifico" disabled={!categoriaId} {...register("tipo_especifico")}>
+                  <option value="">Seleccionar…</option>
+                  {tiposDeLaCategoria.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
           <button type="button" className="boton" onClick={() => void irSiguiente()}>
             Continuar →
           </button>
         </section>
 
-        <section hidden={paso !== 2}>
-          <p className="paso__titulo">Paso 2 de 3 · Pesaje</p>
-          <div className="campo">
-            <label htmlFor="peso_total">Peso total (kg)</label>
-            <input
-              id="peso_total"
-              type="number"
-              step="0.01"
-              min="0"
-              inputMode="decimal"
-              {...register("peso_total", {
-                required: "Ingresa el peso total en kg.",
-                validate: (v) => parseFloat(v) > 0 || "El peso total debe ser mayor a 0.",
-              })}
+        {cuentaTipos ? (
+          <section hidden={paso !== 2}>
+            <p className="paso__titulo">Paso 2 de 3 · Tipos de residuo</p>
+            <TiposResiduo
+              categorias={categorias}
+              valor={tipos}
+              onCambiar={(siguiente) => {
+                setTipos(siguiente);
+                setErrorTipos("");
+              }}
+              error={errorTipos}
             />
-            <ErrorCampo error={errors.peso_total} />
-          </div>
-          <div className="campo">
-            <label htmlFor="tara">Tara (kg)</label>
-            <input id="tara" type="number" step="0.01" min="0" inputMode="decimal" {...register("tara")} />
-          </div>
-          {taraInvalida && (
-            <p className="error-tara">La tara no puede ser mayor al peso total. Revisa el valor del recipiente.</p>
-          )}
-          <div className="campo">
-            <label>Peso neto</label>
-            <p className={`peso-neto${taraInvalida ? " is-invalido" : ""}`}>
-              {taraInvalida || sinPeso ? "—" : `${pesoNeto.toFixed(2)} kg`}
-            </p>
-          </div>
-          <div className="campo">
-            <label htmlFor="cantidad_bolsas">Cantidad de bolsas o recipientes (opcional)</label>
-            <input id="cantidad_bolsas" type="number" min="0" step="1" inputMode="numeric" {...register("cantidad_bolsas")} />
-          </div>
-          <button type="button" className="boton" disabled={taraInvalida} onClick={() => void irSiguiente()}>
-            Continuar →
-          </button>
-          <button type="button" className="boton boton--texto" onClick={irAnterior}>
-            ← Volver
-          </button>
-        </section>
+            <button type="button" className="boton" onClick={() => void irSiguiente()}>
+              Continuar →
+            </button>
+            <button type="button" className="boton boton--texto" onClick={irAnterior}>
+              ← Volver
+            </button>
+          </section>
+        ) : (
+          <section hidden={paso !== 2}>
+            <p className="paso__titulo">Paso 2 de 3 · Pesaje</p>
+            <div className="campo">
+              <label htmlFor="peso_total">Peso total (kg)</label>
+              <input
+                id="peso_total"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                {...register("peso_total", {
+                  required: "Ingresa el peso total en kg.",
+                  validate: (v) => parseFloat(v) > 0 || "El peso total debe ser mayor a 0.",
+                })}
+              />
+              <ErrorCampo error={errors.peso_total} />
+            </div>
+            <div className="campo">
+              <label htmlFor="tara">Tara (kg)</label>
+              <input id="tara" type="number" step="0.01" min="0" inputMode="decimal" {...register("tara")} />
+            </div>
+            {taraInvalida && (
+              <p className="error-tara">La tara no puede ser mayor al peso total. Revisa el valor del recipiente.</p>
+            )}
+            <div className="campo">
+              <label>Peso neto</label>
+              <p className={`peso-neto${taraInvalida ? " is-invalido" : ""}`}>
+                {taraInvalida || sinPeso ? "—" : `${pesoNeto.toFixed(2)} kg`}
+              </p>
+            </div>
+            <div className="campo">
+              <label htmlFor="cantidad_bolsas">Cantidad de bolsas o recipientes (opcional)</label>
+              <input id="cantidad_bolsas" type="number" min="0" step="1" inputMode="numeric" {...register("cantidad_bolsas")} />
+            </div>
+            <button type="button" className="boton" disabled={taraInvalida} onClick={() => void irSiguiente()}>
+              Continuar →
+            </button>
+            <button type="button" className="boton boton--texto" onClick={irAnterior}>
+              ← Volver
+            </button>
+          </section>
+        )}
 
         <section hidden={paso !== 3}>
           <p className="paso__titulo">Paso 3 de 3 · Cierre</p>
@@ -276,7 +338,7 @@ export function Recoleccion() {
             </div>
           </dl>
           <div className="campo">
-            <label htmlFor="recibe_por">Recibe en almacenamiento</label>
+            <label htmlFor="recibe_por">{cuentaTipos ? "Recibe (quien lo pesa)" : "Recibe en almacenamiento"}</label>
             <select id="recibe_por" {...register("recibe_por", { required: "Selecciona quién recibe en almacenamiento." })}>
               <option value="">Seleccionar…</option>
               {usuarios?.map((u) => (

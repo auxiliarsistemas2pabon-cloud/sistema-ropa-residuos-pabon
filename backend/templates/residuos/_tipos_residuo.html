@@ -1,0 +1,27 @@
+{% comment %}
+  Personal de servicio: marca los TIPOS de residuo que entrega (varios a la vez),
+  agrupados por grupo. Sin cantidades, bolsas ni peso: quien recibe pesa cada tipo
+  después. Los checkboxes van con name="categorias" (ver form.tipos_agrupados).
+{% endcomment %}
+<div class="detalle-prendas{% if form.categorias.errors %} campo--error{% endif %}" data-tipos-residuo>
+  <p class="detalle-prendas__etiqueta">Tipos de residuo que entregas</p>
+  {% for grupo in form.tipos_agrupados %}
+    <p class="tipos-grupo">{{ grupo.etiqueta }}</p>
+    <ul class="detalle-prendas__checklist">
+      {% for t in grupo.tipos %}
+        <li class="detalle-prendas__fila-check">
+          <label class="detalle-prendas__check" for="id_categorias_{{ t.pk }}">
+            <input type="checkbox" name="categorias" value="{{ t.pk }}" id="id_categorias_{{ t.pk }}"
+                   data-tipo-residuo{% if t.marcado %} checked{% endif %}>
+            {{ t.nombre }}
+          </label>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endfor %}
+  <p class="campo__ayuda">
+    Marca cada tipo de residuo que entregas. Solo marcas los tipos: no se pesa ni se
+    cuentan bolsas — quien recibe registra el peso de cada uno.
+  </p>
+  {% for error in form.categorias.errors %}<p class="campo__error">{{ error }}</p>{% endfor %}
+</div>

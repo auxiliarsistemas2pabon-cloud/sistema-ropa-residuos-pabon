@@ -151,9 +151,18 @@ def entregas_recibidas(request):
         .order_by("-fecha", "-hora")[:50]
     )
     entregas = list(entregas)
-    for entrega in entregas:  # las que llegaron sin pesar y este usuario puede pesar
+    residuos = list(
+        Movimiento.objects.filter(
+            tipo_movimiento__in=[TipoMovimiento.RESIDUO_RECOLECCION, TipoMovimiento.RESIDUO_GENERACION],
+            recibe_por=request.user,
+        )
+        .select_related("sede", "area_origen", "entrega_por")
+        .prefetch_related("pesajes", "novedades", "detalles_residuo__categoria_residuo")
+        .order_by("-fecha", "-hora")[:50]
+    )
+    for entrega in entregas + residuos:  # las que llegaron sin pesar y este usuario puede pesar
         entrega.puede_pesar = puede_pesar(request.user, entrega)
-    return render(request, "ropa/entregas_recibidas.html", {"entregas": entregas})
+    return render(request, "ropa/entregas_recibidas.html", {"entregas": entregas, "residuos": residuos})
 
 
 @login_required

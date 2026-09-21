@@ -44,15 +44,17 @@ def personal_de_servicio(db):
 
 def test_personal_de_servicio_solo_cuenta_prendas_de_ropa(client, personal_de_servicio):
     """El Personal de servicio solo cuenta prendas y no pesa nada: entrega
-    ropa sucia (contando prendas), distribuye ropa limpia y ve lo que le
-    entregaron. Sin residuos ni recepción de ropa limpia, que exigen pesar
+    ropa sucia (contando prendas), distribuye ropa limpia, entrega residuos
+    (marcando tipos) y ve lo que le entregaron. Sin recepción de ropa limpia
+    ni consolidados, que exigen pesar
     (ver ropa/tests/test_personal_de_servicio.py)."""
     client.force_login(personal_de_servicio)
     assert client.get(reverse("ropa:entrega_sucia")).status_code == 200
 
     cuerpo = client.get(reverse("panel_principal")).content.decode()
     assert "Entregar ropa sucia" in cuerpo
-    assert "Registrar residuos" not in cuerpo
+    assert "Entregar residuos" in cuerpo  # por tipo, sin pesar
+    assert "Registrar residuos" not in cuerpo  # eso (con peso) es del operario
     assert "Consolidados" not in cuerpo
 
 
