@@ -10,6 +10,7 @@ import {
   urlExportarConciliacion,
   urlExportarFacturacion,
   urlExportarRH1,
+  urlExportarRH1Dia,
   type FilaConciliacion,
   type FilaFacturacion,
   type FilaRH1,
@@ -151,10 +152,14 @@ export function RH1Facturacion() {
       <section className="tarjeta-panel">
         <div className="titulo-reporte">
           <h2>Formato RH1</h2>
-          <a className="boton boton--texto" href={urlExportarRH1(mesAplicado, sedeRH1)}>Exportar RH1</a>
+          <span className="titulo-reporte__acciones">
+            <a className="boton boton--texto" href={urlExportarRH1Dia(sedeRH1)}>Descargar de hoy</a>
+            <a className="boton boton--texto" href={urlExportarRH1(mesAplicado, sedeRH1)}>Exportar mes completo</a>
+          </span>
         </div>
         <p className="tinta-suave">
-          Generación por día calendario, con las columnas del formato oficial FR-SIG-193.
+          Generación por día calendario, con las columnas del formato oficial FR-SIG-193. Se
+          diligencia a diario — «Descargar de hoy» no espera a que cierre el mes.
         </p>
         {cargandoRH1 ? (
           <EsqueletoTabla filas={6} columnas={6} />

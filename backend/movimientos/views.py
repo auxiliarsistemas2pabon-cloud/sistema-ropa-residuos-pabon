@@ -16,7 +16,15 @@ from .forms import EdicionMovimientoForm, NovedadForm, RegistroPesoForm
 from residuos.forms import RegistroPesoResiduosForm
 
 from .models import EstadoMovimiento, Movimiento, Novedad, TipoMovimiento
-from .services import motivo_no_editable, motivo_no_pesable, puede_editar, puede_pesar, puede_reportar_novedad
+from .services import (
+    motivo_no_editable,
+    motivo_no_pesable,
+    movimientos_propios,
+    novedades_propias,
+    puede_editar,
+    puede_pesar,
+    puede_reportar_novedad,
+)
 
 
 def _novedades_filtradas(request):
@@ -68,16 +76,18 @@ def revision_dia_anterior(request):
     """Pantalla 9: solo lectura de los movimientos del día anterior (6.10).
     No se re-registra ni se suma al día vigente."""
     ayer = timezone.localdate() - timedelta(days=1)
-    movimientos = (
+    movimientos = movimientos_propios(
+        request.user,
         Movimiento.objects.filter(fecha=ayer)
         .select_related("sede", "area_origen")
         .prefetch_related("pesajes")
-        .order_by("hora")
+        .order_by("hora"),
     )
-    novedades = (
+    novedades = novedades_propias(
+        request.user,
         Novedad.objects.filter(movimiento__fecha=ayer)
         .select_related("movimiento", "movimiento__area_origen")
-        .order_by("registrado_en")
+        .order_by("registrado_en"),
     )
     return render(
         request,

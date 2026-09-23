@@ -18,6 +18,7 @@ from .services import (
     residuos_por_categoria,
     residuos_por_servicio,
     resumen_facturacion,
+    rh1_de_un_dia,
     rh1_del_mes,
     ropa_por_sede,
     ropa_por_servicio,
@@ -40,6 +41,16 @@ def _sede_pedida(request):
     que no sea un número se ignora en vez de romper la consulta."""
     crudo = request.GET.get("sede") or ""
     return int(crudo) if crudo.isdigit() else None
+
+
+def _fecha_pedida(request):
+    """Fecha de `?fecha=AAAA-MM-DD` o, si falta o no es válida, la de hoy —
+    para el RH1 de un solo día, que se descarga a diario según se va
+    diligenciando (no hay que esperar a que cierre el mes)."""
+    try:
+        return date.fromisoformat(request.GET.get("fecha") or "")
+    except ValueError:
+        return timezone.localdate()
 
 
 def _grupo(codigo):
@@ -182,6 +193,24 @@ def exportar_rh1(request):
     return _respuesta_xlsx(
         libro_de_tabla(f"RH1 {anio}-{mes:02d}", columnas, filas, num_desde=1),
         f"rh1_{anio}-{mes:02d}{sufijo}",
+    )
+
+
+@solo_administradora
+def exportar_rh1_dia(request):
+    """El RH1 de un solo día (sin `?fecha=`, el de hoy): se diligencia a
+    diario aunque el archivo mensual consolide todo el mes, así que no hay
+    que esperar a que cierre para tener la hoja de hoy."""
+    fecha = _fecha_pedida(request)
+    sede_id = _sede_pedida(request)
+    fila = rh1_de_un_dia(fecha, sede=sede_id)
+    sede = Sede.objects.filter(pk=sede_id).first() if sede_id else None
+    sufijo = f"_{slugify(sede.nombre)}" if sede else ""
+    columnas = ["Fecha"] + [c.nombre for c in fila["columnas"]] + ["Total día"]
+    filas = [[fila["fecha"].isoformat()] + list(fila["celdas"]) + [fila["total"]]]
+    return _respuesta_xlsx(
+        libro_de_tabla(f"RH1 {fecha.isoformat()}", columnas, filas, num_desde=1),
+        f"rh1_{fecha.isoformat()}{sufijo}",
     )
 
 

@@ -125,6 +125,12 @@ export function urlExportarConsolidado(clave: ClaveConsolidado, filtros: Filtros
 export function urlExportarRH1(mes: string, sede?: number): string {
   return urlExport("/rh1/exportar.xlsx", { mes, sede });
 }
+/** El RH1 se diligencia a diario aunque el archivo mensual consolide todo el
+ * mes: esta descarga solo el día pedido (hoy si no se indica), sin esperar
+ * a que el mes cierre. */
+export function urlExportarRH1Dia(sede?: number, fecha?: string): string {
+  return urlExport("/rh1/exportar-dia.xlsx", { fecha, sede });
+}
 export function urlExportarFacturacion(mes: string): string {
   return urlExport("/facturacion/resumen/exportar.xlsx", { mes });
 }

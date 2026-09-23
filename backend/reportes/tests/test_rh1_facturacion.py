@@ -5,11 +5,12 @@ from io import BytesIO
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from openpyxl import load_workbook
 
-from core.models import GestorExterno
+from core.models import GestorExterno, Sede
 from movimientos.models import Movimiento, Pesaje, TipoMovimiento
-from reportes.services import conciliacion_gestor, resumen_facturacion, rh1_del_mes
+from reportes.services import conciliacion_gestor, resumen_facturacion, rh1_de_un_dia, rh1_del_mes
 from residuos.models import CategoriaResiduo, ColumnaRH1, DetalleResiduo, EntregaGestor
 
 Usuario = get_user_model()
@@ -46,6 +47,70 @@ def test_rh1_del_mes_suma_por_dia(crear_movimiento, usuario):
     col_bio = next(i for i, c in enumerate(datos["columnas"]) if c.nombre == "Biosanitarios")
     assert dia_10["celdas"][col_bio] == Decimal("4.00")
     assert datos["total_mes"] == Decimal("4.00")
+
+
+def test_rh1_de_un_dia_es_la_misma_fila_que_rh1_del_mes(crear_movimiento, usuario):
+    """rh1_del_mes reutiliza rh1_de_un_dia día por día — el refactor no debe
+    cambiar ningún número del reporte mensual."""
+    bio = CategoriaResiduo.objects.get(nombre="Biosanitarios")
+    mov = crear_movimiento(tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=date(2026, 3, 10), hora=time(9, 0))
+    DetalleResiduo.objects.create(movimiento=mov, categoria_residuo=bio, peso_kg=Decimal("4.00"))
+
+    dia = rh1_de_un_dia(date(2026, 3, 10))
+    mes = rh1_del_mes(2026, 3)
+    assert dia["celdas"] == mes["filas"][9]["celdas"]
+    assert dia["total"] == mes["filas"][9]["total"] == Decimal("4.00")
+
+    otro_dia = rh1_de_un_dia(date(2026, 3, 11))
+    assert otro_dia["total"] == Decimal("0.00")
+
+
+def test_rh1_de_un_dia_acota_por_sede(crear_movimiento, usuario, sede):
+    bio = CategoriaResiduo.objects.get(nombre="Biosanitarios")
+    otra_sede = Sede.objects.exclude(pk=sede.pk).first()
+    mov_otra = crear_movimiento(
+        tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=date(2026, 3, 10), hora=time(9, 0), sede=otra_sede,
+    )
+    DetalleResiduo.objects.create(movimiento=mov_otra, categoria_residuo=bio, peso_kg=Decimal("4.00"))
+
+    assert rh1_de_un_dia(date(2026, 3, 10), sede=sede.pk)["total"] == Decimal("0.00")
+    assert rh1_de_un_dia(date(2026, 3, 10), sede=otra_sede.pk)["total"] == Decimal("4.00")
+
+
+def test_exportar_rh1_dia_xlsx_sin_fecha_usa_hoy(client, administradora, crear_movimiento, usuario):
+    """El RH1 se diligencia a diario: sin `?fecha=`, descarga la de hoy —
+    no hay que esperar a que cierre el mes."""
+    bio = CategoriaResiduo.objects.get(nombre="Biosanitarios")
+    hoy = timezone.localdate()
+    mov = crear_movimiento(tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=hoy, hora=time(9, 0))
+    DetalleResiduo.objects.create(movimiento=mov, categoria_residuo=bio, peso_kg=Decimal("2.50"))
+
+    client.force_login(administradora)
+    resp = client.get(reverse("reportes:exportar_rh1_dia"))
+    assert resp.status_code == 200
+    ws = load_workbook(BytesIO(resp.getvalue())).active
+    assert ws["A1"].value == "Fecha"
+    assert ws["A2"].value == hoy.isoformat()
+    assert ws["A3"].value is None  # una sola fila de datos, sin fila de "Total mes"
+    col_bio = next(c for c in ws[1] if c.value == "Biosanitarios").column_letter
+    assert ws[f"{col_bio}2"].value == 2.5
+
+
+def test_exportar_rh1_dia_xlsx_con_fecha_explicita(client, administradora, crear_movimiento, usuario):
+    bio = CategoriaResiduo.objects.get(nombre="Biosanitarios")
+    mov = crear_movimiento(tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=date(2026, 3, 10), hora=time(9, 0))
+    DetalleResiduo.objects.create(movimiento=mov, categoria_residuo=bio, peso_kg=Decimal("4.00"))
+
+    client.force_login(administradora)
+    resp = client.get(reverse("reportes:exportar_rh1_dia"), {"fecha": "2026-03-10"})
+    assert resp.status_code == 200
+    ws = load_workbook(BytesIO(resp.getvalue())).active
+    assert ws["A2"].value == "2026-03-10"
+
+
+def test_exportar_rh1_dia_solo_administradora(client, usuario):
+    client.force_login(usuario)
+    assert client.get(reverse("reportes:exportar_rh1_dia")).status_code == 403
 
 
 def test_resumen_facturacion_separa_pendientes(crear_movimiento, usuario, gestor):

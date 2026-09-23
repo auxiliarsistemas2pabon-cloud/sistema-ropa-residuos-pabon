@@ -56,8 +56,15 @@ async function todasLasPaginas(params: Record<string, string | number>): Promise
   }
 }
 
+/** Movimientos de hoy para el panel: la Administradora ve los de toda la
+ * institución; Usuario y Personal de servicio ven solo los suyos — el
+ * backend acota según el rol (movimientos.services.movimientos_propios),
+ * así que aquí no hay nada que filtrar por persona. */
 export async function listarMovimientosDeHoy(fecha: string): Promise<MovimientoResumen[]> {
-  return todasLasPaginas({ fecha });
+  const { data } = await api.get<{ fecha: string; movimientos: MovimientoResumen[] }>("/movimientos/hoy/", {
+    params: { fecha },
+  });
+  return data.movimientos;
 }
 
 export interface Pesaje {

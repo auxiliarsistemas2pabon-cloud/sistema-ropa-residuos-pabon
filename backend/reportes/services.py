@@ -127,32 +127,45 @@ def corte_peligrosos(filtros):
 
 # --- RH1 para la autoridad ambiental (13.4: estructura parametrizable) ---
 
+def rh1_de_un_dia(fecha, sede=None, columnas=None):
+    """Una fila de la matriz del RH1: generación de `fecha`, una celda por
+    ColumnaRH1 (más el total del día). El RH1 se diligencia a diario aunque
+    se consolide por mes — esta es la pieza que se descarga sola, sin
+    esperar a que cierre el mes. `columnas` se puede pasar ya resuelto
+    (rh1_del_mes la reutiliza para no repetir esa consulta por cada día)."""
+    if columnas is None:
+        columnas = list(ColumnaRH1.objects.filter(activo=True).prefetch_related("categorias"))
+    del_dia = DetalleResiduo.objects.de_generacion().pesados().filter(movimiento__fecha=fecha)
+    if sede:
+        del_dia = del_dia.filter(movimiento__sede=sede)
+
+    celdas = []
+    for col in columnas:
+        qs = del_dia
+        if col.grupo:
+            qs = qs.filter(categoria_residuo__grupo=col.grupo)
+        cats = list(col.categorias.all())
+        if cats:
+            qs = qs.filter(categoria_residuo__in=cats)
+        celdas.append(qs.aggregate(t=Sum("peso_kg"))["t"] or Decimal("0.00"))
+
+    return {"fecha": fecha, "columnas": columnas, "celdas": celdas, "total": sum(celdas, Decimal("0.00"))}
+
+
 def rh1_del_mes(anio, mes, sede=None):
     """Matriz del RH1: una fila por día del mes, una columna por ColumnaRH1
     (más el total del día). Los datos son la generación por día calendario
     (el RH1 es un reporte externo por fecha, no el corte interno)."""
     columnas = list(ColumnaRH1.objects.filter(activo=True).prefetch_related("categorias"))
     ultimo_dia = calendar.monthrange(anio, mes)[1]
-    base = DetalleResiduo.objects.de_generacion().pesados()
-    if sede:
-        base = base.filter(movimiento__sede=sede)
 
     filas = []
     totales_columna = [Decimal("0.00")] * len(columnas)
     for dia in range(1, ultimo_dia + 1):
-        del_dia = base.filter(movimiento__fecha=date(anio, mes, dia))
-        celdas = []
-        for i, col in enumerate(columnas):
-            qs = del_dia
-            if col.grupo:
-                qs = qs.filter(categoria_residuo__grupo=col.grupo)
-            cats = list(col.categorias.all())
-            if cats:
-                qs = qs.filter(categoria_residuo__in=cats)
-            kg = qs.aggregate(t=Sum("peso_kg"))["t"] or Decimal("0.00")
-            celdas.append(kg)
+        fila = rh1_de_un_dia(date(anio, mes, dia), sede=sede, columnas=columnas)
+        filas.append({"fecha": fila["fecha"], "celdas": fila["celdas"], "total": fila["total"]})
+        for i, kg in enumerate(fila["celdas"]):
             totales_columna[i] += kg
-        filas.append({"fecha": date(anio, mes, dia), "celdas": celdas, "total": sum(celdas, Decimal("0.00"))})
 
     return {
         "columnas": columnas,

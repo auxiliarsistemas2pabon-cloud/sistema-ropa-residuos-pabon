@@ -9,6 +9,7 @@ urlpatterns = [
     path("consolidados/exportar/<slug:clave>.xlsx", views.exportar, name="exportar"),
     path("ambiental-facturacion/", views.ambiental_facturacion, name="ambiental_facturacion"),
     path("ambiental-facturacion/rh1.xlsx", views.exportar_rh1, name="exportar_rh1"),
+    path("ambiental-facturacion/rh1-dia.xlsx", views.exportar_rh1_dia, name="exportar_rh1_dia"),
     path("ambiental-facturacion/facturacion.xlsx", views.exportar_facturacion, name="exportar_facturacion"),
     path("ambiental-facturacion/conciliacion.xlsx", views.exportar_conciliacion, name="exportar_conciliacion"),
 ]

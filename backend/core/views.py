@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from movimientos.models import EstadoMovimiento, Movimiento, Pesaje
+from movimientos.services import movimientos_propios
 
 from .decorators import solo_administradora
 from .forms import (
@@ -31,10 +32,13 @@ def panel_principal(request):
     hoy = timezone.localdate()
     filtro = FiltroMovimientosPanel(request.GET or None)
     movimientos_hoy = filtro.filtrar(
-        Movimiento.objects.filter(fecha=hoy)
-        .select_related("sede", "area_origen")
-        .prefetch_related("pesajes")
-        .order_by("-hora")
+        movimientos_propios(
+            request.user,
+            Movimiento.objects.filter(fecha=hoy)
+            .select_related("sede", "area_origen")
+            .prefetch_related("pesajes")
+            .order_by("-hora"),
+        )
     )
     kg_hoy = (
         Pesaje.objects.filter(movimiento__in=movimientos_hoy.values("pk")).aggregate(total=Sum("peso_neto"))["total"]

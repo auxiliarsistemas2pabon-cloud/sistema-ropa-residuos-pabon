@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.utils import timezone
 from rest_framework import mixins, status
@@ -17,7 +17,7 @@ from .forms import EdicionMovimientoForm, NovedadForm, RegistroPesoForm
 from .models import EstadoMovimiento, Movimiento, Novedad, TipoMovimiento
 from .permissions import PuedeEditarMovimiento, PuedePesarMovimiento, PuedeReportarNovedad
 from .serializers import MovimientoDetalleSerializer, MovimientoResumenSerializer, NovedadSerializer
-from .services import motivo_no_editable
+from .services import motivo_no_editable, movimientos_propios, novedades_propias
 
 _SELECT_RELATED = (
     "sede", "area_origen", "entrega_por", "recibe_por", "creado_por",
@@ -102,19 +102,46 @@ class MovimientoViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, Generi
         serializer = MovimientoDetalleSerializer(movimiento, context={"request": request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, url_path="hoy")
+    def hoy(self, request):
+        """Movimientos de hoy (el panel): la Administradora ve los de toda la
+        institución; Usuario y Personal de servicio ven solo los suyos —
+        ver movimientos.services.movimientos_propios."""
+        fecha_param = request.query_params.get("fecha")
+        if fecha_param:
+            try:
+                fecha = date.fromisoformat(fecha_param)
+            except ValueError:
+                return Response({"fecha": ["Formato inválido, usa AAAA-MM-DD."]}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            fecha = timezone.localdate()
+        movimientos = movimientos_propios(
+            request.user,
+            Movimiento.objects.filter(fecha=fecha)
+            .select_related(*_SELECT_RELATED)
+            .prefetch_related(*_PREFETCH_RELATED)
+            .order_by("-hora"),
+        )
+        return Response({
+            "fecha": fecha,
+            "movimientos": MovimientoResumenSerializer(movimientos, many=True).data,
+        })
+
     @action(detail=False, url_path="dia-anterior")
     def dia_anterior(self, request):
         ayer = timezone.localdate() - timedelta(days=1)
-        movimientos = (
+        movimientos = movimientos_propios(
+            request.user,
             Movimiento.objects.filter(fecha=ayer)
             .select_related(*_SELECT_RELATED)
             .prefetch_related(*_PREFETCH_RELATED)
-            .order_by("hora")
+            .order_by("hora"),
         )
-        novedades = (
+        novedades = novedades_propias(
+            request.user,
             Novedad.objects.filter(movimiento__fecha=ayer)
             .select_related("movimiento", "movimiento__area_origen", "registrado_por")
-            .order_by("registrado_en")
+            .order_by("registrado_en"),
         )
         return Response({
             "ayer": ayer,

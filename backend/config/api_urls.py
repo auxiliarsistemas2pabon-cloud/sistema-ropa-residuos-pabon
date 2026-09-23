@@ -89,6 +89,7 @@ urlpatterns = [
     path("novedades/exportar.xlsx", movimientos_views.exportar_novedades, name="api-novedades-exportar"),
     path("consolidados/exportar/<slug:clave>.xlsx", reportes_views.exportar, name="api-consolidado-exportar"),
     path("rh1/exportar.xlsx", reportes_views.exportar_rh1, name="api-rh1-exportar"),
+    path("rh1/exportar-dia.xlsx", reportes_views.exportar_rh1_dia, name="api-rh1-exportar-dia"),
     path("facturacion/resumen/exportar.xlsx", reportes_views.exportar_facturacion, name="api-facturacion-exportar"),
     path(
         "facturacion/conciliacion/exportar.xlsx",

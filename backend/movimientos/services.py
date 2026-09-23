@@ -218,3 +218,30 @@ def puede_reportar_novedad(usuario, movimiento):
     if getattr(usuario, "es_administradora", False) or usuario.is_superuser:
         return True
     return usuario.pk in (movimiento.entrega_por_id, movimiento.recibe_por_id)
+
+
+def movimientos_propios(usuario, queryset):
+    """«Movimientos de hoy» y «día anterior»: la Administradora ve los de toda
+    la institución (es su pantalla de reportes); Usuario y Personal de
+    servicio ven solo en los que participaron — los que registraron, los que
+    entregaron o los que les tocó recibir —, no los de sus compañeros ni los
+    de otras sedes. Se aplica siempre, sin nada que configurar por persona:
+    una cuenta nueva queda acotada por el solo hecho de crearse con ese rol.
+
+    No se usa para el listado genérico de movimientos (p. ej. el que alimenta
+    Rótulos, que necesita ver toda la sede del día para poder etiquetar
+    entregas que registró otra persona) ni para las pantallas de corte o
+    consolidado, que son totales institucionales por diseño."""
+    if usuario.is_superuser or usuario.es_administradora:
+        return queryset
+    return queryset.filter(Q(creado_por=usuario) | Q(entrega_por=usuario) | Q(recibe_por=usuario))
+
+
+def novedades_propias(usuario, queryset):
+    """Mismo criterio que movimientos_propios(), aplicado a través de la
+    novedad hasta el movimiento al que pertenece."""
+    if usuario.is_superuser or usuario.es_administradora:
+        return queryset
+    return queryset.filter(
+        Q(movimiento__creado_por=usuario) | Q(movimiento__entrega_por=usuario) | Q(movimiento__recibe_por=usuario),
+    )

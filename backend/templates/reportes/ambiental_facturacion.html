@@ -16,12 +16,16 @@
 <section class="seccion">
   <div class="titulo-reporte">
     <h2>Formato RH1</h2>
-    <a class="boton boton--texto" href="{% url 'reportes:exportar_rh1' %}?mes={{ mes_valor }}">Exportar RH1</a>
+    <span class="titulo-reporte__acciones">
+      <a class="boton boton--texto" href="{% url 'reportes:exportar_rh1_dia' %}">Descargar de hoy</a>
+      <a class="boton boton--texto" href="{% url 'reportes:exportar_rh1' %}?mes={{ mes_valor }}">Exportar mes completo</a>
+    </span>
   </div>
   <p class="tinta-suave">
     Generación por día calendario, con las 22 columnas del formato oficial
     FR-SIG-193. La estructura sigue siendo configurable desde el admin
-    (Columnas del RH1) si la autoridad ambiental la actualiza.
+    (Columnas del RH1) si la autoridad ambiental la actualiza. Se diligencia
+    a diario — «Descargar de hoy» no espera a que cierre el mes.
   </p>
   {% if rh1.columnas %}
     <div class="tabla-envoltura">
