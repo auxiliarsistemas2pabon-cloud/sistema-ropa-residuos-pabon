@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from core.models import AreaServicio, Sede
 from movimientos.models import (
+    EstadoMovimiento,
     Movimiento,
     Novedad,
     Pesaje,
@@ -192,6 +193,11 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
 
     def guardar(self, *, creado_por):
         fecha, hora, estado = self.momento()
+        # Quien solo cuenta prendas no pesa: el registro no queda completo hasta que
+        # alguien lo pese, así que "Cerrado" (como si ya no faltara nada) sería falso —
+        # queda pendiente aunque no sea, además, una carga diferida.
+        if self.cuenta_prendas:
+            estado = EstadoMovimiento.PENDIENTE_CARGA
         movimiento = Movimiento.objects.create(
             tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA,
             fecha=fecha,

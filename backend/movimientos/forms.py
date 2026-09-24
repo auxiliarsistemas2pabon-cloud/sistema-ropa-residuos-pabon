@@ -203,10 +203,16 @@ class RegistroPesoForm(forms.Form):
         return cleaned
 
     def guardar(self, *, pesado_por):
-        return Pesaje.objects.create(
+        pesaje = Pesaje.objects.create(
             movimiento=self.movimiento,
             peso_total=self.cleaned_data["peso_total"],
             tara=self.cleaned_data.get("tara") or 0,
             cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"),
             pesado_por=pesado_por,
         )
+        # Llegó "sin pesar" (Personal de servicio) y quedó pendiente por eso — con el
+        # peso puesto ya no falta nada, así que se cierra igual que una captura normal.
+        if self.movimiento.estado == EstadoMovimiento.PENDIENTE_CARGA:
+            self.movimiento.estado = EstadoMovimiento.CERRADO
+            self.movimiento.save(update_fields=["estado"])
+        return pesaje

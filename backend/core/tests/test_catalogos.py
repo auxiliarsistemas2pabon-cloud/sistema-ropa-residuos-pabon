@@ -42,10 +42,11 @@ def test_servicios_de_centro_completos_segun_fr_sig_86():
 
 def test_prendas():
     # 38 de la siembra original (0002) + 5 de "Imágenes diagnósticas,
-    # Ambulancia" (0004), la página del FR-SIG-86 que faltaba por sembrar.
-    assert Prenda.objects.count() == 43
+    # Ambulancia" (0004), la página del FR-SIG-86 que faltaba por sembrar +
+    # 8 de "Especialidades Pabón" (0006, comunicado del 2026-09-24).
+    assert Prenda.objects.count() == 51
     assert Prenda.objects.filter(disposicion=Disposicion.CANECA_ROJA).count() == 3
-    assert Prenda.objects.filter(disposicion=Disposicion.TULA_ROJA).count() == 40
+    assert Prenda.objects.filter(disposicion=Disposicion.TULA_ROJA).count() == 48
 
 
 def test_categorias_de_residuos_arbol():

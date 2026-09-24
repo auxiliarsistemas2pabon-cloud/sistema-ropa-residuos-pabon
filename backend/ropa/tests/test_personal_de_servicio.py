@@ -97,6 +97,21 @@ def test_entrega_de_servicio_guarda_prendas_y_ningun_pesaje(client, servicio, us
     assert "prendas" in resp.content.decode()
 
 
+def test_entrega_de_servicio_queda_pendiente_de_carga_no_cerrada(client, servicio, usuario, sede, area, prendas):
+    """Bug real: como no lleva carga diferida (fecha/hora anteriores), el estado
+    se calculaba como CERRADO — igual que un registro completo — aunque el peso
+    siga faltando. Debe quedar PENDIENTE_CARGA hasta que alguien la pese."""
+    from movimientos.models import EstadoMovimiento
+
+    client.force_login(servicio)
+    client.post(reverse("ropa:entrega_sucia"), {
+        "sede": sede.pk, "area_origen": area.pk, "recibe_por": usuario.pk,
+        "detalles_ropa": _detalles(prendas),
+    })
+    mov = Movimiento.objects.get()
+    assert mov.estado == EstadoMovimiento.PENDIENTE_CARGA
+
+
 def test_entrega_de_servicio_exige_al_menos_una_prenda(client, servicio, usuario, sede, area):
     client.force_login(servicio)
     resp = client.post(reverse("ropa:entrega_sucia"), {
@@ -212,11 +227,17 @@ def test_quien_recibe_ve_las_prendas_y_registra_el_peso(client, usuario, entrega
     assert "Prendas que registró el servicio" in cuerpo
     assert entrega_de_servicio.detalles_ropa.first().prenda.nombre in cuerpo
 
+    from movimientos.models import EstadoMovimiento
+
+    assert entrega_de_servicio.estado == EstadoMovimiento.PENDIENTE_CARGA  # sin pesar, antes de recibirla
+
     resp = client.post(url, {"peso_total": "12.40", "tara": "1.20", "cantidad_bolsas": "3"}, follow=True)
     assert resp.redirect_chain[-1][0] == reverse("movimientos:detalle_movimiento", args=[entrega_de_servicio.pk])
     pesaje = Pesaje.objects.get()
     assert (pesaje.peso_neto, pesaje.cantidad_bolsas, pesaje.pesado_por) == (Decimal("11.20"), 3, usuario)
     assert "Peso registrado" in resp.content.decode()
+    entrega_de_servicio.refresh_from_db()
+    assert entrega_de_servicio.estado == EstadoMovimiento.CERRADO  # ya pesada, no falta nada
 
 
 def test_registrar_peso_valida_la_tara(client, usuario, entrega_de_servicio):

@@ -6,7 +6,7 @@ from django.db import transaction
 
 from core.models import AreaServicio, GestorExterno, Sede
 from movimientos.forms import RegistroDiferidoMixin
-from movimientos.models import Movimiento, Pesaje, TipoMovimiento
+from movimientos.models import EstadoMovimiento, Movimiento, Pesaje, TipoMovimiento
 
 from .models import CategoriaResiduo, DetalleResiduo, EntregaGestor, GrupoResiduo
 
@@ -171,6 +171,11 @@ class _ResiduoBaseForm(RegistroDiferidoMixin):
 
     def guardar(self, *, creado_por):
         fecha, hora, estado = self.momento()
+        # Quien solo marca tipos no pesa: el registro no queda completo hasta que
+        # alguien lo pese, así que "Cerrado" sería falso — queda pendiente aunque no
+        # sea, además, una carga diferida.
+        if self.cuenta_tipos:
+            estado = EstadoMovimiento.PENDIENTE_CARGA
         movimiento = Movimiento.objects.create(
             tipo_movimiento=self.tipo_movimiento,
             fecha=fecha,
@@ -318,7 +323,14 @@ class RegistroPesoResiduosForm(forms.Form):
                 detalle.peso_kg = self.cleaned_data[f"peso_{detalle.pk}"]
                 detalle.save(update_fields=["peso_kg"])
                 total += detalle.peso_kg
-            return Pesaje.objects.create(
+            pesaje = Pesaje.objects.create(
                 movimiento=self.movimiento, peso_total=total, tara=0,
                 cantidad_bolsas=self.cleaned_data.get("cantidad_bolsas"), pesado_por=pesado_por,
             )
+            # Llegó "sin pesar" (Personal de servicio) y quedó pendiente por eso — con
+            # el peso de cada tipo puesto ya no falta nada, así que se cierra igual
+            # que una captura normal.
+            if self.movimiento.estado == EstadoMovimiento.PENDIENTE_CARGA:
+                self.movimiento.estado = EstadoMovimiento.CERRADO
+                self.movimiento.save(update_fields=["estado"])
+            return pesaje

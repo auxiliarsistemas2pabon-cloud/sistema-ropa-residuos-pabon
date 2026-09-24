@@ -95,6 +95,18 @@ def test_recoleccion_de_servicio_guarda_tipos_sin_peso(client, servicio, usuario
     assert "el peso lo registra quien recibe" in resp.content.decode()
 
 
+def test_recoleccion_de_servicio_queda_pendiente_de_carga_no_cerrada(client, servicio, usuario, sede, area, tipos):
+    """Bug real: sin carga diferida el estado se calculaba como CERRADO aunque
+    el peso siga faltando. Debe quedar PENDIENTE_CARGA hasta que alguien pese
+    cada tipo. Mismo criterio para generación, que comparte _ResiduoBaseForm."""
+    from movimientos.models import EstadoMovimiento
+
+    client.force_login(servicio)
+    client.post(reverse("residuos:recoleccion"), _datos(sede, area, usuario, tipos))
+    mov = Movimiento.objects.get()
+    assert mov.estado == EstadoMovimiento.PENDIENTE_CARGA
+
+
 def test_generacion_de_servicio_deja_asignado_a_quien_pesa(client, servicio, usuario, sede, area, tipos):
     client.force_login(servicio)
     client.post(reverse("residuos:generacion"), _datos(sede, area, usuario, tipos))
@@ -157,6 +169,10 @@ def test_registrar_peso_de_cada_tipo(client, usuario, recoleccion_de_servicio, t
     cuerpo = client.get(url).content.decode()
     assert "Pesa cada tipo de residuo" in cuerpo and "Aprovechables" in cuerpo and "Biosanitarios" in cuerpo
 
+    from movimientos.models import EstadoMovimiento
+
+    assert m.estado == EstadoMovimiento.PENDIENTE_CARGA  # sin pesar, antes de recibirla
+
     detalles = {d.categoria_residuo.nombre: d for d in m.detalles_residuo.all()}
     resp = client.post(url, {f"peso_{detalles['Aprovechables'].pk}": "3.5", f"peso_{detalles['Biosanitarios'].pk}": "1.25", "cantidad_bolsas": "4"}, follow=True)
     assert resp.redirect_chain[-1][0] == reverse("movimientos:detalle_movimiento", args=[m.pk])
@@ -166,6 +182,8 @@ def test_registrar_peso_de_cada_tipo(client, usuario, recoleccion_de_servicio, t
     pesaje = Pesaje.objects.get()
     assert (pesaje.peso_neto, pesaje.cantidad_bolsas, pesaje.pesado_por) == (Decimal("4.75"), 4, usuario)
     assert "Peso registrado · 4.75 kg" in resp.content.decode()
+    m.refresh_from_db()
+    assert m.estado == EstadoMovimiento.CERRADO  # ya pesados todos los tipos, no falta nada
 
 
 def test_cada_tipo_lleva_su_peso(client, usuario, recoleccion_de_servicio):
