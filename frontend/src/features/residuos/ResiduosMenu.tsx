@@ -8,16 +8,16 @@ export function ResiduosMenu() {
     <>
       <h1>Residuos hospitalarios</h1>
       <ContenedorAccesos>
-        <Acceso to="/residuos/generacion">
+        <Acceso to="/residuos/generacion" tono="rojo">
           <span className="acceso__icono"><IconoResiduo /></span>
           <span className="acceso__texto">Generación de residuos</span>
         </Acceso>
-        <Acceso to="/residuos/recoleccion">
+        <Acceso to="/residuos/recoleccion" tono="tinta">
           <span className="acceso__icono"><IconoBandejaEntrada /></span>
           <span className="acceso__texto">Recolección de residuos</span>
         </Acceso>
         {!esPersonalDeServicio && (
-          <Acceso to="/residuos/consolidado-peligrosos">
+          <Acceso to="/residuos/consolidado-peligrosos" tono="vino">
             <span className="acceso__icono"><IconoAlertaTriangulo /></span>
             <span className="acceso__texto">
               Consolidado de peligrosos

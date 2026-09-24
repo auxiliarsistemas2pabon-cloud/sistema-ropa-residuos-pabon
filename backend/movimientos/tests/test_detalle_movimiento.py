@@ -96,3 +96,24 @@ def test_historial_muestra_el_cambio(client, administradora, crear_movimiento):
     assert "Modificado" in cuerpo
     assert "anotación original" in cuerpo
     assert "anotación corregida" in cuerpo
+
+
+def test_cantidad_afectada_de_novedad_dice_kg_solo_si_es_diferencia_de_peso(client, usuario, crear_movimiento):
+    """La cantidad afectada es kg en diferencia de peso, pero cuenta prendas en
+    faltante/sobrante/pérdida — mostrar "kg" ahí confundiría unidades. Mismo
+    criterio que el React equivalente (features/movimientos/Detalle.tsx)."""
+    mov = crear_movimiento(tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=date(2026, 3, 10), hora=time(9, 0))
+    Novedad.objects.create(
+        movimiento=mov, tipo_novedad=TipoNovedad.DIFERENCIA_PESO,
+        cantidad_afectada=Decimal("1.50"), registrado_por=usuario,
+    )
+    Novedad.objects.create(
+        movimiento=mov, tipo_novedad=TipoNovedad.FALTANTE,
+        cantidad_afectada=Decimal("3"), registrado_por=usuario,
+    )
+
+    client.force_login(usuario)
+    cuerpo = client.get(reverse("movimientos:detalle_movimiento", args=[mov.pk])).content.decode()
+    assert "1.50 kg" in cuerpo
+    assert "cantidad afectada: 3" in cuerpo
+    assert "3 kg" not in cuerpo

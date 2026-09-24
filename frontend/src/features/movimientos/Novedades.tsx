@@ -48,7 +48,14 @@ const COLUMNAS: ColumnDef<Novedad>[] = [
     header: "Cant.",
     accessorFn: (n) => (n.cantidad_afectada === null ? undefined : Number(n.cantidad_afectada)),
     sortUndefined: "last",
-    cell: ({ row }) => row.original.cantidad_afectada ?? "—",
+    // La cifra es kg solo en diferencia de peso; en faltante/sobrante/pérdida es una
+    // cantidad de prendas — mismo criterio que el detalle del movimiento (Detalle.tsx).
+    cell: ({ row }) =>
+      row.original.cantidad_afectada === null
+        ? "—"
+        : row.original.tipo_novedad === "DIFERENCIA_PESO"
+          ? `${row.original.cantidad_afectada} kg`
+          : row.original.cantidad_afectada,
     meta: { clase: "num cifra-kg" },
   },
   { id: "observacion", header: "Observación", accessorFn: (n) => n.observacion || "—" },

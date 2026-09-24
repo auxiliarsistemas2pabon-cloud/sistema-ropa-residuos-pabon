@@ -6,11 +6,11 @@ export function RopaLimpiaMenu() {
     <>
       <h1>Ropa limpia</h1>
       <ContenedorAccesos>
-        <Acceso to="/ropa/limpia/recepcion">
+        <Acceso to="/ropa/limpia/recepcion" tono="rojo">
           <span className="acceso__icono"><IconoBandejaEntrada /></span>
           <span className="acceso__texto">Recibir de lavandería</span>
         </Acceso>
-        <Acceso to="/ropa/limpia/distribucion">
+        <Acceso to="/ropa/limpia/distribucion" tono="tinta">
           <span className="acceso__icono"><IconoBandejaSalida /></span>
           <span className="acceso__texto">Distribuir a servicios</span>
         </Acceso>

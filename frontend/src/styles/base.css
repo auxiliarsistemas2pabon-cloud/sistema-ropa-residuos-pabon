@@ -331,7 +331,9 @@ a:focus-visible {
 .tabla tbody tr:last-child td { border-bottom: none; }
 .tabla td a { color: var(--acento); font-weight: var(--peso-semibold); text-decoration: none; }
 .tabla td a:hover { text-decoration: underline; }
-.tabla .num { text-align: right; }
+/* white-space: evita que enlaces como "Registrar peso" partan la frase a la mitad
+   cuando la columna se angosta por otras más anchas (prendas/tipos con listas largas). */
+.tabla .num { text-align: right; white-space: nowrap; }
 .tabla-kg td.num { font-size: var(--texto-md); font-weight: var(--peso-semibold); font-variant-numeric: tabular-nums; }
 
 .seccion { margin-top: var(--espacio-6); }

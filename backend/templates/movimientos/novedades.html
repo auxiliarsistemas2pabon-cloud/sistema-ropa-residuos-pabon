@@ -30,7 +30,7 @@
             <td>{{ n.get_tipo_novedad_display }}</td>
             <td>{{ n.movimiento.sede.nombre }}</td>
             <td>{{ n.movimiento.area_origen.nombre|default:"—" }}</td>
-            <td class="num cifra-kg">{{ n.cantidad_afectada|default:"—" }}</td>
+            <td class="num cifra-kg">{% if n.cantidad_afectada == None %}—{% elif n.tipo_novedad == "DIFERENCIA_PESO" %}{{ n.cantidad_afectada }} kg{% else %}{{ n.cantidad_afectada }}{% endif %}</td>
             <td>{{ n.observacion|default:"—" }}</td>
             <td>{{ n.registrado_por }}</td>
           </tr>

@@ -129,7 +129,7 @@
 {% if novedades %}
   <ul class="lista-novedades">
     {% for n in novedades %}
-      <li><strong>{{ n.get_tipo_novedad_display }}</strong>{% if n.cantidad_afectada %} · {{ n.cantidad_afectada }} kg{% endif %}{% if n.observacion %} · {{ n.observacion }}{% endif %} <span class="tinta-suave">({{ n.registrado_por }}, {{ n.registrado_en|date:"d M H:i" }})</span></li>
+      <li><strong>{{ n.get_tipo_novedad_display }}</strong>{% if n.cantidad_afectada %} · {% if n.tipo_novedad == "DIFERENCIA_PESO" %}{{ n.cantidad_afectada }} kg{% else %}cantidad afectada: {{ n.cantidad_afectada }}{% endif %}{% endif %}{% if n.observacion %} · {{ n.observacion }}{% endif %} <span class="tinta-suave">({{ n.registrado_por }}, {{ n.registrado_en|date:"d M H:i" }})</span></li>
     {% endfor %}
   </ul>
 {% else %}

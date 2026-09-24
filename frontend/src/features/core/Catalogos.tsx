@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, m } from "framer-motion";
 import { toast } from "sonner";
@@ -823,6 +823,14 @@ function pestanaInicial(): string {
 export function Catalogos() {
   const [activa, setActiva] = useState(pestanaInicial);
   const seccion = SECCIONES.find((x) => x.id === activa) ?? SECCIONES[0];
+
+  // Si el hash cambia sin recargar la página (atrás/adelante del navegador, o alguien
+  // edita la URL a mano), la pestaña activa se sincroniza con él.
+  useEffect(() => {
+    const alCambiarHash = () => setActiva(pestanaInicial());
+    window.addEventListener("hashchange", alCambiarHash);
+    return () => window.removeEventListener("hashchange", alCambiarHash);
+  }, []);
 
   function elegir(id: string) {
     setActiva(id);

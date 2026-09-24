@@ -1,4 +1,5 @@
 from datetime import time, timedelta
+from decimal import Decimal
 
 import pytest
 from django.urls import reverse
@@ -65,3 +66,20 @@ def test_revision_dia_anterior_es_solo_del_dia_anterior(client, usuario, crear_m
     assert "pendiente" in cuerpo.lower()
     # el de hoy no aparece en la tabla de movimientos del día anterior
     assert cuerpo.count("Generación de residuos") == 1
+
+
+def test_novedades_lista_cantidad_dice_kg_solo_si_es_diferencia_de_peso(client, administradora, crear_movimiento):
+    mov = crear_movimiento(tipo=TipoMovimiento.RESIDUO_GENERACION, fecha=timezone.localdate(), hora=time(9, 0))
+    Novedad.objects.create(
+        movimiento=mov, tipo_novedad=TipoNovedad.DIFERENCIA_PESO,
+        cantidad_afectada=Decimal("2.75"), observacion="peso", registrado_por=administradora,
+    )
+    Novedad.objects.create(
+        movimiento=mov, tipo_novedad=TipoNovedad.SOBRANTE,
+        cantidad_afectada=Decimal("4"), observacion="prendas", registrado_por=administradora,
+    )
+
+    client.force_login(administradora)
+    cuerpo = client.get(reverse("movimientos:novedades")).content.decode()
+    assert "2.75 kg" in cuerpo
+    assert "4 kg" not in cuerpo
