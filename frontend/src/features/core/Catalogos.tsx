@@ -4,7 +4,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { toast } from "sonner";
 import { Aviso } from "../../components/Aviso";
 import { Interruptor } from "../../components/Interruptor";
-import { IconoBuscar, IconoLapiz } from "../../components/Iconos";
+import { IconoBuscar, IconoLapiz, IconoPapelera } from "../../components/Iconos";
 import { EstadoVacio, SeccionCatalogo } from "../../components/SeccionCatalogo";
 import { Despliega } from "../../components/Animacion";
 import { useListaAnimada } from "../../components/useListaAnimada";
@@ -591,6 +591,43 @@ function UsuariosSeccion() {
           );
         },
       },
+      {
+        id: "acciones",
+        header: "Acciones",
+        enableSorting: false,
+        meta: { clase: "col-acciones" },
+        cell: ({ row }) => {
+          const u = row.original;
+          const esYo = u.id === yo?.id;
+          const nombreCompleto = `${u.first_name} ${u.last_name}`.trim() || u.username;
+          if (esYo || !u.activo) {
+            return (
+              <button
+                type="button"
+                className="boton-accion"
+                disabled
+                title={esYo ? "No puedes eliminar tu propia cuenta." : "Ya está inactivo."}
+              >
+                <IconoPapelera /> <span className="texto-accion">Eliminar</span>
+              </button>
+            );
+          }
+          return (
+            <button
+              type="button"
+              className="boton-accion"
+              aria-label={`Eliminar a ${nombreCompleto}`}
+              onClick={() => {
+                if (window.confirm(`¿Eliminar a ${nombreCompleto}? Nadie se elimina de verdad: queda inactivo, pierde el acceso y su historial de movimientos se conserva igual que hoy.`)) {
+                  alternar({ id: u.id, activo: false });
+                }
+              }}
+            >
+              <IconoPapelera /> <span className="texto-accion">Eliminar</span>
+            </button>
+          );
+        },
+      },
     ],
     [yo?.id, cambiarRolDe, alternar],
   );
@@ -657,7 +694,7 @@ function UsuariosSeccion() {
       </Despliega>
 
       {isLoading ? (
-        <EsqueletoTabla filas={5} columnas={4} />
+        <EsqueletoTabla filas={5} columnas={5} />
       ) : (
         <TablaDatos
           etiqueta="Usuarios"

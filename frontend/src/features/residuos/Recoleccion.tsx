@@ -329,14 +329,6 @@ export function Recoleccion() {
           <p className="paso__titulo">Paso 3 de 3 · Cierre</p>
           <dl className="calculado">
             <div>
-              <dt>Fecha y hora</dt>
-              <dd>las pone el sistema al guardar</dd>
-            </div>
-            <div>
-              <dt>Jornada</dt>
-              <dd>la calcula el sistema</dd>
-            </div>
-            <div>
               <dt>Entrega</dt>
               <dd>{usuario?.first_name || usuario?.username}</dd>
             </div>
