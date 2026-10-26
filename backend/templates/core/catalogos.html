@@ -129,7 +129,7 @@
     {% if usuarios %}
       <div class="tabla-envoltura">
         <table class="tabla">
-          <thead><tr><th>Usuario</th><th>Nombre</th><th>Documento</th><th>Rol</th><th>Activo</th></tr></thead>
+          <thead><tr><th>Usuario</th><th>Nombre</th><th>Documento</th><th>Rol</th><th>Activo</th><th>Contraseña</th></tr></thead>
           <tbody>
             {% for usuario in usuarios %}
               <tr>
@@ -151,6 +151,15 @@
                     {% csrf_token %}
                     <input type="checkbox" onchange="this.form.submit()" {% if usuario.activo %}checked{% endif %}>
                   </form>
+                </td>
+                <td>
+                  {% if usuario.pk != request.user.pk %}{% if not usuario.is_superuser or request.user.is_superuser %}
+                    <form class="form-en-linea" method="post" action="{% url 'restablecer_clave' usuario.pk %}"
+                          onsubmit="return confirm('¿Dar una contraseña temporal a {{ usuario|escapejs }}? La actual deja de servir y deberá cambiarla al entrar.')">
+                      {% csrf_token %}
+                      <button type="submit" class="boton boton--texto">Restablecer</button>
+                    </form>
+                  {% endif %}{% endif %}
                 </td>
               </tr>
             {% endfor %}

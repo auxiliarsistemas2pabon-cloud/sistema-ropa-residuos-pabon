@@ -4,9 +4,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=config.settings.production
 
-# postgresql-client trae pg_dump / pg_restore para django-dbbackup (RNF-15/16).
+# postgresql-client trae pg_dump / pg_restore para django-dbbackup (RNF-15/16);
+# gnupg cifra los respaldos con la llave pública de la clínica (A5).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client \
+    && apt-get install -y --no-install-recommends postgresql-client gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

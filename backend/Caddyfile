@@ -3,6 +3,15 @@
 clinica-pabon.example.com {
 	encode gzip
 
+	# El admin de Django solo se abre desde la red interna (protocolo de
+	# seguridad, A6). Las redes permitidas vienen de ADMIN_REDES_PERMITIDAS
+	# en .env; por defecto, las privadas (10.x, 172.16-31.x, 192.168.x).
+	@admin_desde_fuera {
+		path /admin /admin/*
+		not remote_ip {$ADMIN_REDES_PERMITIDAS:private_ranges}
+	}
+	respond @admin_desde_fuera "La administración solo se abre desde la red interna de la clínica." 403
+
 	handle_path /static/* {
 		root * /srv/static
 		file_server

@@ -24,6 +24,7 @@ from .services import (
     puede_editar,
     puede_pesar,
     puede_reportar_novedad,
+    puede_ver_firmas,
 )
 
 
@@ -149,6 +150,7 @@ def detalle_movimiento(request, pk):
         "puede_editar": puede_editar(request.user, movimiento),
         "puede_reportar_novedad": puede_reportar_novedad(request.user, movimiento),
         "puede_pesar": puede_pesar(request.user, movimiento),
+        "ve_firmas": puede_ver_firmas(request.user, movimiento),
     }
     if request.user.es_administradora or request.user.is_superuser:
         contexto["historial"] = _historial_con_cambios(movimiento)

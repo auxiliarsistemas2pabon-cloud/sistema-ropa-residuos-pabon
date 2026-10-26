@@ -25,11 +25,17 @@
   font: inherit; font-size: var(--texto-sm); font-weight: var(--peso-semibold); cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
+a.boton-salir { text-decoration: none; }
 .boton-salir:hover { border-color: var(--acento); background: var(--acento-suave); }
 .boton-salir:focus-visible { outline: var(--grosor-foco) solid var(--acento); outline-offset: 2px; }
 @media (max-width: 699px) {
   .boton-salir__texto { display: none; }
   .boton-salir { padding: 0 11px; }
+}
+/* Con la llave de "Contraseña" junto a "Cerrar sesión", en celulares angostos
+   (360–420 px) no caben también las iniciales: la insignia de rol ya dice quién entró. */
+@media (max-width: 420px) {
+  .barra-superior .avatar { display: none; }
 }
 
 /* --- Banner de bienvenida --- */
@@ -254,3 +260,9 @@ form > section:not([hidden]) { animation: paso-entra 0.32s ease-out; }
   .acceso__icono { width: 48px; height: 48px; margin-top: 0; border-radius: 13px; }
   .acceso::after { top: 50%; margin-top: -10px; right: 16px; }
 }
+
+/* --- Cambiar contraseña (protocolo de seguridad, A4) --- */
+.formulario-clave { max-width: 460px; }
+
+/* Contraseña temporal recién restablecida: se lee y se dicta, en letra fija. */
+.clave-temporal { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: var(--texto-lg); font-weight: var(--peso-bold); letter-spacing: 0.06em; overflow-wrap: anywhere; }

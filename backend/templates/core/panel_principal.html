@@ -205,6 +205,7 @@
       {% endif %}
     </form>
     {% if movimientos_hoy %}
+      <div class="tabla-envoltura">
       <table class="tabla tabla-kg">
         <thead>
           <tr><th>Hora</th><th>Tipo</th><th>Servicio</th>{% if not user.es_personal_de_servicio %}<th class="num">kg netos</th>{% endif %}<th>Estado</th></tr>
@@ -225,6 +226,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% else %}
       <p class="vacio">{% if filtro.hay_filtros %}No hay movimientos de hoy con esos filtros.{% else %}Todavía no hay movimientos hoy.{% endif %}</p>
     {% endif %}

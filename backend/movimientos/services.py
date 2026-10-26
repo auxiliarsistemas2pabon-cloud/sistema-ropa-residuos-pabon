@@ -237,6 +237,19 @@ def movimientos_propios(usuario, queryset):
     return queryset.filter(Q(creado_por=usuario) | Q(entrega_por=usuario) | Q(recibe_por=usuario))
 
 
+def puede_ver_firmas(usuario, movimiento):
+    """Protocolo de seguridad, A15: la firma dibujada es un dato personal. La
+    ven quienes participaron en el movimiento (mismo criterio que
+    movimientos_propios) y la Administradora. El resto del detalle sigue
+    abierto: el corte de control, el consolidado de peligrosos y la validación
+    llevan a operarios a movimientos de otras personas."""
+    if usuario is None or not usuario.is_authenticated:
+        return False
+    if usuario.is_superuser or usuario.es_administradora:
+        return True
+    return usuario.pk in (movimiento.creado_por_id, movimiento.entrega_por_id, movimiento.recibe_por_id)
+
+
 def novedades_propias(usuario, queryset):
     """Mismo criterio que movimientos_propios(), aplicado a través de la
     novedad hasta el movimiento al que pertenece."""

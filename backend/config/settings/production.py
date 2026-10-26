@@ -19,4 +19,8 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Caddy reemplaza el X-Forwarded-For que mande el cliente por su IP real, así
+# que el bloqueo por intentos fallidos registra la IP verdadera.
+CONFIAR_EN_X_FORWARDED_FOR = True
+
 STORAGES["staticfiles"]["BACKEND"] = "whitenoise.storage.CompressedManifestStaticFilesStorage"

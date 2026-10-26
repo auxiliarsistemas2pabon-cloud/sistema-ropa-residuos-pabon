@@ -51,7 +51,13 @@ body {
 }
 .insignia-rol--admin { color: var(--acento); background: var(--acento-suave); }
 
+/* Cambiar contraseña (A4) y cerrar sesión: ícono + texto; en celular, solo el ícono. */
+.accion-cabecera { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.formulario-clave { max-width: 420px; }
+
 @media (max-width: 479px) {
+  .accion-cabecera__texto { display: none; }
+  .barra-superior .accion-cabecera { margin-left: 0; }
   .barra-superior { padding: var(--espacio-2) var(--espacio-3); gap: var(--espacio-2); min-height: 60px; }
   .barra-superior__logo { height: 40px; }
   .barra-superior__nombre { display: none; }

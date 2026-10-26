@@ -3,7 +3,7 @@ Configuración común a todos los entornos. local.py y production.py
 la importan con `from .base import *` y solo sobrescriben lo que cambia.
 """
 import os
-from datetime import time
+from datetime import time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "dbbackup",
     "rest_framework",
     "corsheaders",
+    "axes",
     # propias
     "core",
     "movimientos",
@@ -47,6 +48,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "core.middleware.CambioDeClaveObligatorio",
+    # Último: convierte el bloqueo por intentos fallidos en la respuesta de
+    # core.seguridad.respuesta_bloqueo.
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -83,12 +88,46 @@ DATABASES = {
 
 AUTH_USER_MODEL = "core.Usuario"
 
+# axes va primero: rechaza el intento antes de comprobar la contraseña si la
+# cuenta está bloqueada.
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Protocolo de seguridad, A3: mínimo 10 caracteres. Se aplica también a las
+# contraseñas que asigna la Administradora (core.forms / core.serializers).
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# Protocolo de seguridad, A2: 5 intentos fallidos bloquean la cuenta 15
+# minutos, en la pantalla de ingreso de Django y en /api/auth/login/. Se
+# bloquea por usuario (no por IP): en la clínica todos salen a internet por
+# la misma IP y bloquearla dejaría afuera a todo el personal.
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = ["username"]
+# axes recomienda sumar la IP (W006), pero bloquear por IP con este mismo
+# límite dejaría sin acceso a toda una sede cada vez que alguien se equivoque
+# cinco veces. Cada intento fallido igual queda registrado con su IP.
+SILENCED_SYSTEM_CHECKS = ["axes.W006"]
+AXES_RESET_ON_SUCCESS = True
+# Los intentos durante el bloqueo no lo alargan: siempre son 15 minutos.
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+# Cada intento fallido queda con IP y hora (AccessFailureLog), no solo el contador.
+AXES_ENABLE_ACCESS_FAILURE_LOG = True
+AXES_LOCKOUT_CALLABLE = "core.seguridad.respuesta_bloqueo"
+AXES_CLIENT_IP_CALLABLE = "core.seguridad.ip_del_cliente"
+# Solo detrás de un proxy propio (Caddy en producción) se puede creer en
+# X-Forwarded-For; de lo contrario cualquiera inventaría su IP.
+CONFIAR_EN_X_FORWARDED_FOR = False
 
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Bogota"
@@ -156,6 +195,31 @@ DBBACKUP_CLEANUP_KEEP = 35
 DBBACKUP_CLEANUP_KEEP_MEDIA = 35
 DBBACKUP_FILENAME_TEMPLATE = "{datetime}-{databasename}.{extension}"
 DBBACKUP_DATE_FORMAT = "%Y%m%d-%H%M%S"
+
+# Protocolo de seguridad, A5 (ver core/management/commands/respaldo_diario.py).
+# Vacíos = desactivado, como en desarrollo; `check --deploy` avisa si faltan.
+# - Cifrado con la llave PÚBLICA GPG de la clínica: la privada nunca está en el
+#   servidor, así que quien se lleve el servidor no puede abrir las copias.
+RESPALDO_GPG_DESTINATARIO = os.environ.get("RESPALDO_GPG_DESTINATARIO", "")
+RESPALDO_GPG_LLAVE_PUBLICA = os.environ.get("RESPALDO_GPG_LLAVE_PUBLICA", "")
+DBBACKUP_GPG_RECIPIENT = RESPALDO_GPG_DESTINATARIO or None
+# - Copia de cada respaldo en un disco montado fuera del servidor (NAS de otra
+#   sede, carpeta sincronizada con la nube...). Ahí se conservan las últimas
+#   DBBACKUP_CLEANUP_KEEP copias más la última de cada uno de los 12 meses previos.
+RESPALDO_COPIA_EXTERNA_DIR = os.environ.get("RESPALDO_COPIA_EXTERNA_DIR", "")
+RESPALDO_MESES_CONSERVADOS = 12
+# - A quién se avisa por correo si un respaldo falla.
+RESPALDO_AVISO_CORREOS = [c.strip() for c in os.environ.get("RESPALDO_AVISO_CORREOS", "").split(",") if c.strip()]
+
+# Correo saliente (avisos de respaldo fallido). En desarrollo, local.py lo
+# manda a la consola.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT") or 587)
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "webmaster@localhost")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Parámetros editables desde el admin sin desarrollo (capítulo 13 del prompt de desarrollo).
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"

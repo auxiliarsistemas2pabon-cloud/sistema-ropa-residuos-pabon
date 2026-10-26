@@ -4,7 +4,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { toast } from "sonner";
 import { Aviso } from "../../components/Aviso";
 import { Interruptor } from "../../components/Interruptor";
-import { IconoBuscar, IconoLapiz, IconoPapelera } from "../../components/Iconos";
+import { IconoBuscar, IconoLapiz, IconoLlave, IconoPapelera } from "../../components/Iconos";
 import { EstadoVacio, SeccionCatalogo } from "../../components/SeccionCatalogo";
 import { Despliega } from "../../components/Animacion";
 import { useListaAnimada } from "../../components/useListaAnimada";
@@ -26,6 +26,7 @@ import {
   listarTodosLosServicios,
   listarTodosLosUsuarios,
   obtenerConfiguracion,
+  restablecerClaveUsuario,
   type AreaServicio,
   type Configuracion,
   type GestorExterno,
@@ -484,6 +485,8 @@ function GestoresSeccion() {
   );
 }
 
+const CUENTA_TECNICA = "La cuenta técnica solo la modifica el Área de Sistemas.";
+
 const ROLES: [Rol, string][] = [
   ["USUARIO", "Usuario"],
   ["SERVICIO", "Personal de servicio"],
@@ -526,11 +529,19 @@ function UsuariosSeccion() {
       void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] });
     },
   });
+  // La clave temporal se muestra una sola vez: el servidor no la vuelve a dar.
+  const [claveTemporal, setClaveTemporal] = useState<{ nombre: string; clave: string } | null>(null);
+  const restablecer = useMutation({
+    mutationFn: (u: Usuario) => restablecerClaveUsuario(u.id),
+    onSuccess: (clave, u) => setClaveTemporal({ nombre: `${u.first_name} ${u.last_name}`.trim() || u.username, clave }),
+  });
 
   const activos = (usuarios ?? []).filter((u) => u.activo).length;
 
   const alternar = toggle.mutate;
   const cambiarRolDe = cambiarRol.mutate;
+  const restablecerDe = restablecer.mutate;
+  const soyTecnico = Boolean(yo?.is_superuser);
   const columnas = useMemo<ColumnDef<Usuario>[]>(
     () => [
       {
@@ -558,12 +569,19 @@ function UsuariosSeccion() {
         cell: ({ row }) => {
           const u = row.original;
           const esYo = u.id === yo?.id;
+          const cuentaTecnica = u.is_superuser && !soyTecnico;
           return (
             <select
               className="selector-tabla"
               value={u.rol}
-              disabled={esYo}
-              title={esYo ? "No puedes cambiar tu propio rol; pídeselo a otra Administradora." : undefined}
+              disabled={esYo || cuentaTecnica}
+              title={
+                esYo
+                  ? "No puedes cambiar tu propio rol; pídeselo a otra Administradora."
+                  : cuentaTecnica
+                    ? CUENTA_TECNICA
+                    : undefined
+              }
               aria-label={`Rol de ${u.username}`}
               onChange={(e) => cambiarRolDe({ id: u.id, rol: e.target.value as Rol })}
             >
@@ -580,11 +598,12 @@ function UsuariosSeccion() {
         cell: ({ row }) => {
           const u = row.original;
           const esYo = u.id === yo?.id;
+          const cuentaTecnica = u.is_superuser && !soyTecnico;
           return (
             <Interruptor
               marcado={u.activo}
-              deshabilitado={esYo}
-              titulo={esYo ? "No puedes desactivar tu propia cuenta." : undefined}
+              deshabilitado={esYo || cuentaTecnica}
+              titulo={esYo ? "No puedes desactivar tu propia cuenta." : cuentaTecnica ? CUENTA_TECNICA : undefined}
               etiqueta={`Usuario ${u.username}: activo`}
               onCambiar={(activo) => alternar({ id: u.id, activo })}
             />
@@ -599,37 +618,67 @@ function UsuariosSeccion() {
         cell: ({ row }) => {
           const u = row.original;
           const esYo = u.id === yo?.id;
+          const cuentaTecnica = u.is_superuser && !soyTecnico;
           const nombreCompleto = `${u.first_name} ${u.last_name}`.trim() || u.username;
-          if (esYo || !u.activo) {
-            return (
-              <button
-                type="button"
-                className="boton-accion"
-                disabled
-                title={esYo ? "No puedes eliminar tu propia cuenta." : "Ya está inactivo."}
-              >
-                <IconoPapelera /> <span className="texto-accion">Eliminar</span>
-              </button>
-            );
-          }
-          return (
+          const sinClave = esYo
+            ? "Tu contraseña la cambias tú, en «Contraseña», arriba a la derecha."
+            : cuentaTecnica
+              ? CUENTA_TECNICA
+              : !u.activo
+                ? "Está inactivo: actívalo primero."
+                : undefined;
+          const botonClave = (
             <button
               type="button"
               className="boton-accion"
-              aria-label={`Eliminar a ${nombreCompleto}`}
+              disabled={sinClave !== undefined}
+              title={sinClave}
+              aria-label={`Restablecer la contraseña de ${nombreCompleto}`}
               onClick={() => {
-                if (window.confirm(`¿Eliminar a ${nombreCompleto}? Nadie se elimina de verdad: queda inactivo, pierde el acceso y su historial de movimientos se conserva igual que hoy.`)) {
-                  alternar({ id: u.id, activo: false });
+                if (window.confirm(`¿Dar una contraseña temporal a ${nombreCompleto}? La actual deja de servir y deberá cambiarla al entrar.`)) {
+                  restablecerDe(u);
                 }
               }}
             >
-              <IconoPapelera /> <span className="texto-accion">Eliminar</span>
+              <IconoLlave size={16} /> <span className="texto-accion">Clave</span>
             </button>
+          );
+          if (esYo || cuentaTecnica || !u.activo) {
+            return (
+              <>
+                {botonClave}
+                <button
+                  type="button"
+                  className="boton-accion"
+                  disabled
+                  title={esYo ? "No puedes eliminar tu propia cuenta." : cuentaTecnica ? CUENTA_TECNICA : "Ya está inactivo."}
+                >
+                  <IconoPapelera /> <span className="texto-accion">Eliminar</span>
+                </button>
+              </>
+            );
+          }
+          return (
+            <>
+              {botonClave}
+              <button
+                type="button"
+                className="boton-accion"
+                aria-label={`Eliminar a ${nombreCompleto}`}
+                onClick={() => {
+                  if (window.confirm(`¿Eliminar a ${nombreCompleto}? Nadie se elimina de verdad: queda inactivo, pierde el acceso y su historial de movimientos se conserva igual que hoy.`)) {
+                    alternar({ id: u.id, activo: false });
+                  }
+                }}
+              >
+                <IconoPapelera /> <span className="texto-accion">Eliminar</span>
+              </button>
+            </>
           );
         },
       },
     ],
-    [yo?.id, cambiarRolDe, alternar],
+    [yo?.id, soyTecnico, cambiarRolDe, alternar, restablecerDe],
   );
 
   return (
@@ -644,6 +693,19 @@ function UsuariosSeccion() {
     >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {cambiarRol.isError && <Aviso error>{mensajeDeError(cambiarRol.error)}</Aviso>}
+      {restablecer.isError && <Aviso error>{mensajeDeError(restablecer.error)}</Aviso>}
+      {claveTemporal && (
+        <div className="aviso" role="status">
+          <p>
+            Contraseña temporal de <strong>{claveTemporal.nombre}</strong>:
+          </p>
+          <p className="clave-temporal">{claveTemporal.clave}</p>
+          <p>Entrégala en persona; deberá cambiarla al entrar. No se volverá a mostrar.</p>
+          <button type="button" className="boton-accion boton-accion--primaria" onClick={() => setClaveTemporal(null)}>
+            Listo, ya la entregué
+          </button>
+        </div>
+      )}
 
       <Despliega abierto={abierto}>
         <form
@@ -682,8 +744,9 @@ function UsuariosSeccion() {
             </div>
             <div className="campo">
               <label htmlFor="us-password">Contraseña inicial</label>
-              <input id="us-password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
-              {errores.password && <p className="campo__error">{errores.password[0]}</p>}
+              <input id="us-password" type="password" autoComplete="new-password" minLength={10} aria-describedby="us-password-ayuda" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
+              <p className="campo__ayuda" id="us-password-ayuda">Mínimo 10 caracteres. La persona deberá cambiarla la primera vez que entre.</p>
+              {errores.password?.map((mensaje) => <p className="campo__error" key={mensaje}>{mensaje}</p>)}
             </div>
           </div>
           <div className="acciones-formulario">
@@ -703,6 +766,7 @@ function UsuariosSeccion() {
           idFila={(u) => String(u.id)}
           clase="tabla--catalogo"
           claseFila={(u) => (u.activo ? undefined : "fila-inactiva")}
+          apilar
         />
       )}
     </SeccionCatalogo>

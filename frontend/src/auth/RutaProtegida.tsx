@@ -2,6 +2,8 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { EsqueletoPagina } from "../components/Esqueleto";
 
+export const RUTA_CAMBIAR_CLAVE = "/cambiar-clave";
+
 /**
  * Bloqueo real de rutas por rol (3. del prompt de desarrollo): nunca se
  * mezclan los accesos de Usuario y Administradora, ni para superusuario.
@@ -25,6 +27,11 @@ export function RutaProtegida({
     // por su cuenta empieza de cero en el panel.
     const estado = sesionExpirada ? { desde: location.pathname + location.search } : undefined;
     return <Navigate to="/acceso" replace state={estado} />;
+  }
+  // Contraseña asignada por otra persona: nada más hasta cambiarla (el
+  // servidor además responde 403 a todo lo demás).
+  if (usuario.debe_cambiar_clave && location.pathname !== RUTA_CAMBIAR_CLAVE) {
+    return <Navigate to={RUTA_CAMBIAR_CLAVE} replace />;
   }
   if (paraAdministradora !== undefined && paraAdministradora !== esAdministradora) {
     return <Navigate to="/" replace />;

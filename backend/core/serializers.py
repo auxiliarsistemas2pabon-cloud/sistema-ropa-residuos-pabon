@@ -1,10 +1,12 @@
+import copy
 from decimal import Decimal
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from .models import AreaServicio, GestorExterno, Sede
-from .services import bloqueo_de_cuenta
+from .services import bloqueo_cuenta_tecnica, bloqueo_de_cuenta
 
 Usuario = get_user_model()
 
@@ -27,6 +29,8 @@ class UsuarioMeSerializer(serializers.Serializer):
     rol = serializers.CharField()
     es_administradora = serializers.BooleanField()
     is_superuser = serializers.BooleanField()
+    # El frontend lleva a la persona a cambiar su contraseña antes que nada (A4).
+    debe_cambiar_clave = serializers.BooleanField()
 
 
 class UsuarioActivoSerializer(serializers.Serializer):
@@ -61,24 +65,41 @@ class UsuarioSerializer(serializers.ModelSerializer):
     un control sobre ellos rompería esa sincronización (ver 3. del prompt:
     'el frontend no debe exponer un control para tocar permisos a mano')."""
 
-    password = serializers.CharField(write_only=True, required=False, allow_blank=False)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=False, trim_whitespace=False)
 
     class Meta:
         model = Usuario
         fields = [
             "id", "username", "first_name", "last_name", "documento",
-            "rol", "activo", "password",
+            "rol", "activo", "password", "is_superuser",
         ]
+        # Solo para que la pantalla sepa cuál es la cuenta técnica, que la
+        # Administradora no puede modificar (ver services.bloqueo_cuenta_tecnica).
+        read_only_fields = ["is_superuser"]
 
     def validate(self, attrs):
         request = self.context.get("request")
         if self.instance is not None and request is not None:
+            motivo = bloqueo_cuenta_tecnica(request.user, self.instance)
+            if motivo:
+                raise serializers.ValidationError({"non_field_errors": [motivo]})
             bloqueo = bloqueo_de_cuenta(
                 request.user, self.instance, activo=attrs.get("activo"), rol=attrs.get("rol"),
             )
             if bloqueo:
                 campo, motivo = bloqueo
                 raise serializers.ValidationError({campo: [motivo]})
+        clave = attrs.get("password")
+        if clave:
+            # Política de contraseñas (A3), comparada con los datos de la persona.
+            candidato = copy.copy(self.instance) if self.instance is not None else Usuario()
+            for campo, valor in attrs.items():
+                if campo != "password":
+                    setattr(candidato, campo, valor)
+            try:
+                password_validation.validate_password(clave, candidato)
+            except DjangoValidationError as error:
+                raise serializers.ValidationError({"password": list(error.messages)})
         return attrs
 
     def create(self, validated_data):
@@ -86,6 +107,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
         usuario = Usuario(**validated_data)
         if password:
             usuario.set_password(password)
+            # La clave inicial la conoce quien la asignó (A4).
+            usuario.debe_cambiar_clave = True
         else:
             usuario.set_unusable_password()
         usuario.save()
@@ -97,6 +120,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
             setattr(instance, campo, valor)
         if password:
             instance.set_password(password)
+            request = self.context.get("request")
+            instance.debe_cambiar_clave = request is None or request.user.pk != instance.pk
         instance.save()
         return instance
 

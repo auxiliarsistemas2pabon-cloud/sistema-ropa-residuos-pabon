@@ -1,5 +1,5 @@
 from constance import config
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
@@ -7,6 +7,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .api_errors import form_errors_response
+from .forms import CambioDeClaveForm
 from .permissions import IsAdministradora
 from .serializers import ConfiguracionSerializer, LoginSerializer, UsuarioMeSerializer
 
@@ -21,6 +23,7 @@ def _me(usuario):
         "rol": usuario.rol,
         "es_administradora": usuario.es_administradora,
         "is_superuser": usuario.is_superuser,
+        "debe_cambiar_clave": usuario.debe_cambiar_clave,
     }).data
 
 
@@ -42,8 +45,11 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # El HttpRequest de Django, no el Request de DRF: django-axes marca
+        # ahí el bloqueo por intentos fallidos (A2) y su middleware lo
+        # convierte en la respuesta de core.seguridad.respuesta_bloqueo.
         usuario = authenticate(
-            request,
+            request._request,
             username=serializer.validated_data["username"],
             password=serializer.validated_data["password"],
         )
@@ -69,6 +75,22 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(_me(request.user))
+
+
+class CambiarClaveView(APIView):
+    """Cambio de la propia contraseña (A4): el mismo CambioDeClaveForm de la
+    pantalla Django, con sus campos old_password, new_password1 y
+    new_password2. La sesión sigue abierta después del cambio."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        form = CambioDeClaveForm(user=request.user, data=request.data)
+        if not form.is_valid():
+            return form_errors_response(form)
+        usuario = form.save()
+        update_session_auth_hash(request._request, usuario)
+        return Response(_me(usuario))
 
 
 class ConfiguracionAPIView(APIView):

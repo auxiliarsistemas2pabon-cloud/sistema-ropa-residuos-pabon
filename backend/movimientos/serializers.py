@@ -7,17 +7,21 @@ from residuos.serializers import DetalleResiduoSerializer, EntregaGestorSerializ
 from ropa.serializers import DetalleRopaSerializer, RotuloSerializer
 
 from .models import Movimiento, Novedad, Pesaje
-from .services import puede_editar, puede_pesar, puede_reportar_novedad
+from .services import puede_editar, puede_pesar, puede_reportar_novedad, puede_ver_firmas
 
 Usuario = get_user_model()
 
 
 class UsuarioMinimoSerializer(serializers.ModelSerializer):
+    """Quién entregó, recibió o registró. Sin el usuario de acceso (A15):
+    cualquiera con sesión lee estos datos, y el usuario es la mitad de lo que
+    hace falta para entrar con la cuenta de otra persona."""
+
     nombre_completo = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
-        fields = ["id", "username", "nombre_completo"]
+        fields = ["id", "nombre_completo"]
 
     def get_nombre_completo(self, obj):
         return obj.get_full_name() or obj.username
@@ -98,13 +102,14 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
     puede_editar = serializers.SerializerMethodField()
     puede_reportar_novedad = serializers.SerializerMethodField()
     puede_pesar = serializers.SerializerMethodField()
+    firmas_ocultas = serializers.SerializerMethodField()
 
     class Meta:
         model = Movimiento
         fields = [
             "id", "tipo_movimiento", "tipo_movimiento_display", "fecha", "hora", "jornada",
             "sede", "sede_nombre", "area_origen", "servicio_nombre",
-            "entrega_por", "recibe_por", "firma_entrega", "firma_recibe", "mov_origen",
+            "entrega_por", "recibe_por", "firma_entrega", "firma_recibe", "firmas_ocultas", "mov_origen",
             "estado", "estado_display", "observaciones", "periodo_facturacion",
             "creado_por", "creado_en",
             "pesajes", "novedades", "detalles_ropa", "detalles_residuo", "rotulos",
@@ -129,3 +134,18 @@ class MovimientoDetalleSerializer(serializers.ModelSerializer):
         if request is None:
             return None
         return puede_reportar_novedad(request.user, obj)
+
+    def _ve_firmas(self, obj):
+        request = self.context.get("request")
+        return request is not None and puede_ver_firmas(request.user, obj)
+
+    def get_firmas_ocultas(self, obj):
+        """True si el movimiento tiene firmas que esta persona no puede ver (A15)."""
+        return bool(obj.firma_entrega or obj.firma_recibe) and not self._ve_firmas(obj)
+
+    def to_representation(self, obj):
+        datos = super().to_representation(obj)
+        if not self._ve_firmas(obj):
+            datos["firma_entrega"] = ""
+            datos["firma_recibe"] = ""
+        return datos

@@ -1,6 +1,6 @@
 from constance import config
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.http import Http404
@@ -14,6 +14,7 @@ from movimientos.services import movimientos_propios
 from .decorators import solo_administradora
 from .forms import (
     AreaServicioForm,
+    CambioDeClaveForm,
     ConfiguracionForm,
     FiltroMovimientosPanel,
     GestorExternoForm,
@@ -21,7 +22,12 @@ from .forms import (
     UsuarioForm,
 )
 from .models import AreaServicio, GestorExterno, Sede
-from .services import bloqueo_de_cuenta
+from .services import (
+    asignar_clave_temporal,
+    bloqueo_cuenta_tecnica,
+    bloqueo_de_cuenta,
+    bloqueo_restablecer_clave,
+)
 
 Usuario = get_user_model()
 
@@ -140,6 +146,10 @@ def alternar_activo(request, modelo, pk):
         raise Http404
     obj = get_object_or_404(Modelo, pk=pk)
     if Modelo is Usuario:
+        motivo = bloqueo_cuenta_tecnica(request.user, obj)
+        if motivo:
+            messages.error(request, motivo)
+            return redirect("catalogos_parametros")
         bloqueo = bloqueo_de_cuenta(request.user, obj, activo=not obj.activo)
         if bloqueo:
             messages.error(request, bloqueo[1])
@@ -171,6 +181,10 @@ def cambiar_rol(request, pk):
     usuario = get_object_or_404(Usuario, pk=pk)
     rol = request.POST.get("rol")
     if rol in dict(Usuario.Rol.choices):
+        motivo = bloqueo_cuenta_tecnica(request.user, usuario)
+        if motivo:
+            messages.error(request, motivo)
+            return redirect("catalogos_parametros")
         bloqueo = bloqueo_de_cuenta(request.user, usuario, rol=rol)
         if bloqueo:
             messages.error(request, bloqueo[1])
@@ -178,3 +192,41 @@ def cambiar_rol(request, pk):
         usuario.rol = rol
         usuario.save(update_fields=["rol"])
     return redirect("catalogos_parametros")
+
+
+@solo_administradora
+@require_POST
+def restablecer_clave(request, pk):
+    """Contraseña temporal para quien olvidó la suya (A4). Se muestra una sola
+    vez en la pantalla, para entregarla en persona, y se exige cambiarla al
+    entrar."""
+    usuario = get_object_or_404(Usuario, pk=pk)
+    motivo = bloqueo_restablecer_clave(request.user, usuario)
+    if motivo:
+        messages.error(request, motivo)
+        return redirect("catalogos_parametros")
+    clave = asignar_clave_temporal(usuario)
+    messages.success(
+        request,
+        f"Contraseña temporal de {usuario}: {clave} — entrégala en persona; "
+        "deberá cambiarla al entrar. No se volverá a mostrar.",
+    )
+    return redirect("catalogos_parametros")
+
+
+@login_required
+def cambiar_clave(request):
+    """Cambio de la propia contraseña (A4). Es también la única pantalla que
+    puede abrir quien tiene una clave asignada por otra persona (ver
+    core.middleware.CambioDeClaveObligatorio)."""
+    formulario = CambioDeClaveForm(user=request.user, data=request.POST or None)
+    if request.method == "POST" and formulario.is_valid():
+        usuario = formulario.save()
+        update_session_auth_hash(request, usuario)
+        messages.success(request, "Contraseña cambiada.")
+        return redirect("panel_principal")
+    return render(
+        request,
+        "registration/cambiar_clave.html",
+        {"form": formulario, "obligatorio": request.user.debe_cambiar_clave},
+    )

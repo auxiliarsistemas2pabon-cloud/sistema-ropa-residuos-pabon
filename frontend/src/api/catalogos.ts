@@ -33,6 +33,8 @@ export interface Usuario {
   documento: string | null;
   rol: Rol;
   activo: boolean;
+  /** La cuenta técnica: solo la modifica el Área de Sistemas. */
+  is_superuser: boolean;
 }
 
 export interface UsuarioActivo {
@@ -178,6 +180,12 @@ export async function crearUsuario(datos: {
 export async function actualizarUsuario(id: number, cambios: Partial<Usuario>): Promise<Usuario> {
   const { data } = await api.patch<Usuario>(`/usuarios/${id}/`, cambios);
   return data;
+}
+/** Contraseña temporal para quien olvidó la suya: el servidor la muestra una
+ * sola vez y la persona debe cambiarla al entrar. */
+export async function restablecerClaveUsuario(id: number): Promise<string> {
+  const { data } = await api.post<{ clave_temporal: string }>(`/usuarios/${id}/restablecer-clave/`);
+  return data.clave_temporal;
 }
 
 export async function obtenerConfiguracion(): Promise<Configuracion> {

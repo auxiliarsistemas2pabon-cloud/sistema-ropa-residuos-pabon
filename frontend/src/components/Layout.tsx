@@ -1,9 +1,10 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { RUTA_CAMBIAR_CLAVE } from "../auth/RutaProtegida";
 import { AvisoConsultasFallidas } from "./AvisoConsultasFallidas";
 import { TransicionPagina } from "./Animacion";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { IconoSalir } from "./Iconos";
+import { IconoLlave, IconoSalir } from "./Iconos";
 
 const ETIQUETA_ROL: Record<string, string> = {
   USUARIO: "Usuario",
@@ -46,6 +47,10 @@ export function Layout() {
                 {esAdministradora ? "Administradora" : ETIQUETA_ROL[usuario.rol] ?? "Usuario"}
               </span>
             </span>
+            <Link className="boton-salir" to={RUTA_CAMBIAR_CLAVE} title="Cambiar contraseña" aria-label="Cambiar contraseña">
+              <IconoLlave />
+              <span className="boton-salir__texto">Contraseña</span>
+            </Link>
             <button type="button" className="boton-salir" onClick={() => void cerrarSesion()}>
               <IconoSalir />
               <span className="boton-salir__texto">Cerrar sesión</span>

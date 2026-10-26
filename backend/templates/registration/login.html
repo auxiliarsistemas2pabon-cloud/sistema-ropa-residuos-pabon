@@ -30,7 +30,9 @@
 
     <form method="post">
       {% csrf_token %}
-      {% if form.errors %}
+      {% if bloqueo %}
+        <p class="aviso aviso--error">{{ bloqueo }}</p>
+      {% elif form.errors %}
         <p class="aviso aviso--error">Usuario o contraseña incorrectos. Verifica los datos y vuelve a intentar.</p>
       {% endif %}
       <div class="campo">

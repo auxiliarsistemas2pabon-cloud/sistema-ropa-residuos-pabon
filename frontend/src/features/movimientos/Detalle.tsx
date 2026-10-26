@@ -194,6 +194,9 @@ export function DetalleMovimiento() {
           )}
         </div>
       )}
+      {movimiento.firmas_ocultas && (
+        <p className="tinta-suave">Este movimiento tiene firmas. Solo las ven quienes participaron y la Administradora.</p>
+      )}
 
       {movimiento.pesajes.length === 0 && TIPOS_QUE_SE_PESAN_DESPUES.includes(movimiento.tipo_movimiento) && (
         <Aviso>

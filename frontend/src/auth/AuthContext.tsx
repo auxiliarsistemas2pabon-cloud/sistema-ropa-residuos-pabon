@@ -15,6 +15,8 @@ interface AuthContextValue {
   esPersonalDeServicio: boolean;
   iniciarSesion: (username: string, password: string) => Promise<void>;
   cerrarSesion: () => Promise<void>;
+  /** Tras cambiar la contraseña: el servidor devuelve el usuario ya liberado. */
+  actualizarUsuario: (usuario: Usuario) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -69,7 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const esPersonalDeServicio = usuario?.rol === "SERVICIO" && !esAdministradora;
 
   return (
-    <AuthContext.Provider value={{ usuario, cargando, sesionExpirada, esAdministradora, esPersonalDeServicio, iniciarSesion, cerrarSesion }}>
+    <AuthContext.Provider
+      value={{ usuario, cargando, sesionExpirada, esAdministradora, esPersonalDeServicio, iniciarSesion, cerrarSesion, actualizarUsuario: setUsuario }}
+    >
       {children}
     </AuthContext.Provider>
   );

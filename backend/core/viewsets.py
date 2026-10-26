@@ -1,4 +1,4 @@
-from rest_framework import mixins
+from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
@@ -13,6 +13,7 @@ from .serializers import (
     UsuarioActivoSerializer,
     UsuarioSerializer,
 )
+from .services import asignar_clave_temporal, bloqueo_restablecer_clave
 
 
 class SinBorradoModelViewSet(
@@ -80,3 +81,13 @@ class UsuarioViewSet(SinBorradoModelViewSet):
             for u in usuarios
         ]
         return Response(UsuarioActivoSerializer(datos, many=True).data)
+
+    @action(detail=True, methods=["post"], url_path="restablecer-clave")
+    def restablecer_clave(self, request, pk=None):
+        """Contraseña temporal para quien olvidó la suya (A4): se muestra una
+        sola vez, para entregarla en persona, y se exige cambiarla al entrar."""
+        usuario = self.get_object()
+        motivo = bloqueo_restablecer_clave(request.user, usuario)
+        if motivo:
+            return Response({"non_field_errors": [motivo]}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"clave_temporal": asignar_clave_temporal(usuario)})

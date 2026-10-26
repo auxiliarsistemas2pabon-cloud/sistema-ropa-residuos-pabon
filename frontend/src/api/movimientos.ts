@@ -11,7 +11,6 @@ export type EstadoMovimiento = "BORRADOR" | "PENDIENTE_CARGA" | "CERRADO";
 
 export interface UsuarioMinimo {
   id: number;
-  username: string;
   nombre_completo: string;
 }
 
@@ -144,9 +143,12 @@ export interface MovimientoDetalle extends MovimientoResumen {
   periodo_facturacion: string;
   entrega_por: UsuarioMinimo | null;
   recibe_por: UsuarioMinimo | null;
-  /** Firma en pantalla de quien no inició sesión (FR-SIG-86), PNG en base64. */
+  /** Firma en pantalla de quien no inició sesión (FR-SIG-86), PNG en base64.
+   * Vacías para quien no participó en el movimiento (dato personal). */
   firma_entrega: string;
   firma_recibe: string;
+  /** El movimiento tiene firmas que esta persona no puede ver. */
+  firmas_ocultas: boolean;
   mov_origen: MovimientoResumen | null;
   pesajes: Pesaje[];
   novedades: Novedad[];

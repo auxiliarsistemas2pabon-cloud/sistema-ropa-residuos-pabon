@@ -33,6 +33,9 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    environment:
+      # Redes desde las que se abre /admin/ (A6), separadas por espacio.
+      ADMIN_REDES_PERMITIDAS: ${ADMIN_REDES_PERMITIDAS:-private_ranges}
     ports:
       - "80:80"
       - "443:443"
@@ -53,12 +56,18 @@ services:
       POSTGRES_HOST: db
     volumes:
       - backups_data:/app/backups
+      # A5: la llave pública GPG (RESPALDO_GPG_LLAVE_PUBLICA=/run/llaves/<archivo>.asc)
+      # y el disco o carpeta de red de la copia externa, ya montado en el
+      # servidor (RESPALDO_COPIA_EXTERNA_HOST en .env, y RESPALDO_COPIA_EXTERNA_DIR=/respaldo-externo).
+      - ./llaves:/run/llaves:ro
+      - ${RESPALDO_COPIA_EXTERNA_HOST:-./sin-copia-externa}:/respaldo-externo
     depends_on:
       db:
         condition: service_healthy
-    # Respaldo al arrancar y luego cada 24 horas (RNF-15). Para atarlo a una
-    # hora fija, ver la alternativa con cron en DESPLIEGUE.md.
-    entrypoint: ["sh", "-c", "while true; do python manage.py respaldo_diario || true; sleep 86400; done"]
+    # Respaldo al arrancar y luego cada 24 horas (RNF-15). Si falla, el propio
+    # comando avisa por correo (A5) y el ciclo sigue. Para atarlo a una hora
+    # fija, ver la alternativa con cron en DESPLIEGUE.md.
+    entrypoint: ["sh", "-c", "while true; do python manage.py respaldo_diario || echo 'Respaldo FALLIDO'; sleep 86400; done"]
 
 volumes:
   postgres_data:

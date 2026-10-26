@@ -2,12 +2,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./auth/AuthContext";
-import { RutaProtegida } from "./auth/RutaProtegida";
+import { RUTA_CAMBIAR_CLAVE, RutaProtegida } from "./auth/RutaProtegida";
 import { Layout } from "./components/Layout";
 import { ProveedorAnimacion } from "./components/Animacion";
 import { LayoutLogin } from "./components/LayoutLogin";
 import { Login } from "./pages/Login";
 import { Panel } from "./pages/Panel";
+import { CambiarClave } from "./pages/CambiarClave";
 import { EntregaSucia } from "./features/ropa/EntregaSucia";
 import { RopaLimpiaMenu } from "./features/ropa/RopaLimpiaMenu";
 import { RecepcionLimpia } from "./features/ropa/RecepcionLimpia";
@@ -52,6 +53,7 @@ export default function App() {
                 <Route path="/movimiento/:id/corregir" element={<EditarMovimiento />} />
                 <Route path="/dia-anterior" element={<DiaAnterior />} />
                 <Route path="/ropa/corte-control" element={<CorteControl />} />
+                <Route path={RUTA_CAMBIAR_CLAVE} element={<CambiarClave />} />
                 {/* Cualquier dirección que no exista lleva al panel, no a una pantalla en blanco. */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>

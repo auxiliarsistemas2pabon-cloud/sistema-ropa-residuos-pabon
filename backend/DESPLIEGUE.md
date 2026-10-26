@@ -37,12 +37,23 @@ docker compose -f docker-compose.prod.yml exec web python manage.py createsuperu
 
 Luego, en `/admin/` → Usuarios, asignarle rol **Administradora**.
 
+Las cuentas que cree la Administradora (o a las que les restablezca la
+contraseña) deben cambiar la clave al entrar. Si la base ya tenía cuentas
+creadas antes de esa regla, exigirles el cambio una vez:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web python manage.py exigir_cambio_clave --todos
+```
+
 ## 3. Actualizaciones
 
 ```bash
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+Antes de cada actualización, un respaldo manual (las migraciones cambian la
+base): `docker compose -f docker-compose.prod.yml run --rm respaldo python manage.py respaldo_diario`.
 
 ## 4. Respaldos (RNF-15)
 
@@ -58,10 +69,50 @@ Quitar el servicio `respaldo` del compose y agregar al cron del servidor:
 5 20 * * 1-5  cd /ruta/al/proyecto && docker compose -f docker-compose.prod.yml run --rm respaldo python manage.py respaldo_diario
 ```
 
-### Copiar los respaldos fuera del servidor
+### Cifrado, copia fuera del servidor y avisos (protocolo de seguridad, A5)
 
-Se recomienda sincronizar el volumen a otro disco o a la nube a diario, por
-ejemplo con `rsync` o `rclone` sobre el directorio del volumen.
+Mientras falte alguno de estos tres puntos, `check --deploy` lo advierte
+(`core.W001`, `core.W002`, `core.W003`).
+
+**1. Cifrado con GPG.** El par de llaves se genera en un equipo de Sistemas,
+nunca en el servidor:
+
+```bash
+gpg --quick-generate-key "Respaldos Clínica Pabón <respaldos@clinica-pabon.tudominio.com>" rsa4096 encrypt never
+gpg --armor --export respaldos@clinica-pabon.tudominio.com > respaldo.asc
+```
+
+Al servidor solo va la llave **pública**, en `backend/llaves/respaldo.asc`, y en `.env`:
+
+```bash
+RESPALDO_GPG_DESTINATARIO=respaldos@clinica-pabon.tudominio.com
+RESPALDO_GPG_LLAVE_PUBLICA=/run/llaves/respaldo.asc
+```
+
+La llave **privada** y su frase se guardan en custodia de Sistemas (gestor de
+contraseñas y una copia fuera de línea). Sin ella las copias no se pueden
+restaurar; junto al servidor, el cifrado no protegería nada.
+
+**2. Copia fuera del servidor.** Montar en el servidor un disco o carpeta de
+red de otra sede (NAS por SMB/NFS, o una carpeta sincronizada con la nube) y
+declararla en `.env`:
+
+```bash
+RESPALDO_COPIA_EXTERNA_HOST=/mnt/respaldos-externos   # ruta en el servidor
+RESPALDO_COPIA_EXTERNA_DIR=/respaldo-externo          # ruta dentro del contenedor (no cambiar)
+```
+
+Cada respaldo se copia ahí y se verifica su tamaño. En esa carpeta se
+conservan las últimas 35 copias y la última de cada uno de los 12 meses
+previos. Si la carpeta no está montada, el respaldo se da por fallido: nunca
+se escribe la "copia externa" dentro del mismo servidor.
+
+**3. Aviso si falla.** Con los datos del correo saliente (`EMAIL_HOST`,
+`EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`)
+y `RESPALDO_AVISO_CORREOS=sistemas@...,otra@...`, cada fallo envía un correo.
+
+**Cada semana**, Sistemas confirma que hay un respaldo por día:
+`docker compose -f docker-compose.prod.yml run --rm web python manage.py listbackups`.
 
 ## 5. Restauración (RNF-16 — procedimiento probado)
 
@@ -85,6 +136,25 @@ docker compose -f docker-compose.prod.yml up -d
 
 Para restaurar una copia concreta: `dbrestore -i <nombre-del-archivo>`.
 
+**Copias cifradas (`.gpg`).** La llave privada entra solo durante la
+restauración y el contenedor se descarta al terminar (`--rm`); la frase se
+pide en pantalla:
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm -v /ruta/segura/respaldo-privada.asc:/tmp/privada.asc:ro web \
+  sh -c "gpg --batch --import /tmp/privada.asc && python manage.py dbrestore --decrypt -i <archivo>.gpg"
+```
+
+**Prueba trimestral (protocolo 4).** Restaurar el último respaldo en una base
+aparte, nunca sobre la de producción, y anotar fecha, archivo, tiempo y conteos
+verificados:
+
+```bash
+docker compose -f docker-compose.prod.yml exec db createdb -U clinica_pabon clinica_pabon_prueba
+docker compose -f docker-compose.prod.yml run --rm -e POSTGRES_DB=clinica_pabon_prueba web python manage.py dbrestore -i <archivo>
+docker compose -f docker-compose.prod.yml exec db dropdb -U clinica_pabon clinica_pabon_prueba
+```
+
 ## 6. Verificación post-despliegue
 
 ```bash
@@ -94,6 +164,8 @@ docker compose -f docker-compose.prod.yml exec web python manage.py check --depl
 - La sesión expira a los 30 minutos de inactividad (RNF-10).
 - Todo el tráfico va por HTTPS; HTTP redirige a HTTPS.
 - Ningún registro se puede eliminar, ni desde el admin ni por un superusuario.
+- `/admin/` responde 403 desde fuera de la red interna (ver sección 9).
+- `check --deploy` sin advertencias `core.W00x` (respaldos protegidos).
 
 ## 7. Zona horaria y datos
 
@@ -121,3 +193,39 @@ El flujo de arranque que debe seguir el cliente JS es: `GET /api/auth/csrf/`
 (fija la cookie `csrftoken`) → `POST /api/auth/login/` con el encabezado
 `X-CSRFToken` → las peticiones siguientes ya quedan autenticadas por cookie
 de sesión, con el mismo cierre por inactividad de 30 minutos de siempre.
+
+## 9. Seguridad de acceso (protocolos de seguridad)
+
+**Bloqueo por intentos fallidos (A2).** Cinco contraseñas equivocadas seguidas
+bloquean esa cuenta 15 minutos, en la pantalla de ingreso y en la API. Cada
+intento fallido queda registrado con su IP (en `/admin/`, sección *Axes*).
+Para desbloquear antes de tiempo a quien ya se identificó con Sistemas:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web python manage.py axes_reset_username <usuario>
+```
+
+**Contraseñas (A3, A4).** Mínimo 10 caracteres, no comunes, no solo números,
+no parecidas a los datos de la persona. Quien recibe una contraseña de otra
+persona (cuenta nueva, o "Restablecer" en Catálogos → Usuarios) debe
+cambiarla antes de usar el sistema. La cuenta técnica (superusuario) solo la
+modifica otro superusuario.
+
+**`/admin/` solo desde la red interna (A6).** Caddy responde 403 a `/admin/`
+desde cualquier IP fuera de `ADMIN_REDES_PERMITIDAS` (por defecto, las redes
+privadas). Para fijar las redes reales de las sedes, en `.env`:
+
+```bash
+ADMIN_REDES_PERMITIDAS=192.168.10.0/24 10.20.0.0/16
+```
+
+Después de cambiar el `Caddyfile` o esa variable, validar y recargar:
+
+```bash
+docker compose -f docker-compose.prod.yml exec caddy caddy validate --config /etc/caddy/Caddyfile
+docker compose -f docker-compose.prod.yml up -d caddy
+```
+
+Si delante del servidor hay otro proxy o balanceador, Caddy verá su IP y no
+la del usuario: en ese caso hay que declarar ese proxy en `trusted_proxies`
+del Caddyfile antes de confiar en esta regla.

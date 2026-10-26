@@ -8,7 +8,14 @@ from rest_framework.routers import DefaultRouter
 
 import movimientos.views as movimientos_views
 import reportes.views as reportes_views
-from core.api_views import ConfiguracionAPIView, CsrfCookieView, LoginView, LogoutView, MeView
+from core.api_views import (
+    CambiarClaveView,
+    ConfiguracionAPIView,
+    CsrfCookieView,
+    LoginView,
+    LogoutView,
+    MeView,
+)
 from core.viewsets import AreaServicioViewSet, GestorExternoViewSet, SedeViewSet, UsuarioViewSet
 from movimientos.viewsets import MovimientoViewSet, NovedadViewSet
 from reportes.api_views import (
@@ -52,6 +59,7 @@ urlpatterns = [
     path("auth/login/", LoginView.as_view(), name="api-auth-login"),
     path("auth/logout/", LogoutView.as_view(), name="api-auth-logout"),
     path("auth/me/", MeView.as_view(), name="api-auth-me"),
+    path("auth/cambiar-clave/", CambiarClaveView.as_view(), name="api-auth-cambiar-clave"),
     path("configuracion/", ConfiguracionAPIView.as_view(), name="api-configuracion"),
     # Los endpoints de creación reales (ver movimientos.viewsets.MovimientoViewSet:
     # nada de esto pasa por un create() genérico, cada uno reutiliza su Form tal cual).

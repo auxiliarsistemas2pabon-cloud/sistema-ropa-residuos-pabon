@@ -1,5 +1,6 @@
 from django import forms
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
+from django.contrib.auth.forms import PasswordChangeForm
 
 from movimientos.models import EstadoMovimiento, TipoMovimiento
 
@@ -80,19 +81,66 @@ class UsuarioForm(forms.ModelForm):
     groups no son campos del form: los deriva core.signals a partir de
     rol/activo (mismo criterio que UsuarioSerializer en la API)."""
 
-    password = forms.CharField(widget=forms.PasswordInput, label="Contraseña inicial")
+    password = forms.CharField(
+        widget=forms.PasswordInput, label="Contraseña inicial",
+        help_text="Mínimo 10 caracteres. La persona deberá cambiarla la primera vez que entre.",
+        strip=False,
+    )
 
     class Meta:
         model = Usuario
         fields = ["username", "first_name", "last_name", "documento", "rol"]
         labels = {"first_name": "Nombres", "last_name": "Apellidos", "documento": "Documento (opcional)"}
 
+    def _post_clean(self):
+        # Igual que UserCreationForm: la política de contraseñas (A3) se
+        # valida contra la instancia ya armada, para comparar con el nombre
+        # y el usuario de la persona.
+        super()._post_clean()
+        clave = self.cleaned_data.get("password")
+        if clave:
+            try:
+                password_validation.validate_password(clave, self.instance)
+            except forms.ValidationError as error:
+                self.add_error("password", error)
+
     def save(self, commit=True):
         usuario = super().save(commit=False)
         usuario.set_password(self.cleaned_data["password"])
+        # La clave inicial la conoce quien la asignó (A4).
+        usuario.debe_cambiar_clave = True
         if commit:
             usuario.save()
         return usuario
+
+
+class CambioDeClaveForm(PasswordChangeForm):
+    """Cambio de la propia contraseña (A4), en Django y en la API. Exige que
+    la nueva sea distinta de la actual: si no, la clave que asignó la
+    Administradora seguiría vigente."""
+
+    AYUDA_CLAVE = (
+        "Mínimo 10 caracteres. No puede ser una contraseña común, ni solo números, "
+        "ni parecerse a tu nombre o usuario. Sirve una frase corta."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["old_password"].label = "Contraseña actual"
+        self.fields["new_password1"].label = "Contraseña nueva"
+        self.fields["new_password1"].help_text = self.AYUDA_CLAVE
+        self.fields["new_password2"].label = "Repite la contraseña nueva"
+        self.fields["new_password2"].help_text = ""
+
+    def clean_new_password1(self):
+        clave = self.cleaned_data.get("new_password1")
+        if clave and self.user.check_password(clave):
+            raise forms.ValidationError("La nueva contraseña debe ser distinta de la actual.")
+        return clave
+
+    def save(self, commit=True):
+        self.user.debe_cambiar_clave = False
+        return super().save(commit=commit)
 
 
 class ConfiguracionForm(forms.Form):

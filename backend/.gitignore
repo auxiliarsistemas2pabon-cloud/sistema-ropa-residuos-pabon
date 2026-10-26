@@ -16,3 +16,7 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Respaldos en producción (A5): llave pública GPG y punto de montaje vacío
+/llaves/
+/sin-copia-externa/
