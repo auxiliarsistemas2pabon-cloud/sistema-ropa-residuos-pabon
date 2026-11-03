@@ -11,8 +11,8 @@ export interface Usuario {
   rol: Rol;
   es_administradora: boolean;
   is_superuser: boolean;
-  /** Su contraseña la asignó otra persona: debe cambiarla antes de seguir. */
-  debe_cambiar_clave: boolean;
+  /** Solo la Administradora (y la cuenta técnica) cambia su propia contraseña. */
+  puede_cambiar_su_clave: boolean;
 }
 
 export interface CambioDeClave {

@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from .api_errors import form_errors_response
 from .forms import CambioDeClaveForm
 from .permissions import IsAdministradora
+from .services import puede_cambiar_su_clave
 from .serializers import ConfiguracionSerializer, LoginSerializer, UsuarioMeSerializer
 
 
@@ -23,7 +24,7 @@ def _me(usuario):
         "rol": usuario.rol,
         "es_administradora": usuario.es_administradora,
         "is_superuser": usuario.is_superuser,
-        "debe_cambiar_clave": usuario.debe_cambiar_clave,
+        "puede_cambiar_su_clave": puede_cambiar_su_clave(usuario),
     }).data
 
 
@@ -78,11 +79,12 @@ class MeView(APIView):
 
 
 class CambiarClaveView(APIView):
-    """Cambio de la propia contraseña (A4): el mismo CambioDeClaveForm de la
-    pantalla Django, con sus campos old_password, new_password1 y
-    new_password2. La sesión sigue abierta después del cambio."""
+    """La Administradora cambia su propia contraseña: el mismo
+    CambioDeClaveForm de la pantalla Django (old_password, new_password1,
+    new_password2). Usuario y Personal de servicio no pueden: su contraseña
+    solo la cambia la Administradora. La sesión sigue abierta después."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdministradora]
 
     def post(self, request):
         form = CambioDeClaveForm(user=request.user, data=request.data)

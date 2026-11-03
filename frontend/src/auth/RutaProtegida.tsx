@@ -28,11 +28,6 @@ export function RutaProtegida({
     const estado = sesionExpirada ? { desde: location.pathname + location.search } : undefined;
     return <Navigate to="/acceso" replace state={estado} />;
   }
-  // Contraseña asignada por otra persona: nada más hasta cambiarla (el
-  // servidor además responde 403 a todo lo demás).
-  if (usuario.debe_cambiar_clave && location.pathname !== RUTA_CAMBIAR_CLAVE) {
-    return <Navigate to={RUTA_CAMBIAR_CLAVE} replace />;
-  }
   if (paraAdministradora !== undefined && paraAdministradora !== esAdministradora) {
     return <Navigate to="/" replace />;
   }

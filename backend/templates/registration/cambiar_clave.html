@@ -4,11 +4,7 @@
 
 {% block contenido %}
 <h1>Cambiar contraseña</h1>
-{% if obligatorio %}
-  <p class="aviso">Tu contraseña la asignó otra persona. Antes de continuar, cámbiala por una que solo tú conozcas.</p>
-{% else %}
-  <p class="tinta-suave">Tu contraseña es personal: nadie del Área de Sistemas ni la Administradora te la pedirá.</p>
-{% endif %}
+<p class="tinta-suave">Tu contraseña de Administradora. La de cada persona la cambias en Catálogos → Usuarios.</p>
 
 <form method="post" novalidate class="formulario-clave">
   {% csrf_token %}
@@ -18,8 +14,6 @@
   {% include "componentes/_campo.html" with campo=form.new_password2 %}
 
   <button type="submit" class="boton">Guardar contraseña</button>
-  {% if not obligatorio %}
-    <a class="boton boton--texto" href="{% url 'panel_principal' %}">Cancelar</a>
-  {% endif %}
+  <a class="boton boton--texto" href="{% url 'panel_principal' %}">Cancelar</a>
 </form>
 {% endblock %}

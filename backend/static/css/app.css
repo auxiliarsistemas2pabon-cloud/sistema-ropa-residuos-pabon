@@ -54,6 +54,9 @@ body {
 /* Cambiar contraseña (A4) y cerrar sesión: ícono + texto; en celular, solo el ícono. */
 .accion-cabecera { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .formulario-clave { max-width: 420px; }
+/* La Administradora cambia la contraseña de cada persona desde su fila en Catálogos → Usuarios. */
+.cambio-clave summary { cursor: pointer; color: var(--acento); font-weight: var(--peso-medio); }
+.cambio-clave form { display: grid; gap: var(--espacio-2); min-width: 180px; margin-top: var(--espacio-2); }
 
 @media (max-width: 479px) {
   .accion-cabecera__texto { display: none; }

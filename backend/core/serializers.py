@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from .models import AreaServicio, GestorExterno, Sede
-from .services import bloqueo_cuenta_tecnica, bloqueo_de_cuenta
+from .services import bloqueo_asignar_clave, bloqueo_cuenta_tecnica, bloqueo_de_cuenta
 
 Usuario = get_user_model()
 
@@ -29,8 +29,8 @@ class UsuarioMeSerializer(serializers.Serializer):
     rol = serializers.CharField()
     es_administradora = serializers.BooleanField()
     is_superuser = serializers.BooleanField()
-    # El frontend lleva a la persona a cambiar su contraseña antes que nada (A4).
-    debe_cambiar_clave = serializers.BooleanField()
+    # Solo la Administradora (y la cuenta técnica) cambia su propia contraseña.
+    puede_cambiar_su_clave = serializers.BooleanField()
 
 
 class UsuarioActivoSerializer(serializers.Serializer):
@@ -90,6 +90,10 @@ class UsuarioSerializer(serializers.ModelSerializer):
                 campo, motivo = bloqueo
                 raise serializers.ValidationError({campo: [motivo]})
         clave = attrs.get("password")
+        if clave and self.instance is not None and request is not None:
+            motivo = bloqueo_asignar_clave(request.user, self.instance)
+            if motivo:
+                raise serializers.ValidationError({"password": [motivo]})
         if clave:
             # Política de contraseñas (A3), comparada con los datos de la persona.
             candidato = copy.copy(self.instance) if self.instance is not None else Usuario()
@@ -107,8 +111,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
         usuario = Usuario(**validated_data)
         if password:
             usuario.set_password(password)
-            # La clave inicial la conoce quien la asignó (A4).
-            usuario.debe_cambiar_clave = True
         else:
             usuario.set_unusable_password()
         usuario.save()
@@ -120,8 +122,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
             setattr(instance, campo, valor)
         if password:
             instance.set_password(password)
-            request = self.context.get("request")
-            instance.debe_cambiar_clave = request is None or request.user.pk != instance.pk
         instance.save()
         return instance
 

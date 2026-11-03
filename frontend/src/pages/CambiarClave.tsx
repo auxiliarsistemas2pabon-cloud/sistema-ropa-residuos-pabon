@@ -7,9 +7,7 @@ import { erroresDeCampo, type ErroresDeCampo } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Aviso } from "../components/Aviso";
 import { ErrorCampo } from "../components/ErrorCampo";
-
-const AYUDA_CLAVE =
-  "Mínimo 10 caracteres. No puede ser una contraseña común, ni solo números, ni parecerse a tu nombre o usuario. Sirve una frase corta.";
+import { AYUDA_CLAVE } from "../util/claves";
 
 function ErroresServidor({ mensajes }: { mensajes?: string[] }) {
   return (
@@ -23,13 +21,11 @@ function ErroresServidor({ mensajes }: { mensajes?: string[] }) {
   );
 }
 
-/** Cambio de la propia contraseña (protocolo de seguridad, A4). Es también la
- * única pantalla que ve quien entra con una contraseña que le asignó otra
- * persona (cuenta nueva o clave restablecida): RutaProtegida lo trae aquí. */
+/** La Administradora cambia su propia contraseña. Las contraseñas solo las
+ * cambia ella: la de cada persona, en Catálogos → Usuarios. */
 export function CambiarClave() {
-  const { usuario, actualizarUsuario } = useAuth();
+  const { actualizarUsuario } = useAuth();
   const navigate = useNavigate();
-  const obligatorio = Boolean(usuario?.debe_cambiar_clave);
   const [erroresServidor, setErroresServidor] = useState<ErroresDeCampo>({});
   const {
     register,
@@ -52,11 +48,7 @@ export function CambiarClave() {
   return (
     <section className="formulario-clave">
       <h1>Cambiar contraseña</h1>
-      {obligatorio ? (
-        <Aviso>Tu contraseña la asignó otra persona. Antes de continuar, cámbiala por una que solo tú conozcas.</Aviso>
-      ) : (
-        <p className="tinta-suave">Tu contraseña es personal: nadie del Área de Sistemas ni la Administradora te la pedirá.</p>
-      )}
+      <p className="tinta-suave">Tu contraseña de Administradora. La de cada persona la cambias en Catálogos → Usuarios.</p>
 
       <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
         {erroresServidor.non_field_errors?.map((mensaje) => (

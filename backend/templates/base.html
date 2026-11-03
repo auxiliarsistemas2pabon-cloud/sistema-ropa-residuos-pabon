@@ -23,6 +23,8 @@
           {% if user.es_administradora or user.is_superuser %}Administradora{% else %}{{ user.get_rol_display }}{% endif %}
         </span>
       </span>
+      {% if user.es_administradora or user.is_superuser %}
+      {# Solo la Administradora cambia contraseñas, empezando por la suya. #}
       <a class="boton boton--texto accion-cabecera" href="{% url 'cambiar_clave' %}" title="Cambiar contraseña" aria-label="Cambiar contraseña">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"></path>
@@ -31,6 +33,7 @@
         </svg>
         <span class="accion-cabecera__texto">Contraseña</span>
       </a>
+      {% endif %}
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
         <button type="submit" class="boton boton--texto accion-cabecera" aria-label="Cerrar sesión">

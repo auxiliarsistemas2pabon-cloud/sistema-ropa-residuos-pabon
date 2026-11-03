@@ -48,7 +48,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
-    "core.middleware.CambioDeClaveObligatorio",
     # Último: convierte el bloqueo por intentos fallidos en la respuesta de
     # core.seguridad.respuesta_bloqueo.
     "axes.middleware.AxesMiddleware",
@@ -95,8 +94,8 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
 
-# Protocolo de seguridad, A3: mínimo 10 caracteres. Se aplica también a las
-# contraseñas que asigna la Administradora (core.forms / core.serializers).
+# Protocolo de seguridad, A3: mínimo 10 caracteres. Las contraseñas solo las
+# asigna la Administradora (Catálogos), y la regla vale también ahí.
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {

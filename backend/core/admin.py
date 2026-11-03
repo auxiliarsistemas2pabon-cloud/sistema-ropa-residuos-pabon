@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import AdminPasswordChangeForm
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import AreaColor, AreaServicio, Color, GestorExterno, Sede, Usuario
@@ -41,18 +40,8 @@ class ColorAdmin(SinBorrado, SimpleHistoryAdmin):
     search_fields = ["nombre"]
 
 
-class ClaveAsignadaForm(AdminPasswordChangeForm):
-    """Contraseña puesta desde el admin por otra persona: se exige cambiarla
-    al entrar (protocolo de seguridad, A4)."""
-
-    def save(self, commit=True):
-        self.user.debe_cambiar_clave = True
-        return super().save(commit=commit)
-
-
 @admin.register(Usuario)
 class UsuarioAdmin(SinBorrado, UserAdmin, SimpleHistoryAdmin):
-    change_password_form = ClaveAsignadaForm
     list_display = ["username", "get_full_name", "rol", "documento", "activo"]
     list_filter = ["rol", "activo"]
     readonly_fields = ["last_login", "date_joined"]
@@ -61,7 +50,7 @@ class UsuarioAdmin(SinBorrado, UserAdmin, SimpleHistoryAdmin):
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         ("Datos personales", {"fields": ("first_name", "last_name", "email", "documento")}),
-        ("Rol y estado", {"fields": ("rol", "activo", "debe_cambiar_clave")}),
+        ("Rol y estado", {"fields": ("rol", "activo")}),
         ("Fechas", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
@@ -78,12 +67,6 @@ class UsuarioAdmin(SinBorrado, UserAdmin, SimpleHistoryAdmin):
         if obj is not None and obj.is_superuser and not request.user.is_superuser:
             return False
         return super().has_change_permission(request, obj)
-
-    def save_model(self, request, obj, form, change):
-        if not change:
-            # La clave inicial la conoce quien creó la cuenta (A4).
-            obj.debe_cambiar_clave = True
-        super().save_model(request, obj, form, change)
 
 
 @admin.register(GestorExterno)

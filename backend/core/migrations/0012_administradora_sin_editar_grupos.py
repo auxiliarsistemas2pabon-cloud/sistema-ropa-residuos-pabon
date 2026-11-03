@@ -29,6 +29,6 @@ def devolver(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("core", "0012_debe_cambiar_clave"),
+        ("core", "0011_pisos_especialidades_pabon"),
     ]
     operations = [migrations.RunPython(quitar, devolver)]

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 
 from movimientos.models import EstadoMovimiento, TipoMovimiento
 
@@ -82,8 +82,8 @@ class UsuarioForm(forms.ModelForm):
     rol/activo (mismo criterio que UsuarioSerializer en la API)."""
 
     password = forms.CharField(
-        widget=forms.PasswordInput, label="Contraseña inicial",
-        help_text="Mínimo 10 caracteres. La persona deberá cambiarla la primera vez que entre.",
+        widget=forms.PasswordInput, label="Contraseña",
+        help_text="Mínimo 10 caracteres. Solo la Administradora puede cambiarla después.",
         strip=False,
     )
 
@@ -107,28 +107,39 @@ class UsuarioForm(forms.ModelForm):
     def save(self, commit=True):
         usuario = super().save(commit=False)
         usuario.set_password(self.cleaned_data["password"])
-        # La clave inicial la conoce quien la asignó (A4).
-        usuario.debe_cambiar_clave = True
         if commit:
             usuario.save()
         return usuario
 
 
-class CambioDeClaveForm(PasswordChangeForm):
-    """Cambio de la propia contraseña (A4), en Django y en la API. Exige que
-    la nueva sea distinta de la actual: si no, la clave que asignó la
-    Administradora seguiría vigente."""
+AYUDA_CLAVE = (
+    "Mínimo 10 caracteres. No puede ser una contraseña común, ni solo números, "
+    "ni parecerse al nombre o al usuario. Sirve una frase corta."
+)
 
-    AYUDA_CLAVE = (
-        "Mínimo 10 caracteres. No puede ser una contraseña común, ni solo números, "
-        "ni parecerse a tu nombre o usuario. Sirve una frase corta."
-    )
+
+class AsignarClaveForm(SetPasswordForm):
+    """Las contraseñas solo las cambia la Administradora (decisión de la
+    institución, 2026-10-26): así asigna la de otra persona, en Django y en
+    la API. Usuario y Personal de servicio no cambian la suya."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].label = "Contraseña nueva"
+        self.fields["new_password1"].help_text = AYUDA_CLAVE
+        self.fields["new_password2"].label = "Repite la contraseña nueva"
+        self.fields["new_password2"].help_text = ""
+
+
+class CambioDeClaveForm(PasswordChangeForm):
+    """La Administradora (o la cuenta técnica) cambia su propia contraseña,
+    confirmando la actual. Exige que la nueva sea distinta."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["old_password"].label = "Contraseña actual"
         self.fields["new_password1"].label = "Contraseña nueva"
-        self.fields["new_password1"].help_text = self.AYUDA_CLAVE
+        self.fields["new_password1"].help_text = AYUDA_CLAVE
         self.fields["new_password2"].label = "Repite la contraseña nueva"
         self.fields["new_password2"].help_text = ""
 
@@ -137,10 +148,6 @@ class CambioDeClaveForm(PasswordChangeForm):
         if clave and self.user.check_password(clave):
             raise forms.ValidationError("La nueva contraseña debe ser distinta de la actual.")
         return clave
-
-    def save(self, commit=True):
-        self.user.debe_cambiar_clave = False
-        return super().save(commit=commit)
 
 
 class ConfiguracionForm(forms.Form):

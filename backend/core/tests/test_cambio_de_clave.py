@@ -1,11 +1,8 @@
-"""Protocolo de seguridad, A4: quien recibe una contraseña asignada por otra
-persona debe cambiarla antes de usar el sistema, y cada quien puede cambiar
-la suya. Incluye el restablecimiento con clave temporal."""
-import re
-
+"""Las contraseñas solo las cambia la Administradora (decisión de la
+institución, 2026-10-26): ella cambia la suya y asigna la de cada persona;
+Usuario y Personal de servicio no pueden cambiar la propia."""
 import pytest
 from django.contrib.auth import get_user_model
-from django.core.management import call_command
 from django.urls import reverse
 
 Usuario = get_user_model()
@@ -15,138 +12,130 @@ NUEVA = "una frase larga y propia"
 
 
 @pytest.fixture
-def obligado(db):
-    return Usuario.objects.create_user(
-        username="nuevo", password="Temporal-2026-x", rol=Usuario.Rol.USUARIO, debe_cambiar_clave=True,
-    )
+def servicio(db):
+    return Usuario.objects.create_user(username="servicio1", password="clave-de-prueba", rol=Usuario.Rol.SERVICIO)
 
 
-# --- Quién queda obligado ------------------------------------------------
+# --- Usuario y Personal de servicio no cambian su contraseña ----------------
 
-def test_cuenta_creada_por_la_administradora_debe_cambiar_clave(api_client, administradora):
-    api_client.force_authenticate(user=administradora)
-    resp = api_client.post(
-        reverse("api-usuario-list"), {"username": "nueva-operaria", "password": "clave-segura-1", "rol": "USUARIO"},
-    )
-    assert resp.status_code == 201
-    assert Usuario.objects.get(username="nueva-operaria").debe_cambiar_clave is True
-
-
-def test_cuenta_creada_en_catalogos_django_debe_cambiar_clave(client, administradora):
-    client.force_login(administradora)
-    client.post(reverse("catalogos_parametros"), {
-        "formulario": "usuario", "usuario-username": "nuevo2", "usuario-first_name": "Ana",
-        "usuario-last_name": "Ruiz", "usuario-rol": "USUARIO", "usuario-password": "clave-segura-1",
+@pytest.mark.parametrize("quien", ["usuario", "servicio"])
+def test_api_personal_de_piso_no_cambia_su_clave(api_client, request, quien):
+    persona = request.getfixturevalue(quien)
+    api_client.force_login(persona)
+    assert api_client.get(reverse("api-auth-me")).json()["puede_cambiar_su_clave"] is False
+    resp = api_client.post(reverse("api-auth-cambiar-clave"), {
+        "old_password": "clave-de-prueba", "new_password1": NUEVA, "new_password2": NUEVA,
     })
-    assert Usuario.objects.get(username="nuevo2").debe_cambiar_clave is True
-
-
-def test_cuentas_existentes_y_superusuarios_no_quedan_obligados(usuario):
-    assert usuario.debe_cambiar_clave is False
-    assert Usuario.objects.create_superuser(username="tecnico", password="x").debe_cambiar_clave is False
-
-
-def test_comando_exige_cambio_a_las_cuentas_existentes(usuario, administradora):
-    Usuario.objects.create_superuser(username="tecnico", password="x")
-    call_command("exigir_cambio_clave", "--todos")
-    assert set(Usuario.objects.filter(debe_cambiar_clave=True).values_list("username", flat=True)) == {"operario", "jefa"}
-
-
-# --- Qué puede hacer mientras tanto ---------------------------------------
-
-def test_api_bloquea_todo_menos_auth(api_client, obligado):
-    api_client.force_login(obligado)
-    assert api_client.get(reverse("api-auth-me")).json()["debe_cambiar_clave"] is True
-    resp = api_client.get(reverse("api-movimiento-hoy"))
     assert resp.status_code == 403
-    assert "cambiar la contraseña" in resp.json()["detail"]
+    persona.refresh_from_db()
+    assert persona.check_password("clave-de-prueba")
 
 
-def test_pantallas_django_llevan_a_cambiar_la_clave(client, obligado):
-    client.force_login(obligado)
-    resp = client.get(reverse("panel_principal"))
-    assert resp.status_code == 302
-    assert resp["Location"] == reverse("cambiar_clave")
-    assert client.get(reverse("cambiar_clave")).status_code == 200
+@pytest.mark.parametrize("quien", ["usuario", "servicio"])
+def test_pantalla_django_de_cambio_es_solo_de_la_administradora(client, request, quien):
+    client.force_login(request.getfixturevalue(quien))
+    assert client.get(reverse("cambiar_clave")).status_code == 403
+    assert "Cambiar contraseña" not in client.get(reverse("panel_principal")).content.decode()
 
 
-# --- Cambio de la propia contraseña ---------------------------------------
-
-def _cambiar(api_client, actual, nueva, repetida=None):
-    return api_client.post(reverse("api-auth-cambiar-clave"), {
-        "old_password": actual, "new_password1": nueva, "new_password2": repetida or nueva,
-    })
-
-
-def test_api_cambio_valido_libera_la_cuenta_y_mantiene_la_sesion(api_client, obligado):
-    api_client.force_login(obligado)
-    resp = _cambiar(api_client, "Temporal-2026-x", NUEVA)
-    assert resp.status_code == 200
-    assert resp.json()["debe_cambiar_clave"] is False
-    obligado.refresh_from_db()
-    assert obligado.check_password(NUEVA)
+def test_nadie_queda_obligado_a_cambiar_la_clave_al_entrar(api_client, administradora):
+    api_client.force_authenticate(user=administradora)
+    # JSON, como React: en multipart un booleano ausente (activo) vale False.
+    api_client.post(
+        reverse("api-usuario-list"), {"username": "nueva", "password": "clave-segura-1", "rol": "USUARIO"}, format="json",
+    )
+    nueva = Usuario.objects.get(username="nueva")
+    api_client.force_authenticate(user=None)
+    api_client.force_login(nueva)
     assert api_client.get(reverse("api-movimiento-hoy")).status_code == 200
+
+
+# --- La Administradora cambia la suya ---------------------------------------
+
+def test_api_administradora_cambia_su_clave_y_sigue_en_sesion(api_client, administradora):
+    api_client.force_login(administradora)
+    assert api_client.get(reverse("api-auth-me")).json()["puede_cambiar_su_clave"] is True
+    resp = api_client.post(reverse("api-auth-cambiar-clave"), {
+        "old_password": "clave-de-prueba", "new_password1": NUEVA, "new_password2": NUEVA,
+    })
+    assert resp.status_code == 200
+    administradora.refresh_from_db()
+    assert administradora.check_password(NUEVA)
+    assert api_client.get(reverse("api-auth-me")).status_code == 200
 
 
 @pytest.mark.parametrize(("actual", "nueva", "campo"), [
     ("equivocada", NUEVA, "old_password"),
-    ("Temporal-2026-x", "Temporal-2026-x", "new_password1"),
-    ("Temporal-2026-x", "corta1", "new_password2"),
-    ("Temporal-2026-x", "12345678901", "new_password2"),
+    ("clave-de-prueba", "clave-de-prueba", "new_password1"),
+    ("clave-de-prueba", "corta1", "new_password2"),
 ])
-def test_api_rechaza_cambios_invalidos(api_client, obligado, actual, nueva, campo):
-    api_client.force_login(obligado)
-    resp = _cambiar(api_client, actual, nueva)
+def test_api_rechaza_cambios_invalidos_de_la_propia(api_client, administradora, actual, nueva, campo):
+    api_client.force_login(administradora)
+    resp = api_client.post(reverse("api-auth-cambiar-clave"), {
+        "old_password": actual, "new_password1": nueva, "new_password2": nueva,
+    })
     assert resp.status_code == 400
     assert campo in resp.json()
-    obligado.refresh_from_db()
-    assert obligado.debe_cambiar_clave is True
 
 
-def test_pantalla_django_cambia_la_clave(client, obligado):
-    client.force_login(obligado)
+def test_pantalla_django_administradora_cambia_su_clave(client, administradora):
+    client.force_login(administradora)
     resp = client.post(reverse("cambiar_clave"), {
-        "old_password": "Temporal-2026-x", "new_password1": NUEVA, "new_password2": NUEVA,
+        "old_password": "clave-de-prueba", "new_password1": NUEVA, "new_password2": NUEVA,
     })
-    assert resp.status_code == 302
     assert resp["Location"] == reverse("panel_principal")
-    obligado.refresh_from_db()
-    assert obligado.debe_cambiar_clave is False
+    administradora.refresh_from_db()
+    assert administradora.check_password(NUEVA)
     assert client.get(reverse("panel_principal")).status_code == 200
 
 
-# --- Restablecer con clave temporal ----------------------------------------
+# --- La Administradora asigna la de otra persona ----------------------------
 
-def test_administradora_restablece_con_clave_temporal(api_client, administradora, usuario):
+def test_api_administradora_asigna_la_clave_de_otra_persona(api_client, administradora, usuario):
     api_client.force_authenticate(user=administradora)
-    resp = api_client.post(reverse("api-usuario-restablecer-clave", args=[usuario.pk]))
-    assert resp.status_code == 200
-    clave = resp.json()["clave_temporal"]
-    assert re.fullmatch(r"[A-Za-z2-9]{4}-[A-Za-z2-9]{4}-[A-Za-z2-9]{4}", clave)
+    resp = api_client.post(reverse("api-usuario-clave", args=[usuario.pk]), {"new_password1": NUEVA, "new_password2": NUEVA})
+    assert resp.status_code == 204
     usuario.refresh_from_db()
-    assert usuario.check_password(clave)
-    assert usuario.debe_cambiar_clave is True
+    assert usuario.check_password(NUEVA)
 
 
-def test_nadie_restablece_su_propia_clave_ni_la_cuenta_tecnica(api_client, administradora):
+def test_api_la_clave_asignada_cumple_la_politica(api_client, administradora, usuario):
+    api_client.force_authenticate(user=administradora)
+    resp = api_client.post(reverse("api-usuario-clave", args=[usuario.pk]), {"new_password1": "corta", "new_password2": "corta"})
+    assert resp.status_code == 400
+    assert "new_password2" in resp.json()
+    usuario.refresh_from_db()
+    assert usuario.check_password("clave-de-prueba")
+
+
+def test_api_ni_la_propia_ni_la_cuenta_tecnica_se_asignan_desde_catalogos(api_client, administradora):
     tecnico = Usuario.objects.create_superuser(username="tecnico", password="x")
     api_client.force_authenticate(user=administradora)
     for cuenta in (administradora, tecnico):
-        resp = api_client.post(reverse("api-usuario-restablecer-clave", args=[cuenta.pk]))
+        resp = api_client.post(reverse("api-usuario-clave", args=[cuenta.pk]), {"new_password1": NUEVA, "new_password2": NUEVA})
+        assert resp.status_code == 400
+        resp = api_client.patch(reverse("api-usuario-detail", args=[cuenta.pk]), {"password": NUEVA})
         assert resp.status_code == 400
     assert tecnico.check_password("x")
 
 
-def test_operario_no_puede_restablecer(api_client, usuario, administradora):
+def test_api_operario_no_asigna_claves(api_client, usuario, administradora):
     api_client.force_authenticate(user=usuario)
-    resp = api_client.post(reverse("api-usuario-restablecer-clave", args=[administradora.pk]))
+    resp = api_client.post(reverse("api-usuario-clave", args=[administradora.pk]), {"new_password1": NUEVA, "new_password2": NUEVA})
     assert resp.status_code == 403
 
 
-def test_pantalla_django_muestra_la_clave_temporal_una_vez(client, administradora, usuario):
+def test_pantalla_django_administradora_asigna_la_clave(client, administradora, usuario):
     client.force_login(administradora)
-    resp = client.post(reverse("restablecer_clave", args=[usuario.pk]), follow=True)
-    clave = re.search(r"Contraseña temporal de .+?: (\S{14})", resp.content.decode()).group(1)
+    resp = client.post(reverse("asignar_clave", args=[usuario.pk]), {"new_password1": NUEVA, "new_password2": NUEVA}, follow=True)
+    assert "cambiada" in resp.content.decode()
     usuario.refresh_from_db()
-    assert usuario.check_password(clave)
-    assert usuario.debe_cambiar_clave is True
+    assert usuario.check_password(NUEVA)
+
+
+def test_pantalla_django_avisa_si_la_clave_asignada_no_sirve(client, administradora, usuario):
+    client.force_login(administradora)
+    resp = client.post(reverse("asignar_clave", args=[usuario.pk]), {"new_password1": NUEVA, "new_password2": "otra"}, follow=True)
+    assert "No se cambió la contraseña" in resp.content.decode()
+    usuario.refresh_from_db()
+    assert usuario.check_password("clave-de-prueba")

@@ -154,11 +154,15 @@
                 </td>
                 <td>
                   {% if usuario.pk != request.user.pk %}{% if not usuario.is_superuser or request.user.is_superuser %}
-                    <form class="form-en-linea" method="post" action="{% url 'restablecer_clave' usuario.pk %}"
-                          onsubmit="return confirm('¿Dar una contraseña temporal a {{ usuario|escapejs }}? La actual deja de servir y deberá cambiarla al entrar.')">
-                      {% csrf_token %}
-                      <button type="submit" class="boton boton--texto">Restablecer</button>
-                    </form>
+                    <details class="cambio-clave">
+                      <summary>Cambiar</summary>
+                      <form method="post" action="{% url 'asignar_clave' usuario.pk %}">
+                        {% csrf_token %}
+                        <input type="password" name="new_password1" placeholder="Contraseña nueva" aria-label="Contraseña nueva de {{ usuario }}" minlength="10" autocomplete="new-password" required>
+                        <input type="password" name="new_password2" placeholder="Repítela" aria-label="Repite la contraseña nueva de {{ usuario }}" minlength="10" autocomplete="new-password" required>
+                        <button type="submit" class="boton">Guardar</button>
+                      </form>
+                    </details>
                   {% endif %}{% endif %}
                 </td>
               </tr>

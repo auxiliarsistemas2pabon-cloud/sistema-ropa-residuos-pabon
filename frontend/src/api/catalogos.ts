@@ -181,11 +181,13 @@ export async function actualizarUsuario(id: number, cambios: Partial<Usuario>): 
   const { data } = await api.patch<Usuario>(`/usuarios/${id}/`, cambios);
   return data;
 }
-/** Contraseña temporal para quien olvidó la suya: el servidor la muestra una
- * sola vez y la persona debe cambiarla al entrar. */
-export async function restablecerClaveUsuario(id: number): Promise<string> {
-  const { data } = await api.post<{ clave_temporal: string }>(`/usuarios/${id}/restablecer-clave/`);
-  return data.clave_temporal;
+/** Las contraseñas solo las cambia la Administradora: así le pone una nueva a
+ * otra persona (validada con la misma política de contraseñas). */
+export async function asignarClaveUsuario(
+  id: number,
+  datos: { new_password1: string; new_password2: string },
+): Promise<void> {
+  await api.post(`/usuarios/${id}/clave/`, datos);
 }
 
 export async function obtenerConfiguracion(): Promise<Configuracion> {

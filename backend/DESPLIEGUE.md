@@ -37,13 +37,9 @@ docker compose -f docker-compose.prod.yml exec web python manage.py createsuperu
 
 Luego, en `/admin/` → Usuarios, asignarle rol **Administradora**.
 
-Las cuentas que cree la Administradora (o a las que les restablezca la
-contraseña) deben cambiar la clave al entrar. Si la base ya tenía cuentas
-creadas antes de esa regla, exigirles el cambio una vez:
-
-```bash
-docker compose -f docker-compose.prod.yml exec web python manage.py exigir_cambio_clave --todos
-```
+Las contraseñas solo las cambia la Administradora: la de cada persona en
+Catálogos → Usuarios (botón "Clave") y la suya en "Contraseña", arriba a la
+derecha. Usuario y Personal de servicio no pueden cambiar la propia.
 
 ## 3. Actualizaciones
 
@@ -206,10 +202,10 @@ docker compose -f docker-compose.prod.yml exec web python manage.py axes_reset_u
 ```
 
 **Contraseñas (A3, A4).** Mínimo 10 caracteres, no comunes, no solo números,
-no parecidas a los datos de la persona. Quien recibe una contraseña de otra
-persona (cuenta nueva, o "Restablecer" en Catálogos → Usuarios) debe
-cambiarla antes de usar el sistema. La cuenta técnica (superusuario) solo la
-modifica otro superusuario.
+no parecidas a los datos de la persona. Solo la Administradora las asigna y
+las cambia (Catálogos → Usuarios → "Clave"); Usuario y Personal de servicio no
+pueden cambiar la propia. La cuenta técnica (superusuario) solo la modifica
+otro superusuario.
 
 **`/admin/` solo desde la red interna (A6).** Caddy responde 403 a `/admin/`
 desde cualquier IP fuera de `ADMIN_REDES_PERMITIDAS` (por defecto, las redes

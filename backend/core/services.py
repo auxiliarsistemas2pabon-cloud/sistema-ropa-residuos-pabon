@@ -1,27 +1,13 @@
-import secrets
-
 from django.contrib.auth import get_user_model
 
 Usuario = get_user_model()
 
-# Sin los caracteres que se confunden al dictar o leer en papel (0/O, 1/l/I).
-_ALFABETO_CLAVE = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
-
-def generar_clave_temporal():
-    """Contraseña temporal en 3 grupos de 4 (p. ej. `Kp7m-Qx4r-W9tz`): fácil de
-    entregar en persona y lejos de cualquier contraseña común."""
-    return "-".join("".join(secrets.choice(_ALFABETO_CLAVE) for _ in range(4)) for _ in range(3))
-
-
-def asignar_clave_temporal(usuario):
-    """Restablece la contraseña de `usuario` y le exige cambiarla al entrar
-    (protocolo de seguridad, A4). Devuelve la clave para entregarla una vez."""
-    clave = generar_clave_temporal()
-    usuario.set_password(clave)
-    usuario.debe_cambiar_clave = True
-    usuario.save()
-    return clave
+def puede_cambiar_su_clave(usuario):
+    """Las contraseñas solo las cambia la Administradora (decisión de la
+    institución, 2026-10-26): ella y la cuenta técnica cambian la suya; Usuario
+    y Personal de servicio, no."""
+    return usuario.is_authenticated and (usuario.is_superuser or usuario.es_administradora)
 
 
 def bloqueo_cuenta_tecnica(actor, usuario):
@@ -35,10 +21,11 @@ def bloqueo_cuenta_tecnica(actor, usuario):
     return None
 
 
-def bloqueo_restablecer_clave(actor, usuario):
-    """None si `actor` puede darle una contraseña temporal a `usuario`."""
+def bloqueo_asignar_clave(actor, usuario):
+    """None si `actor` puede asignarle una contraseña nueva a `usuario`. La
+    propia se cambia en «Cambiar contraseña», confirmando la actual."""
     if usuario.pk == actor.pk:
-        return "Tu propia contraseña la cambias tú, en «Cambiar contraseña»."
+        return "Tu propia contraseña la cambias en «Contraseña», arriba a la derecha."
     return bloqueo_cuenta_tecnica(actor, usuario)
 
 

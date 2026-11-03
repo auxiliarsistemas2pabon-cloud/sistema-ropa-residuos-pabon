@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, m } from "framer-motion";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Despliega } from "../../components/Animacion";
 import { useListaAnimada } from "../../components/useListaAnimada";
 import { useAuth } from "../../auth/AuthContext";
 import { pesos } from "../../util/formatos";
+import { AYUDA_CLAVE } from "../../util/claves";
 import { erroresDeCampo, mensajeDeError, type ErroresDeCampo } from "../../api/client";
 import {
   actualizarConfiguracion,
@@ -26,7 +27,7 @@ import {
   listarTodosLosServicios,
   listarTodosLosUsuarios,
   obtenerConfiguracion,
-  restablecerClaveUsuario,
+  asignarClaveUsuario,
   type AreaServicio,
   type Configuracion,
   type GestorExterno,
@@ -486,6 +487,7 @@ function GestoresSeccion() {
 }
 
 const CUENTA_TECNICA = "La cuenta técnica solo la modifica el Área de Sistemas.";
+const nombreDe = (u: Usuario) => `${u.first_name} ${u.last_name}`.trim() || u.username;
 
 const ROLES: [Rol, string][] = [
   ["USUARIO", "Usuario"],
@@ -529,18 +531,34 @@ function UsuariosSeccion() {
       void qc.invalidateQueries({ queryKey: ["catalogo-usuarios"] });
     },
   });
-  // La clave temporal se muestra una sola vez: el servidor no la vuelve a dar.
-  const [claveTemporal, setClaveTemporal] = useState<{ nombre: string; clave: string } | null>(null);
-  const restablecer = useMutation({
-    mutationFn: (u: Usuario) => restablecerClaveUsuario(u.id),
-    onSuccess: (clave, u) => setClaveTemporal({ nombre: `${u.first_name} ${u.last_name}`.trim() || u.username, clave }),
+  // Las contraseñas solo las cambia la Administradora: el botón «Clave» de cada
+  // fila abre este formulario arriba de la tabla.
+  const [cambiandoClave, setCambiandoClave] = useState<Usuario | null>(null);
+  const [claves, setClaves] = useState({ new_password1: "", new_password2: "" });
+  const [erroresClave, setErroresClave] = useState<ErroresDeCampo>({});
+  const primerCampoClave = useRef<HTMLInputElement>(null);
+  const asignarClave = useMutation({
+    mutationFn: (u: Usuario) => asignarClaveUsuario(u.id, claves),
+    onSuccess: (_dato, u) => {
+      toast.success(`Contraseña de ${nombreDe(u)} cambiada. Entrégasela en persona.`);
+      setCambiandoClave(null);
+    },
+    onError: (e) => setErroresClave(erroresDeCampo(e)),
   });
+  const abrirCambioDeClave = (u: Usuario) => {
+    setClaves({ new_password1: "", new_password2: "" });
+    setErroresClave({});
+    setCambiandoClave(u);
+  };
+  useEffect(() => {
+    // En celular el formulario queda lejos de la fila: el foco lo trae a la vista.
+    if (cambiandoClave) primerCampoClave.current?.focus();
+  }, [cambiandoClave]);
 
   const activos = (usuarios ?? []).filter((u) => u.activo).length;
 
   const alternar = toggle.mutate;
   const cambiarRolDe = cambiarRol.mutate;
-  const restablecerDe = restablecer.mutate;
   const soyTecnico = Boolean(yo?.is_superuser);
   const columnas = useMemo<ColumnDef<Usuario>[]>(
     () => [
@@ -619,9 +637,9 @@ function UsuariosSeccion() {
           const u = row.original;
           const esYo = u.id === yo?.id;
           const cuentaTecnica = u.is_superuser && !soyTecnico;
-          const nombreCompleto = `${u.first_name} ${u.last_name}`.trim() || u.username;
+          const nombreCompleto = nombreDe(u);
           const sinClave = esYo
-            ? "Tu contraseña la cambias tú, en «Contraseña», arriba a la derecha."
+            ? "Tu contraseña la cambias en «Contraseña», arriba a la derecha."
             : cuentaTecnica
               ? CUENTA_TECNICA
               : !u.activo
@@ -633,12 +651,8 @@ function UsuariosSeccion() {
               className="boton-accion"
               disabled={sinClave !== undefined}
               title={sinClave}
-              aria-label={`Restablecer la contraseña de ${nombreCompleto}`}
-              onClick={() => {
-                if (window.confirm(`¿Dar una contraseña temporal a ${nombreCompleto}? La actual deja de servir y deberá cambiarla al entrar.`)) {
-                  restablecerDe(u);
-                }
-              }}
+              aria-label={`Cambiar la contraseña de ${nombreCompleto}`}
+              onClick={() => abrirCambioDeClave(u)}
             >
               <IconoLlave size={16} /> <span className="texto-accion">Clave</span>
             </button>
@@ -678,7 +692,8 @@ function UsuariosSeccion() {
         },
       },
     ],
-    [yo?.id, soyTecnico, cambiarRolDe, alternar, restablecerDe],
+    // abrirCambioDeClave no va en la lista: solo usa setters de estado, que no cambian entre renders.
+    [yo?.id, soyTecnico, cambiarRolDe, alternar],
   );
 
   return (
@@ -693,19 +708,57 @@ function UsuariosSeccion() {
     >
       {toggle.isError && <Aviso error>{mensajeDeError(toggle.error)}</Aviso>}
       {cambiarRol.isError && <Aviso error>{mensajeDeError(cambiarRol.error)}</Aviso>}
-      {restablecer.isError && <Aviso error>{mensajeDeError(restablecer.error)}</Aviso>}
-      {claveTemporal && (
-        <div className="aviso" role="status">
-          <p>
-            Contraseña temporal de <strong>{claveTemporal.nombre}</strong>:
-          </p>
-          <p className="clave-temporal">{claveTemporal.clave}</p>
-          <p>Entrégala en persona; deberá cambiarla al entrar. No se volverá a mostrar.</p>
-          <button type="button" className="boton-accion boton-accion--primaria" onClick={() => setClaveTemporal(null)}>
-            Listo, ya la entregué
-          </button>
-        </div>
-      )}
+      <Despliega abierto={cambiandoClave !== null}>
+        {cambiandoClave && (
+          <form
+            className="panel-formulario"
+            onSubmit={(e) => {
+              e.preventDefault();
+              asignarClave.mutate(cambiandoClave);
+            }}
+          >
+            <h3>Cambiar la contraseña de {nombreDe(cambiandoClave)}</h3>
+            {erroresClave.non_field_errors && <Aviso error>{erroresClave.non_field_errors[0]}</Aviso>}
+            <div className="rejilla-campos">
+              <div className="campo">
+                <label htmlFor="us-clave-1">Contraseña nueva</label>
+                <input
+                  id="us-clave-1"
+                  ref={primerCampoClave}
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={10}
+                  aria-describedby="us-clave-ayuda"
+                  value={claves.new_password1}
+                  onChange={(e) => setClaves((c) => ({ ...c, new_password1: e.target.value }))}
+                  required
+                />
+                <p className="campo__ayuda" id="us-clave-ayuda">{AYUDA_CLAVE}</p>
+                {/* Django deja los errores de la política en el campo de confirmación. */}
+                {[...(erroresClave.new_password1 ?? []), ...(erroresClave.new_password2 ?? [])].map((mensaje) => (
+                  <p className="campo__error" key={mensaje}>{mensaje}</p>
+                ))}
+              </div>
+              <div className="campo">
+                <label htmlFor="us-clave-2">Repite la contraseña nueva</label>
+                <input
+                  id="us-clave-2"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={10}
+                  value={claves.new_password2}
+                  onChange={(e) => setClaves((c) => ({ ...c, new_password2: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+            <div className="acciones-formulario">
+              <button type="submit" className="boton" disabled={asignarClave.isPending}>Guardar contraseña</button>
+              <button type="button" className="boton-accion" onClick={() => setCambiandoClave(null)}>Cancelar</button>
+            </div>
+          </form>
+        )}
+      </Despliega>
 
       <Despliega abierto={abierto}>
         <form
@@ -745,7 +798,7 @@ function UsuariosSeccion() {
             <div className="campo">
               <label htmlFor="us-password">Contraseña inicial</label>
               <input id="us-password" type="password" autoComplete="new-password" minLength={10} aria-describedby="us-password-ayuda" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
-              <p className="campo__ayuda" id="us-password-ayuda">Mínimo 10 caracteres. La persona deberá cambiarla la primera vez que entre.</p>
+              <p className="campo__ayuda" id="us-password-ayuda">Mínimo 10 caracteres. Solo la Administradora puede cambiarla después.</p>
               {errores.password?.map((mensaje) => <p className="campo__error" key={mensaje}>{mensaje}</p>)}
             </div>
           </div>

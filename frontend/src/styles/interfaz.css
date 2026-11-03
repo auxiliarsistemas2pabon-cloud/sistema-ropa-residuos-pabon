@@ -261,8 +261,5 @@ form > section:not([hidden]) { animation: paso-entra 0.32s ease-out; }
   .acceso::after { top: 50%; margin-top: -10px; right: 16px; }
 }
 
-/* --- Cambiar contraseña (protocolo de seguridad, A4) --- */
+/* --- Cambiar contraseña (solo la Administradora) --- */
 .formulario-clave { max-width: 460px; }
-
-/* Contraseña temporal recién restablecida: se lee y se dicta, en letra fija. */
-.clave-temporal { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: var(--texto-lg); font-weight: var(--peso-bold); letter-spacing: 0.06em; overflow-wrap: anywhere; }

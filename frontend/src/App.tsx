@@ -53,7 +53,6 @@ export default function App() {
                 <Route path="/movimiento/:id/corregir" element={<EditarMovimiento />} />
                 <Route path="/dia-anterior" element={<DiaAnterior />} />
                 <Route path="/ropa/corte-control" element={<CorteControl />} />
-                <Route path={RUTA_CAMBIAR_CLAVE} element={<CambiarClave />} />
                 {/* Cualquier dirección que no exista lleva al panel, no a una pantalla en blanco. */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
@@ -83,6 +82,8 @@ export default function App() {
                 <Route path="/residuos/entrega-gestor" element={<EntregaGestor />} />
                 <Route path="/catalogos" element={<Catalogos />} />
                 <Route path="/novedades" element={<Novedades />} />
+                {/* Las contraseñas solo las cambia la Administradora, empezando por la suya. */}
+                <Route path={RUTA_CAMBIAR_CLAVE} element={<CambiarClave />} />
               </Route>
             </Route>
           </Routes>

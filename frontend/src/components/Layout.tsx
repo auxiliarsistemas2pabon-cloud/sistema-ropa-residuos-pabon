@@ -47,10 +47,12 @@ export function Layout() {
                 {esAdministradora ? "Administradora" : ETIQUETA_ROL[usuario.rol] ?? "Usuario"}
               </span>
             </span>
-            <Link className="boton-salir" to={RUTA_CAMBIAR_CLAVE} title="Cambiar contraseña" aria-label="Cambiar contraseña">
-              <IconoLlave />
-              <span className="boton-salir__texto">Contraseña</span>
-            </Link>
+            {esAdministradora && (
+              <Link className="boton-salir" to={RUTA_CAMBIAR_CLAVE} title="Cambiar contraseña" aria-label="Cambiar contraseña">
+                <IconoLlave />
+                <span className="boton-salir__texto">Contraseña</span>
+              </Link>
+            )}
             <button type="button" className="boton-salir" onClick={() => void cerrarSesion()}>
               <IconoSalir />
               <span className="boton-salir__texto">Cerrar sesión</span>

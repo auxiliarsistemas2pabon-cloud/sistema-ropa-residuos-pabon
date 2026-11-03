@@ -89,10 +89,6 @@ class Usuario(AbstractUser):
     )
     rol = models.CharField(max_length=10, choices=Rol.choices, default=Rol.USUARIO)
     activo = models.BooleanField(default=True)
-    debe_cambiar_clave = models.BooleanField(
-        default=False,
-        help_text="La contraseña la asignó otra persona: se exige cambiarla al entrar (protocolo de seguridad, A4).",
-    )
 
     history = HistoricalRecords()
 

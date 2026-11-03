@@ -14,6 +14,7 @@ from movimientos.services import movimientos_propios
 from .decorators import solo_administradora
 from .forms import (
     AreaServicioForm,
+    AsignarClaveForm,
     CambioDeClaveForm,
     ConfiguracionForm,
     FiltroMovimientosPanel,
@@ -22,12 +23,7 @@ from .forms import (
     UsuarioForm,
 )
 from .models import AreaServicio, GestorExterno, Sede
-from .services import (
-    asignar_clave_temporal,
-    bloqueo_cuenta_tecnica,
-    bloqueo_de_cuenta,
-    bloqueo_restablecer_clave,
-)
+from .services import bloqueo_asignar_clave, bloqueo_cuenta_tecnica, bloqueo_de_cuenta
 
 Usuario = get_user_model()
 
@@ -196,37 +192,32 @@ def cambiar_rol(request, pk):
 
 @solo_administradora
 @require_POST
-def restablecer_clave(request, pk):
-    """Contraseña temporal para quien olvidó la suya (A4). Se muestra una sola
-    vez en la pantalla, para entregarla en persona, y se exige cambiarla al
-    entrar."""
+def asignar_clave(request, pk):
+    """Las contraseñas solo las cambia la Administradora: aquí le pone una
+    nueva a otra persona, desde su fila en la tabla de Usuarios."""
     usuario = get_object_or_404(Usuario, pk=pk)
-    motivo = bloqueo_restablecer_clave(request.user, usuario)
+    motivo = bloqueo_asignar_clave(request.user, usuario)
     if motivo:
         messages.error(request, motivo)
         return redirect("catalogos_parametros")
-    clave = asignar_clave_temporal(usuario)
-    messages.success(
-        request,
-        f"Contraseña temporal de {usuario}: {clave} — entrégala en persona; "
-        "deberá cambiarla al entrar. No se volverá a mostrar.",
-    )
+    formulario = AsignarClaveForm(usuario, data=request.POST)
+    if formulario.is_valid():
+        formulario.save()
+        messages.success(request, f"Contraseña de {usuario} cambiada. Entrégasela en persona.")
+    else:
+        errores = " ".join(error for lista in formulario.errors.values() for error in lista)
+        messages.error(request, f"No se cambió la contraseña de {usuario}: {errores}")
     return redirect("catalogos_parametros")
 
 
-@login_required
+@solo_administradora
 def cambiar_clave(request):
-    """Cambio de la propia contraseña (A4). Es también la única pantalla que
-    puede abrir quien tiene una clave asignada por otra persona (ver
-    core.middleware.CambioDeClaveObligatorio)."""
+    """La Administradora cambia su propia contraseña. Usuario y Personal de
+    servicio no pueden: su contraseña solo la cambia ella."""
     formulario = CambioDeClaveForm(user=request.user, data=request.POST or None)
     if request.method == "POST" and formulario.is_valid():
         usuario = formulario.save()
         update_session_auth_hash(request, usuario)
         messages.success(request, "Contraseña cambiada.")
         return redirect("panel_principal")
-    return render(
-        request,
-        "registration/cambiar_clave.html",
-        {"form": formulario, "obligatorio": request.user.debe_cambiar_clave},
-    )
+    return render(request, "registration/cambiar_clave.html", {"form": formulario})
