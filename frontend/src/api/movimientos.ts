@@ -205,8 +205,8 @@ export async function consultarPuedeEditar(movimientoId: number): Promise<{ pued
  * cada tipo que marcó el servicio (+ bolsas). */
 export type DatosPeso = Record<string, string | number | undefined>;
 
-/** El Personal de servicio no registra el pesaje total: quien recibe la
- * entrega registra ese peso, una sola vez (403 con el motivo si no puede). */
+/** El Personal de servicio solo cuenta prendas y no pesa: quien recibe la
+ * entrega registra su peso, una sola vez (403 con el motivo si no puede). */
 export async function registrarPeso(movimientoId: number, datos: DatosPeso): Promise<MovimientoDetalle> {
   const { data } = await api.post<MovimientoDetalle>(`/movimientos/${movimientoId}/pesar/`, datos);
   return data;

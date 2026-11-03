@@ -24,10 +24,10 @@
   </section>
 
   {% if form.cuenta_prendas %}
-  {# --- Paso 2 (Personal de servicio): prendas y peso opcional por prenda --- #}
+  {# --- Paso 2 (Personal de servicio): solo cuenta prendas, no pesa --- #}
   <section class="paso" data-paso hidden>
     <p class="paso__titulo">Paso 2 de 3 · Prendas</p>
-    {% include "componentes/_detalle_prendas.html" with prendas=prendas campo=form.detalles_ropa etiqueta="Prendas que entregas" %}
+    {% include "componentes/_detalle_prendas.html" with prendas=prendas campo=form.detalles_ropa etiqueta="Prendas que entregas" sin_peso=True %}
     <button type="button" class="boton" data-siguiente data-requiere-prendas>Continuar →</button>
     <button type="button" class="boton boton--texto" data-anterior>← Volver</button>
   </section>

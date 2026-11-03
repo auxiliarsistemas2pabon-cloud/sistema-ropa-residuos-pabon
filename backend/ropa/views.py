@@ -35,9 +35,9 @@ def entrega_ropa_sucia(request):
             pesaje = movimiento.pesajes.first()
             if pesaje is not None:
                 resumen = f"{pesaje.peso_neto} kg"
-            else:  # Personal de servicio: quien recibe registra el peso total
+            else:  # Personal de servicio: cuenta prendas, el peso lo registra quien recibe
                 unidades = sum(d.cantidad_unidades or 0 for d in movimiento.detalles_ropa.all())
-                resumen = f"{unidades} prendas · el peso total lo registra quien recibe"
+                resumen = f"{unidades} prendas · el peso lo registra quien recibe"
             messages.success(
                 request,
                 f"Entrega guardada · {movimiento.area_origen.nombre} · "

@@ -102,7 +102,8 @@ class Usuario(AbstractUser):
 
     @property
     def es_personal_de_servicio(self):
-        """El Personal de servicio no registra el pesaje total de una entrega."""
+        """El Personal de servicio solo cuenta prendas: no pesa nada (el peso
+        de su entrega lo registra quien la recibe)."""
         return self.rol == self.Rol.SERVICIO
 
     def __str__(self):

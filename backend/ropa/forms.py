@@ -130,8 +130,9 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.usuario = usuario
-        # El Personal de servicio puede indicar pesos por prenda, pero no el
-        # pesaje total, la tara ni las bolsas: esos datos los registra quien recibe.
+        # El Personal de servicio solo cuenta prendas: no pesa, así que su
+        # formulario no lleva peso, tara ni bolsas, y exige las prendas. El
+        # operario que recibe la entrega registra el peso después.
         self.cuenta_prendas = bool(usuario is not None and usuario.es_personal_de_servicio)
         if self.cuenta_prendas:
             for campo in ("peso_total", "tara", "cantidad_bolsas"):
@@ -185,13 +186,16 @@ class EntregaRopaSuciaForm(RegistroDiferidoMixin):
                     "detalles_ropa",
                     "Cuenta al menos una prenda: marca cuáles entregas y cuántas son.",
                 )
+            for item in detalles:
+                item["peso_kg"] = None  # no pesan: el peso no se registra por prenda
         cleaned["detalles"] = detalles
         return cleaned
 
     def guardar(self, *, creado_por):
         fecha, hora, estado = self.momento()
-        # Quien registra solo prendas y pesos opcionales por prenda no registra el
-        # pesaje total: queda pendiente hasta que alguien lo pese.
+        # Quien solo cuenta prendas no pesa: el registro no queda completo hasta que
+        # alguien lo pese, así que "Cerrado" (como si ya no faltara nada) sería falso —
+        # queda pendiente aunque no sea, además, una carga diferida.
         if self.cuenta_prendas:
             estado = EstadoMovimiento.PENDIENTE_CARGA
         movimiento = Movimiento.objects.create(

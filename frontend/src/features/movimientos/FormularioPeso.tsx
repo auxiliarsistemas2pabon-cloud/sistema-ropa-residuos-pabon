@@ -14,9 +14,9 @@ interface DatosFormulario {
   cantidad_bolsas: string;
 }
 
-/** Peso total de una entrega pendiente: el Personal de servicio registra
- * prendas o marca tipos de residuo, y quien la recibe la pesa una sola vez.
- * La persona que pesa queda registrada en el pesaje. */
+/** Peso de una entrega que llegó sin pesar: la registró el Personal de servicio
+ * (que solo cuenta prendas o marca tipos de residuo) y quien la recibe la pesa,
+ * una sola vez. La persona que pesa queda registrada en el pesaje. */
 export function FormularioPeso({ movimiento, onCancelar }: { movimiento: MovimientoDetalle; onCancelar: () => void }) {
   return movimiento.tipo_movimiento === "ROPA_SUCIA_ENTREGA" ? (
     <FormularioPesoRopa movimientoId={movimiento.id} onCancelar={onCancelar} />

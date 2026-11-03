@@ -11,7 +11,7 @@ interface AuthContextValue {
    * persona estaba en la aplicación (no cuando ella misma cierra sesión). */
   sesionExpirada: boolean;
   esAdministradora: boolean;
-  /** Personal de servicio: no registra el pesaje total de las entregas. */
+  /** Personal de servicio: solo cuenta prendas, no pesa nada. */
   esPersonalDeServicio: boolean;
   iniciarSesion: (username: string, password: string) => Promise<void>;
   cerrarSesion: () => Promise<void>;

@@ -171,8 +171,9 @@ class NovedadForm(forms.Form):
 
 
 class RegistroPesoForm(forms.Form):
-    """Peso total de una entrega de ropa sucia pendiente. Quien la recibe la
-    pesa y queda registrado en el pesaje (pesado_por)."""
+    """Peso de una entrega de ropa sucia que llegó sin pesar: la registró el
+    Personal de servicio (solo cuenta prendas) y quien la recibe la pesa. La
+    persona que pesa queda en el pesaje (pesado_por)."""
 
     peso_total = forms.DecimalField(
         label="Peso total (kg)", max_digits=8, decimal_places=2, min_value=0,
