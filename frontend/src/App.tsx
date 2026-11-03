@@ -67,7 +67,7 @@ export default function App() {
                 <Route path="/residuos/recoleccion" element={<Recoleccion />} />
               </Route>
 
-              {/* Lo que exige pesar es del operario: el Personal de servicio solo cuenta prendas. */}
+              {/* Las pantallas que exigen el pesaje total son exclusivas del personal de operación. */}
               <Route element={<RutaProtegida paraAdministradora={false} soloOperario />}>
                 <Route path="/ropa/limpia" element={<RopaLimpiaMenu />} />
                 <Route path="/ropa/limpia/recepcion" element={<RecepcionLimpia />} />

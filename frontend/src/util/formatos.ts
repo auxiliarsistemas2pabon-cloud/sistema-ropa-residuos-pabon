@@ -20,8 +20,8 @@ export function etiquetaEstado(estado: string): string {
 }
 
 /** Peso neto de un movimiento para una tabla: las entregas de ropa sucia que
- * registró el Personal de servicio (que solo cuenta prendas) llegan sin pesar
- * hasta que quien las recibe registra el peso. */
+ * registra el Personal de servicio llegan sin pesaje total hasta que quien las
+ * recibe registra ese peso. */
 export function pesoOSinPesar(m: { peso_neto: string | null; tipo_movimiento: string }): string {
   if (m.peso_neto !== null) return m.peso_neto;
   return TIPOS_QUE_SE_PESAN_DESPUES.includes(m.tipo_movimiento) ? "Sin pesar" : "—";

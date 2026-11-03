@@ -194,9 +194,8 @@ def editar_movimiento(request, pk):
 
 @login_required
 def registrar_peso(request, pk):
-    """Peso de una entrega de ropa sucia que llegó sin pesar: la registró el
-    Personal de servicio (solo cuenta prendas) y quien la recibe la pesa,
-    verificando de paso que las prendas coincidan con lo entregado."""
+    """Peso total de una entrega de ropa sucia pendiente. Quien la recibe la
+    pesa y verifica que las prendas coincidan con lo entregado."""
     movimiento = get_object_or_404(
         Movimiento.objects.select_related("sede", "area_origen", "entrega_por", "recibe_por"), pk=pk,
     )

@@ -15,7 +15,7 @@ export function RutaProtegida({
   soloOperario,
 }: {
   paraAdministradora?: boolean;
-  /** Pantallas que exigen pesar: el Personal de servicio solo cuenta prendas. */
+  /** Pantallas que exigen registrar el pesaje total, reservado al personal de operación. */
   soloOperario?: boolean;
 }) {
   const { usuario, cargando, sesionExpirada, esAdministradora, esPersonalDeServicio } = useAuth();

@@ -4,8 +4,8 @@ import type { MovimientoDetalle, MovimientoResumen, Paginado, Rotulo } from "./m
 export interface DatosEntregaRopaSucia {
   sede: number;
   area_origen: number;
-  /** El Personal de servicio solo cuenta prendas: no manda peso, tara ni bolsas
-   * (y sí `detalles_ropa`, obligatorio). Quien recibe pesa después. */
+  /** El Personal de servicio puede indicar el peso por prenda, pero no manda
+   * el peso total, tara ni bolsas: quien recibe registra el pesaje total. */
   peso_total?: string;
   tara?: string;
   /** RF-009: cuántas bolsas o tulas, cuando se controle este dato. */

@@ -184,9 +184,9 @@ def motivo_no_pesable(usuario, movimiento):
     """None si `usuario` puede registrar ahora el peso de `movimiento`; si no,
     el motivo en español (mismo estilo que motivo_no_editable).
 
-    El Personal de servicio solo cuenta prendas y marca tipos de residuo: no
-    pesa, y el peso de su entrega (ropa sucia o residuos) lo registra quien la recibe (el operario asignado como
-    «Recibe»). Una entrega ya pesada no se vuelve a pesar: si el peso quedó
+    El Personal de servicio puede registrar pesos por prenda, pero no el
+    pesaje total de las entregas: lo registra quien la recibe (el operario
+    asignado como «Recibe»). Una entrega ya pesada no se vuelve a pesar: si quedó
     mal, se corrige (RF-041), no se duplica."""
     if movimiento.tipo_movimiento not in TIPOS_QUE_SE_PESAN_DESPUES:
         return "Solo las entregas de ropa sucia y de residuos se pesan después de registrarlas."

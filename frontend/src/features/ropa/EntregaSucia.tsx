@@ -33,7 +33,7 @@ const PASOS_CON_PESO = [
   { numero: 3, nombre: "Cierre" },
 ];
 
-// El Personal de servicio solo cuenta prendas y no pesa: su paso 2 son las prendas.
+// El Personal de servicio registra prendas y pesos opcionales por prenda en su paso 2.
 const PASOS_SOLO_CONTEO = [
   { numero: 1, nombre: "Origen" },
   { numero: 2, nombre: "Prendas" },
@@ -130,7 +130,7 @@ export function EntregaSucia() {
     mutacion.mutate({
       sede: Number(datos.sede),
       area_origen: Number(datos.area_origen),
-      // Quien solo cuenta prendas no manda peso, tara ni bolsas: los registra quien recibe.
+      // El personal de servicio puede indicar pesos por prenda, pero no el pesaje total.
       ...(cuentaPrendas
         ? {}
         : {
@@ -214,7 +214,6 @@ export function EntregaSucia() {
                 setErrorDetalles("");
               }}
               error={errorDetalles}
-              sinPeso
             />
             <button type="button" className="boton" onClick={() => void irSiguiente()}>
               Continuar →

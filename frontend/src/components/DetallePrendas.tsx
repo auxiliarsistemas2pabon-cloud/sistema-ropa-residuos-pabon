@@ -16,8 +16,6 @@ interface Props {
   onCambiar: (siguiente: DetallePrendaItem[]) => void;
   /** Mensaje de validación del formulario que la contiene (p. ej. faltan cantidades). */
   error?: string;
-  /** Personal de servicio: solo cuenta prendas, sin casilla de peso en kg. */
-  sinPeso?: boolean;
 }
 
 /** Nombres de las prendas marcadas cuya cantidad falta o es menor a 1: hay que
@@ -32,7 +30,7 @@ export function prendasSinCantidad(valor: DetallePrendaItem[], prendas: Prenda[]
  * checklist donde cada prenda es una fila con casilla + cantidad + peso en
  * kg en la misma fila — espejo del widget vanilla JS de las plantillas
  * Django (iniciarDetallePrendas en static/js/app.js). */
-export function DetallePrendas({ etiqueta, prendas, valor, onCambiar, error, sinPeso = false }: Props) {
+export function DetallePrendas({ etiqueta, prendas, valor, onCambiar, error }: Props) {
   const raizRef = useRef<HTMLDivElement>(null);
 
   // El mensaje aparece en medio de un formulario largo: se lleva a la vista.
@@ -101,20 +99,18 @@ export function DetallePrendas({ etiqueta, prendas, valor, onCambiar, error, sin
                 value={marcada ? String(item?.cantidad_unidades ?? "") : ""}
                 onChange={(e) => alCambiarCantidad(p.id, e.target.value)}
               />
-              {!sinPeso && (
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
-                  className="detalle-prendas__peso-inline"
-                  placeholder="Peso (kg)"
-                  aria-label={`Peso en kg de ${p.nombre}`}
-                  disabled={!marcada}
-                  value={marcada && item?.peso_kg !== undefined ? String(item.peso_kg) : ""}
-                  onChange={(e) => alCambiarPeso(p.id, e.target.value)}
-                />
-              )}
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                className="detalle-prendas__peso-inline"
+                placeholder="Peso (kg)"
+                aria-label={`Peso en kg de ${p.nombre}`}
+                disabled={!marcada}
+                value={marcada && item?.peso_kg !== undefined ? String(item.peso_kg) : ""}
+                onChange={(e) => alCambiarPeso(p.id, e.target.value)}
+              />
             </li>
           );
         })}
@@ -125,9 +121,8 @@ export function DetallePrendas({ etiqueta, prendas, valor, onCambiar, error, sin
         </p>
       )}
       <p className="campo__ayuda">
-        {sinPeso
-          ? "Marca cada prenda que entregas y escribe cuántas son. Tú solo cuentas: el peso lo registra quien recibe la entrega."
-          : "Marca las prendas que necesites y escribe la cantidad y, si la pesas por separado, el peso en kg de cada una. Es opcional — solo si necesitas control por unidades o por peso en este registro."}
+        Marca las prendas que entregas, escribe la cantidad y, si la pesas por separado, el peso en kg de cada una.
+        El peso por prenda es opcional.
       </p>
     </div>
   );

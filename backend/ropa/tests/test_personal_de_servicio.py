@@ -1,6 +1,5 @@
-"""El Personal de servicio solo cuenta prendas: no pesa nada. Su entrega de ropa
-sucia lleva prendas y cantidades, sin peso; quien la recibe (el operario) la
-verifica y registra el peso. Todo lo que exige pesar es del operario."""
+"""El Personal de servicio registra cantidades y pesos opcionales por prenda.
+El pesaje total de la entrega lo registra quien la recibe (el operario)."""
 import json
 from datetime import time
 
@@ -58,9 +57,9 @@ def entrega_de_servicio(client, servicio, usuario, sede, area, prendas):
     return Movimiento.objects.get(tipo_movimiento=TipoMovimiento.ROPA_SUCIA_ENTREGA)
 
 
-# --- La entrega del Personal de servicio: prendas, sin peso ------------------------
+# --- La entrega del Personal de servicio: prendas y peso opcional por prenda --------
 
-def test_formulario_de_servicio_no_pide_peso(client, servicio, area):
+def test_formulario_de_servicio_permite_peso_por_prenda(client, servicio, area):
     client.force_login(servicio)
     resp = client.get(reverse("ropa:entrega_sucia"))
     cuerpo = resp.content.decode()
@@ -69,7 +68,7 @@ def test_formulario_de_servicio_no_pide_peso(client, servicio, area):
     assert not {"peso_total", "tara", "cantidad_bolsas"} & set(form.fields)
     assert "Paso 2 de 3 · Prendas" in cuerpo
     assert "Peso neto" not in cuerpo
-    assert "Peso (kg)" not in cuerpo  # ni siquiera el peso por prenda
+    assert "Peso (kg)" in cuerpo
 
 
 def test_formulario_del_operario_sigue_pidiendo_peso(client, usuario, area):
@@ -84,7 +83,7 @@ def test_entrega_de_servicio_guarda_prendas_y_ningun_pesaje(client, servicio, us
     client.force_login(servicio)
     resp = client.post(reverse("ropa:entrega_sucia"), {
         "sede": sede.pk, "area_origen": area.pk, "recibe_por": usuario.pk,
-        "detalles_ropa": _detalles(prendas, con_peso=True),  # aunque mande pesos, se descartan
+        "detalles_ropa": _detalles(prendas, con_peso=True),
         "peso_total": "99", "tara": "1",  # ni peso ni tara
     }, follow=True)
     assert resp.status_code == 200
@@ -93,7 +92,7 @@ def test_entrega_de_servicio_guarda_prendas_y_ningun_pesaje(client, servicio, us
     assert not Pesaje.objects.exists()
     detalles = list(mov.detalles_ropa.order_by("prenda__nombre"))
     assert [d.cantidad_unidades for d in detalles] == [5, 6]
-    assert all(d.peso_kg is None for d in detalles)
+    assert [d.peso_kg for d in detalles] == [Decimal("2.50"), Decimal("2.50")]
     assert "prendas" in resp.content.decode()
 
 
@@ -134,7 +133,7 @@ def test_entrega_de_servicio_por_la_api(api_client, servicio, usuario, sede, are
     assert resp.status_code == 201
     assert resp.data["pesajes"] == []
     assert len(resp.data["detalles_ropa"]) == 2
-    assert all(d["peso_kg"] is None for d in resp.data["detalles_ropa"])
+    assert [d["peso_kg"] for d in resp.data["detalles_ropa"]] == ["2.50", "2.50"]
 
 
 def test_el_operario_sin_peso_sigue_rechazado(api_client, usuario, sede, area):
